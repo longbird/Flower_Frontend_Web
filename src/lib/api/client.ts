@@ -1,0 +1,110 @@
+import { useAuthStore } from '@/lib/auth/store';
+import type { TokenRefreshResponse } from '@/lib/types/auth';
+
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+// 개발환경: Next.js rewrites 프록시를 통해 CORS 우회
+const API_BASE_URL = RAW_API_BASE ? '/api/proxy' : '';
+
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshAccessToken(): Promise<string> {
+  const { refreshToken, setTokens, logout } = useAuthStore.getState();
+
+  if (!refreshToken) {
+    logout();
+    throw new Error('No refresh token');
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!res.ok) {
+      logout();
+      throw new Error('Token refresh failed');
+    }
+
+    const data: TokenRefreshResponse = await res.json();
+    setTokens(data.accessToken, data.refreshToken);
+    return data.accessToken;
+  } catch (e) {
+    logout();
+    throw e;
+  }
+}
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public statusText: string,
+    public data?: unknown
+  ) {
+    const msg =
+      data && typeof data === 'object' && 'message' in data
+        ? String((data as Record<string, unknown>).message)
+        : statusText;
+    super(msg);
+    this.name = 'ApiError';
+  }
+}
+
+export async function api<T = unknown>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const { accessToken } = useAuthStore.getState();
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+  };
+
+  // Don't set Content-Type for FormData (browser sets multipart boundary)
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  let res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  // 401 -> try refresh
+  if (res.status === 401 && !path.includes('/auth/')) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshPromise = refreshAccessToken().finally(() => {
+        isRefreshing = false;
+        refreshPromise = null;
+      });
+    }
+
+    try {
+      const newToken = await refreshPromise!;
+      headers['Authorization'] = `Bearer ${newToken}`;
+      res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+    } catch {
+      throw new ApiError(401, 'Unauthorized');
+    }
+  }
+
+  if (!res.ok) {
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {}
+    throw new ApiError(res.status, res.statusText, data);
+  }
+
+  // 204 No Content
+  if (res.status === 204) return undefined as T;
+
+  return res.json();
+}

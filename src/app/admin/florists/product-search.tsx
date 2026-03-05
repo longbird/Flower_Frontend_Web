@@ -1,0 +1,457 @@
+'use client';
+
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { searchAllPhotos } from '@/lib/api/admin';
+import type { FloristPhotoSearchItem, PhotoCategory } from '@/lib/types/florist';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+const CATEGORIES: { code: PhotoCategory | ''; label: string }[] = [
+  { code: '', label: '전체' },
+  { code: 'CELEBRATION', label: '축하' },
+  { code: 'CONDOLENCE', label: '근조' },
+  { code: 'OBJET', label: '오브제' },
+  { code: 'ORIENTAL', label: '동양란' },
+  { code: 'WESTERN', label: '서양란' },
+  { code: 'FLOWER', label: '꽃' },
+  { code: 'FOLIAGE', label: '관엽' },
+  { code: 'OTHER', label: '기타' },
+];
+
+const GRADES = [
+  { code: '', label: '전체' },
+  { code: 'PREMIUM', label: '프리미엄' },
+  { code: 'HIGH', label: '고급형' },
+  { code: 'STANDARD', label: '실속형' },
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  CELEBRATION: 'bg-pink-500/90 text-white',
+  CONDOLENCE: 'bg-slate-700 text-white',
+  OBJET: 'bg-purple-500/90 text-white',
+  ORIENTAL: 'bg-teal-500/90 text-white',
+  WESTERN: 'bg-indigo-500/90 text-white',
+  FLOWER: 'bg-rose-500/90 text-white',
+  FOLIAGE: 'bg-emerald-500/90 text-white',
+  RICE: 'bg-amber-600/90 text-white',
+  FRUIT: 'bg-orange-500/90 text-white',
+  OTHER: 'bg-slate-500/90 text-white',
+};
+
+const GRADE_COLORS: Record<string, string> = {
+  PREMIUM: 'bg-amber-700/90 text-white',
+  HIGH: 'bg-blue-600/90 text-white',
+  STANDARD: 'bg-teal-600/90 text-white',
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
+function photoUrl(url: string) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${API_BASE}${url}`;
+}
+
+function categoryLabel(code: string) {
+  return CATEGORIES.find((c) => c.code === code)?.label || code;
+}
+
+export default function ProductSearch() {
+  const router = useRouter();
+  const [page, setPage] = useState(1);
+  const [category, setCategory] = useState('');
+  const [grade, setGrade] = useState('');
+  const [isRecommended, setIsRecommended] = useState(false);
+  const [memo, setMemo] = useState('');
+  const [serviceArea, setServiceArea] = useState('');
+  const [selectedItem, setSelectedItem] = useState<FloristPhotoSearchItem | null>(null);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const pageSize = 40;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['allPhotos', page, category, grade, isRecommended, memo, serviceArea],
+    queryFn: () =>
+      searchAllPhotos({
+        page,
+        size: pageSize,
+        category: category || undefined,
+        grade: grade || undefined,
+        isRecommended: isRecommended || undefined,
+        memo: memo || undefined,
+        serviceArea: serviceArea || undefined,
+      }),
+  });
+
+  const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
+  const items = data?.data ?? [];
+
+  const handleSearch = () => {
+    setPage(1);
+  };
+
+  const handleReset = () => {
+    setCategory('');
+    setGrade('');
+    setIsRecommended(false);
+    setMemo('');
+    setServiceArea('');
+    setPage(1);
+  };
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {/* Filter */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="flex flex-wrap gap-2 items-end w-full">
+          <div>
+            <label className="text-xs font-medium text-slate-500 block mb-1">상품구분</label>
+            <select
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-500 block mb-1">등급</label>
+            <select
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+            >
+              {GRADES.map((g) => (
+                <option key={g.code} value={g.code}>{g.label}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={() => { setIsRecommended(!isRecommended); setPage(1); }}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+              isRecommended
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-600/20'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+            )}
+          >
+            추천
+          </button>
+          <div className="flex-1 min-w-0 w-full sm:w-auto sm:min-w-[120px] sm:max-w-[200px]">
+            <label className="text-xs font-medium text-slate-500 block mb-1">메모 검색</label>
+            <Input
+              placeholder="메모"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            />
+          </div>
+          <div className="flex-1 min-w-0 w-full sm:w-auto sm:min-w-[120px] sm:max-w-[200px]">
+            <label className="text-xs font-medium text-slate-500 block mb-1">서비스 지역</label>
+            <Input
+              placeholder="서비스 지역"
+              value={serviceArea}
+              onChange={(e) => setServiceArea(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            />
+          </div>
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm" onClick={handleSearch}>검색</Button>
+          <Button size="sm" variant="outline" className="border-slate-200 hover:bg-slate-50" onClick={handleReset}>초기화</Button>
+        </div>
+      </div>
+
+      {/* Result count */}
+      {data && (
+        <div className="text-sm text-slate-500 font-medium">총 <span className="text-emerald-700">{data.total}</span>개</div>
+      )}
+
+      {isLoading && (
+        <div className="text-center py-12 text-slate-400">
+          <div className="inline-block w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2" />
+          <p className="text-sm">로딩 중...</p>
+        </div>
+      )}
+
+      {/* Product grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {items.map((item) => (
+          <ProductCard
+            key={item.id}
+            item={item}
+            onClick={() => setSelectedItem(item)}
+            onFloristClick={() => router.push(`/admin/florists/${item.floristId}`)}
+          />
+        ))}
+      </div>
+
+      {items.length === 0 && !isLoading && (
+        <div className="text-center py-16 text-slate-300">
+          <svg className="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <p className="text-sm text-slate-400">검색 결과가 없습니다.</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {data && totalPages > 1 && (
+        <div className="flex items-center justify-between flex-col sm:flex-row gap-2 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm">
+          <span className="text-sm text-slate-500">
+            페이지 <span className="font-medium text-slate-700">{data.page}</span>/{totalPages}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="border-slate-200" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              이전
+            </Button>
+            <Button variant="outline" size="sm" className="border-slate-200" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              다음
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Product detail dialog */}
+      <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="text-slate-800">상품 상세</DialogTitle>
+          </DialogHeader>
+          {selectedItem && (
+            <ProductDetail
+              item={selectedItem}
+              onViewFull={() => {
+                setViewerUrl(photoUrl(selectedItem.fileUrl));
+              }}
+              onFloristClick={() => {
+                setSelectedItem(null);
+                router.push(`/admin/florists/${selectedItem.floristId}`);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Full-screen image viewer */}
+      <Dialog open={!!viewerUrl} onOpenChange={() => setViewerUrl(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black border-none">
+          {viewerUrl && (
+            <div className="relative w-full h-[90vh]">
+              <Image
+                src={viewerUrl}
+                alt="전체 화면"
+                fill
+                className="object-contain"
+                unoptimized
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ProductCard({
+  item,
+  onClick,
+  onFloristClick,
+}: {
+  item: FloristPhotoSearchItem;
+  onClick: () => void;
+  onFloristClick: () => void;
+}) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group">
+      {/* Image */}
+      <div className="relative aspect-[3/4] cursor-pointer overflow-hidden" onClick={onClick}>
+        <Image
+          src={photoUrl(item.fileUrl)}
+          alt={item.memo || '상품 사진'}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+          unoptimized
+        />
+        {/* Category badge */}
+        <span className={cn(
+          'absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-sm',
+          CATEGORY_COLORS[item.category] || 'bg-slate-500/90 text-white'
+        )}>
+          {categoryLabel(item.category)}
+        </span>
+        {/* Recommended badge */}
+        {item.isRecommended && (
+          <span className="absolute top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm">
+            추천
+          </span>
+        )}
+        {/* Grade badge */}
+        {item.grade && (
+          <span className={cn(
+            'absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-sm',
+            GRADE_COLORS[item.grade] || 'bg-slate-500/90 text-white'
+          )}>
+            {GRADES.find((g) => g.code === item.grade)?.label || item.grade}
+          </span>
+        )}
+      </div>
+      {/* Info */}
+      <div className="p-2.5 space-y-1">
+        {item.memo && (
+          <div className="text-xs truncate text-slate-700 font-medium">{item.memo}</div>
+        )}
+        {item.sellingPrice != null && (
+          <div className="text-sm font-bold text-emerald-700">
+            {item.sellingPrice.toLocaleString()}원
+          </div>
+        )}
+        {item.costPrice != null && (
+          <div className="text-[10px] text-slate-400">
+            입금가 {item.costPrice.toLocaleString()}원
+          </div>
+        )}
+        <div
+          className="text-xs text-emerald-600 hover:text-emerald-800 cursor-pointer truncate transition-colors font-medium"
+          onClick={(e) => { e.stopPropagation(); onFloristClick(); }}
+        >
+          {item.floristName}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductDetail({
+  item,
+  onViewFull,
+  onFloristClick,
+}: {
+  item: FloristPhotoSearchItem;
+  onViewFull: () => void;
+  onFloristClick: () => void;
+}) {
+  return (
+    <div className="flex flex-col md:flex-row gap-4">
+      {/* Image */}
+      <div
+        className="relative w-full md:w-[40%] aspect-[3/4] rounded-xl overflow-hidden border border-slate-200 cursor-pointer flex-shrink-0 group"
+        onClick={onViewFull}
+      >
+        <Image
+          src={photoUrl(item.fileUrl)}
+          alt={item.memo || '상품 사진'}
+          fill
+          className="object-contain group-hover:scale-105 transition-transform duration-300"
+          unoptimized
+        />
+        <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+          크게 보기
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 space-y-5">
+        <div>
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">상품 정보</h3>
+          <dl className="text-sm space-y-2.5">
+            <div className="flex gap-2">
+              <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">상품구분</dt>
+              <dd>
+                <span className={cn(
+                  'px-2 py-0.5 rounded-md text-[11px] font-semibold',
+                  CATEGORY_COLORS[item.category] || 'bg-slate-500/90 text-white'
+                )}>
+                  {categoryLabel(item.category)}
+                </span>
+              </dd>
+            </div>
+            {item.grade && (
+              <div className="flex gap-2">
+                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">등급</dt>
+                <dd>
+                  <span className={cn(
+                    'px-2 py-0.5 rounded-md text-[11px] font-semibold',
+                    GRADE_COLORS[item.grade] || 'bg-slate-500/90 text-white'
+                  )}>
+                    {GRADES.find((g) => g.code === item.grade)?.label || item.grade}
+                  </span>
+                </dd>
+              </div>
+            )}
+            {item.isRecommended && (
+              <div className="flex gap-2">
+                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">추천</dt>
+                <dd className="text-amber-600 font-semibold">추천 상품</dd>
+              </div>
+            )}
+            {item.memo && (
+              <div className="flex gap-2">
+                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">메모</dt>
+                <dd className="text-slate-700">{item.memo}</dd>
+              </div>
+            )}
+            {item.sellingPrice != null && (
+              <div className="flex gap-2">
+                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">판매가</dt>
+                <dd className="text-emerald-700 font-bold">{item.sellingPrice.toLocaleString()}원</dd>
+              </div>
+            )}
+            {item.costPrice != null && (
+              <div className="flex gap-2">
+                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">입금가</dt>
+                <dd className="text-slate-600">{item.costPrice.toLocaleString()}원</dd>
+              </div>
+            )}
+          </dl>
+        </div>
+
+        <div className="border-t border-slate-100 pt-4">
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">화원 정보</h3>
+          <dl className="text-sm space-y-2.5">
+            <div className="flex gap-2">
+              <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">화원명</dt>
+              <dd>
+                <span
+                  className="text-emerald-600 hover:text-emerald-800 cursor-pointer font-medium transition-colors"
+                  onClick={onFloristClick}
+                >
+                  {item.floristName}
+                </span>
+              </dd>
+            </div>
+            {item.floristPhone && (
+              <div className="flex gap-2">
+                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">전화번호</dt>
+                <dd className="text-slate-700">{item.floristPhone}</dd>
+              </div>
+            )}
+            {item.floristAddress && (
+              <div className="flex gap-2">
+                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">주소</dt>
+                <dd className="text-slate-700">{item.floristAddress}</dd>
+              </div>
+            )}
+            {item.floristServiceAreas.length > 0 && (
+              <div className="flex gap-2">
+                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">서비스지역</dt>
+                <dd className="text-emerald-600 font-medium">{item.floristServiceAreas.join(', ')}</dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}
