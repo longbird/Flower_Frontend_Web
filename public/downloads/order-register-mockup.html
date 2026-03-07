@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>달려라 꽃배달 - 주문 등록 화면 디자인</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; color: #1e293b; font-size: 15px; line-height: 1.5; }
+
+  .page { max-width: 960px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* Header */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-header h1 { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .page-header h1 .icon { width: 28px; height: 28px; background: #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; }
+  .header-actions { display: flex; gap: 8px; }
+  .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+  .btn-primary { background: #10b981; color: #fff; }
+  .btn-primary:hover { background: #059669; }
+  .btn-lg { padding: 12px 32px; font-size: 16px; }
+
+  /* Quick paste bar */
+  .quick-paste { background: #fff; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; }
+  .quick-paste .label { font-size: 13px; font-weight: 600; color: #64748b; white-space: nowrap; }
+  .quick-paste textarea { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 13px; resize: none; height: 38px; outline: none; }
+  .quick-paste textarea:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+  .quick-paste .btn { flex-shrink: 0; }
+
+  /* Sections */
+  .section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+  .section-num { width: 24px; height: 24px; background: #10b981; color: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .section-title { font-size: 16px; font-weight: 700; }
+  .section-badge { background: #fef3c7; color: #92400e; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+
+  /* Form elements */
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+  .field-label .req { color: #ef4444; }
+  .field-input { width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: #fff; }
+  .field-input:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+  .field-input-sm { padding: 7px 10px; font-size: 13px; }
+  .field-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+  .field-textarea { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; resize: vertical; min-height: 60px; font-family: inherit; }
+
+  /* Product type chips */
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #e2e8f0; background: #fff; color: #475569; transition: all 0.15s; }
+  .chip.active { background: #10b981; color: #fff; border-color: #10b981; }
+  .chip.category-celebration { border-color: #fbbf24; }
+  .chip.category-celebration.active { background: #f59e0b; border-color: #f59e0b; }
+  .chip.category-condolence { border-color: #94a3b8; }
+  .chip.category-condolence.active { background: #64748b; border-color: #64748b; }
+  .chip.category-plant { border-color: #34d399; }
+  .chip.category-plant.active { background: #10b981; border-color: #10b981; }
+  .chip.category-etc { border-color: #93c5fd; }
+  .chip.category-etc.active { background: #3b82f6; border-color: #3b82f6; }
+
+  /* Radio group */
+  .radio-group { display: flex; gap: 8px; }
+  .radio-pill { padding: 7px 16px; border-radius: 20px; font-size: 13px; border: 1px solid #e2e8f0; cursor: pointer; background: #fff; }
+  .radio-pill.active { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; font-weight: 600; }
+
+  /* Price block */
+  .price-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .price-label { font-size: 13px; color: #64748b; width: 80px; flex-shrink: 0; }
+  .price-input { width: 140px; text-align: right; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 15px; font-weight: 600; }
+  .price-unit { font-size: 13px; color: #64748b; }
+  .price-total { background: #f0fdf4; border: 2px solid #10b981; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .price-total-label { font-size: 15px; font-weight: 700; color: #065f46; }
+  .price-total-value { font-size: 22px; font-weight: 800; color: #059669; }
+
+  /* Checkbox group */
+  .check-group { display: flex; flex-wrap: wrap; gap: 10px; }
+  .check-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .check-box { width: 18px; height: 18px; border: 2px solid #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .check-box.checked { background: #10b981; border-color: #10b981; color: #fff; font-size: 11px; }
+
+  /* Inline row */
+  .inline-row { display: flex; align-items: flex-end; gap: 8px; }
+  .inline-row .field { flex: 1; margin-bottom: 0; }
+
+  /* Preset buttons */
+  .preset-group { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .preset-btn { padding: 4px 10px; border-radius: 6px; font-size: 11px; background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; cursor: pointer; }
+  .preset-btn:hover { background: #e2e8f0; }
+
+  /* Address row */
+  .addr-row { display: flex; gap: 8px; align-items: flex-end; }
+  .addr-row .field { flex: 1; margin-bottom: 0; }
+  .btn-search { background: #3b82f6; color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; white-space: nowrap; cursor: pointer; }
+
+  /* Conditional fields */
+  .conditional { background: #fefce8; border: 1px dashed #fbbf24; border-radius: 8px; padding: 12px 16px; margin-top: 12px; }
+  .conditional-label { font-size: 11px; font-weight: 600; color: #92400e; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+
+  /* Option items */
+  .option-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .option-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; background: #fff; }
+  .option-item.selected { background: #eff6ff; border-color: #93c5fd; }
+  .option-price { font-size: 12px; color: #3b82f6; font-weight: 600; margin-left: auto; }
+
+  /* Footer */
+  .form-footer { display: flex; justify-content: center; gap: 12px; margin-top: 24px; padding-top: 20px; }
+
+  /* Divider */
+  .divider { display: flex; align-items: center; gap: 8px; margin: 8px 0; color: #94a3b8; font-size: 12px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+
+  /* Helper text */
+  .helper { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+  /* Badge */
+  .badge-new { background: #dbeafe; color: #1d4ed8; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700; }
+
+  /* Watermark */
+  .watermark { text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>
+      <span class="icon">+</span>
+      주문 등록
+    </h1>
+    <div class="header-actions">
+      <button class="btn btn-outline">&#x1f4cb; 최근 발주 불러오기</button>
+      <button class="btn btn-outline">&#x21bb; 초기화</button>
+    </div>
+  </div>
+
+  <!-- Quick Paste Bar -->
+  <div class="quick-paste">
+    <span class="label">&#x1f4e8; 메시지 파싱</span>
+    <textarea placeholder="카카오톡/SMS 주문 메시지를 붙여넣으면 자동으로 필드를 채웁니다..."></textarea>
+    <button class="btn btn-primary">파싱</button>
+  </div>
+
+  <!-- Section 1: Product Type -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">1</span>
+      <span class="section-title">상품 선택</span>
+    </div>
+
+    <div class="field">
+      <div class="field-label">상품 유형 <span class="req">*</span></div>
+      <div class="chip-group">
+        <span class="chip category-celebration active">축하 3단</span>
+        <span class="chip category-celebration">축하 4단</span>
+        <span class="chip category-celebration">축하 5단</span>
+        <span class="chip category-celebration">실속축하</span>
+        <span class="chip category-condolence">근조 3단</span>
+        <span class="chip category-condolence">근조 4단</span>
+        <span class="chip category-condolence">근조 5단</span>
+        <span class="chip category-condolence">실속근조</span>
+        <span class="chip category-etc">오브제</span>
+        <span class="chip category-plant">동양란</span>
+        <span class="chip category-plant">서양란</span>
+        <span class="chip category-etc">꽃바구니</span>
+        <span class="chip category-etc">꽃다발</span>
+        <span class="chip category-etc">꽃상자</span>
+        <span class="chip category-plant">관엽식물</span>
+        <span class="chip category-etc">쌀화환</span>
+        <span class="chip category-etc">과일바구니</span>
+        <span class="chip">기타</span>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-top: 14px;">
+      <div class="field">
+        <div class="field-label">상세 상품명</div>
+        <input class="field-input field-input-sm" placeholder="예: 장미 혼합 축하화환" />
+      </div>
+      <div class="field">
+        <div class="field-label">수량</div>
+        <input class="field-input field-input-sm" value="1" style="width:80px; text-align:center;" /> <span style="font-size:13px; color:#64748b;">EA</span>
+      </div>
+      <div class="field">
+        <div class="field-label">상품 사진</div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-outline" style="font-size:12px; padding:6px 10px;">URL 입력</button>
+          <button class="btn btn-outline" style="font-size:12px; padding:6px 10px;">&#x1f4f7; 파일 업로드</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2-3: Sender & Receiver -->
+  <div class="grid-2">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num">2</span>
+        <span class="section-title">주문자 (보내는 분)</span>
+      </div>
+      <div class="field">
+        <div class="field-label">이름</div>
+        <input class="field-input" placeholder="주문자 이름" />
+      </div>
+      <div class="field">
+        <div class="field-label">전화번호</div>
+        <input class="field-input" placeholder="02-1234-5678" />
+      </div>
+      <div class="field">
+        <div class="field-label">핸드폰</div>
+        <input class="field-input" placeholder="010-1234-5678" />
+        <div class="helper">자동 하이픈 입력</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-num">3</span>
+        <span class="section-title">받는 분</span>
+      </div>
+      <div class="field">
+        <div class="field-label">이름 <span class="req">*</span></div>
+        <input class="field-input" placeholder="받는 분 이름" />
+      </div>
+      <div class="field">
+        <div class="field-label">전화번호 <span class="req">*</span></div>
+        <input class="field-input" placeholder="02-1234-5678" />
+      </div>
+      <div class="field">
+        <div class="field-label">핸드폰</div>
+        <input class="field-input" placeholder="010-1234-5678" />
+        <div class="helper">자동 하이픈 입력</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Delivery -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">4</span>
+      <span class="section-title">배달 정보</span>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <div class="field-label">배달일 <span class="req">*</span></div>
+        <input class="field-input" type="date" value="2026-03-07" />
+      </div>
+      <div class="field">
+        <div class="field-label">배달 시간 <span class="req">*</span></div>
+        <select class="field-input field-select">
+          <option>지금 즉시배송</option>
+          <option>아침 일찍</option>
+          <option selected>오전 10시</option>
+          <option>오전 11시</option>
+          <option>낮 12시</option>
+          <option>오후 1시</option>
+          <option>오후 2시</option>
+          <option>오후 3시</option>
+          <option>오후 4시~</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="addr-row" style="margin-top: 4px;">
+      <div class="field" style="flex:2">
+        <div class="field-label">배달 주소 <span class="req">*</span></div>
+        <input class="field-input" placeholder="주소를 검색하세요" value="서울 송파구 올림픽로 300" />
+      </div>
+      <button class="btn-search">&#x1f50d; 주소 검색</button>
+    </div>
+    <div class="field" style="margin-top: 6px;">
+      <div class="field-label">상세 주소</div>
+      <input class="field-input" placeholder="동/층/호수, 건물명 등" value="잠실 롯데월드타워 3층" />
+    </div>
+
+    <!-- Conditional: Funeral fields -->
+    <div class="conditional">
+      <div class="conditional-label">&#x26a0; 근조 선택 시 자동 표시</div>
+      <div class="grid-4">
+        <div class="field">
+          <div class="field-label">장례식장</div>
+          <input class="field-input field-input-sm" placeholder="장례식장명" />
+        </div>
+        <div class="field">
+          <div class="field-label">호실</div>
+          <input class="field-input field-input-sm" placeholder="예: 3호실" />
+        </div>
+        <div class="field">
+          <div class="field-label">고인</div>
+          <input class="field-input field-input-sm" placeholder="고인 성함" />
+        </div>
+        <div class="field">
+          <div class="field-label">상주</div>
+          <input class="field-input field-input-sm" placeholder="상주 성함" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Ribbon & Card Message -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">5</span>
+      <span class="section-title">리본 / 카드 메시지</span>
+    </div>
+
+    <div class="field">
+      <div class="field-label">메시지 유형</div>
+      <div class="radio-group">
+        <span class="radio-pill active">리본만</span>
+        <span class="radio-pill">카드만</span>
+        <span class="radio-pill">리본 + 카드</span>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top: 4px;">
+      <div class="field-label">경조사어</div>
+      <div class="preset-group">
+        <span class="preset-btn">축 결혼</span>
+        <span class="preset-btn">축 개업</span>
+        <span class="preset-btn">축 승진</span>
+        <span class="preset-btn">축 취임</span>
+        <span class="preset-btn">축 당선</span>
+        <span class="preset-btn">축하합니다</span>
+        <span class="preset-btn">삼가 고인의 명복을 빕니다</span>
+        <span class="preset-btn">사랑합니다</span>
+        <span class="preset-btn">생일축하합니다</span>
+        <span class="preset-btn">쾌유를 빕니다</span>
+      </div>
+      <input class="field-input" style="margin-top: 6px;" placeholder="경조사어를 선택하거나 직접 입력" value="축 개업" />
+    </div>
+
+    <div class="grid-2" style="margin-top: 4px;">
+      <div class="field">
+        <div class="field-label">리본 좌측 (보내는 분)</div>
+        <input class="field-input" placeholder="예: (주)삼성전자 대표이사 홍길동" />
+      </div>
+      <div class="field">
+        <div class="field-label">리본 우측 (보내는 분)</div>
+        <input class="field-input" placeholder="추가 보내는 분 (선택사항)" />
+      </div>
+    </div>
+
+    <div class="field" style="margin-top: 4px;">
+      <div class="field-label">카드 메시지 <span class="badge-new">선택</span></div>
+      <select class="field-input field-select field-input-sm" style="width:200px; margin-bottom:6px;">
+        <option>메시지 카테고리 선택</option>
+        <option>사랑의 메시지</option>
+        <option>생일축하</option>
+        <option>결혼기념일</option>
+        <option>승진/영전</option>
+        <option>개업/창립</option>
+        <option>조문/애도</option>
+        <option>병문안/위로</option>
+        <option>입학/졸업</option>
+      </select>
+      <textarea class="field-textarea" rows="3" placeholder="카드에 들어갈 메시지를 입력하세요..."></textarea>
+    </div>
+  </div>
+
+  <!-- Section 6: Pricing -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">6</span>
+      <span class="section-title">금액</span>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="price-row">
+          <span class="price-label">상품 금액</span>
+          <input class="price-input" value="100,000" />
+          <span class="price-unit">원</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">추가 배송비</span>
+          <input class="price-input" value="0" />
+          <span class="price-unit">원</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">옵션 금액</span>
+          <input class="price-input" value="15,000" style="background:#f8fafc;" readonly />
+          <span class="price-unit">원 (자동계산)</span>
+        </div>
+      </div>
+      <div>
+        <div class="field-label" style="margin-bottom: 6px;">옵션 상품</div>
+        <div class="option-grid">
+          <div class="option-item selected">
+            <div class="check-box checked">&#10003;</div>
+            케익
+            <span class="option-price">15,000</span>
+          </div>
+          <div class="option-item">
+            <div class="check-box"></div>
+            샴페인
+            <span class="option-price">-</span>
+          </div>
+          <div class="option-item">
+            <div class="check-box"></div>
+            사탕
+            <span class="option-price">-</span>
+          </div>
+          <div class="option-item">
+            <div class="check-box"></div>
+            초콜렛
+            <span class="option-price">-</span>
+          </div>
+          <div class="option-item">
+            <div class="check-box"></div>
+            떡케익
+            <span class="option-price">-</span>
+          </div>
+          <div class="option-item">
+            <div class="check-box"></div>
+            와인
+            <span class="option-price">-</span>
+          </div>
+          <div class="option-item">
+            <div class="check-box"></div>
+            빼빼로
+            <span class="option-price">-</span>
+          </div>
+          <div class="option-item">
+            <div class="check-box"></div>
+            기타
+            <span class="option-price">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="price-total">
+      <span class="price-total-label">총 결제액 (옵션 포함)</span>
+      <span class="price-total-value">115,000원</span>
+    </div>
+  </div>
+
+  <!-- Section 7: Additional Info -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">7</span>
+      <span class="section-title">추가 정보</span>
+    </div>
+
+    <div class="field">
+      <div class="field-label">서비스 요청</div>
+      <div class="check-group">
+        <label class="check-item">
+          <div class="check-box checked">&#10003;</div>
+          해피콜 요청 (배송 완료 SMS)
+        </label>
+        <label class="check-item">
+          <div class="check-box"></div>
+          현장 사진 요청
+        </label>
+        <label class="check-item">
+          <div class="check-box"></div>
+          배송사진 URL 전송
+        </label>
+        <label class="check-item">
+          <div class="check-box"></div>
+          사진 미노출
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">요구사항 / 메모</div>
+      <textarea class="field-textarea" rows="3" placeholder="배달 시 특이사항이나 요구사항을 입력하세요...">오전 중 도착 필수. 리본 글씨 크게 해주세요.</textarea>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="form-footer">
+    <button class="btn btn-outline btn-lg">초기화</button>
+    <button class="btn btn-primary btn-lg" style="min-width: 200px;">&#x2714; 주문 등록</button>
+  </div>
+
+  <div class="watermark">달려라 꽃배달 관리자 웹 - 주문 등록 화면 디자인 (v1.0)</div>
+</div>
+</body>
+</html>

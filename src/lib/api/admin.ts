@@ -185,3 +185,33 @@ export async function removeFloristServiceArea(
     body: JSON.stringify({ area }),
   });
 }
+
+// ─── Orders ─────────────────────────────────────────────
+export async function listOrders(params?: {
+  page?: number;
+  size?: number;
+  q?: string;
+  status?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set('page', String(params.page));
+  if (params?.size) sp.set('size', String(params.size));
+  if (params?.q) sp.set('q', params.q);
+  if (params?.status) sp.set('status', params.status);
+  const qs = sp.toString();
+  return api<{ items: any[]; total: number; page: number; size: number }>(
+    `/admin/orders${qs ? `?${qs}` : ''}`
+  );
+}
+
+export async function getOrder(id: number) {
+  return api<any>(`/admin/orders/${id}`);
+}
+
+// TODO: 백엔드 API 확인 후 body 타입을 OrderRegisterForm 기반으로 확정
+export async function createOrder(data: Record<string, unknown>) {
+  return api<{ ok: boolean; data: any }>('/admin/orders', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
