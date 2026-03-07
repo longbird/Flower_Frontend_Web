@@ -21,8 +21,8 @@ const nextConfig: NextConfig = {
     ],
     unoptimized: true,
   },
+  allowedDevOrigins: ['49.247.46.86', '49.247.206.190', '10.7.1.49', 'localhost'],
   async rewrites() {
-    // 개발 환경: API 요청을 백엔드로 프록시 (CORS 우회)
     if (API_BASE_URL) {
       return [
         {

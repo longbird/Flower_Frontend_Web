@@ -14,24 +14,29 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin1234');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (!username || !password) {
-      toast.error('아이디와 비밀번호를 입력해주세요.');
+      setError('아이디와 비밀번호를 입력해주세요.');
       return;
     }
 
     setLoading(true);
     try {
       const res = await adminLogin(username, password);
+      if (!res.ok) {
+        throw new Error((res as unknown as { error: string }).error || '로그인에 실패했습니다.');
+      }
       login(res.accessToken, res.refreshToken, res.admin);
       toast.success(`${res.admin.name}님 환영합니다.`);
       router.replace('/admin/florists');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '로그인에 실패했습니다.');
+      setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -51,6 +56,14 @@ export default function AdminLoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium text-slate-700">아이디</Label>
               <Input

@@ -16,6 +16,8 @@ import {
   removeFloristServiceArea,
 } from '@/lib/api/admin';
 import type { FloristPhoto, FloristSummary, PhotoCategory, PhotoGrade } from '@/lib/types/florist';
+import { addPhotoLog } from '@/lib/photo-log';
+import { useAuthStore } from '@/lib/auth/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,6 +40,8 @@ const CATEGORIES: { code: PhotoCategory; name: string }[] = [
   { code: 'WESTERN', name: '서양란' },
   { code: 'FLOWER', name: '꽃' },
   { code: 'FOLIAGE', name: '관엽' },
+  { code: 'RICE', name: '쌀' },
+  { code: 'FRUIT', name: '과일' },
   { code: 'OTHER', name: '기타' },
 ];
 
@@ -48,31 +52,32 @@ const PHOTO_GRADES: { code: PhotoGrade; name: string; color: string }[] = [
 ];
 
 const CAPABILITY_OPTIONS = [
-  { code: 'CELEB_BASIC', label: '축하기본' },
-  { code: 'CELEB_LARGE', label: '축하(대)' },
-  { code: 'CONDO_BASIC', label: '근조기본' },
-  { code: 'CONDO_LARGE', label: '근조(대)' },
-  { code: 'CONDO_XLARGE', label: '근조(특대)' },
-  { code: 'CONDO_4TIER', label: '근조4단이상' },
+  { code: 'CELEBRATION', label: '축하' },
+  { code: 'CONDOLENCE', label: '근조' },
+  { code: 'BASKET', label: '바구니' },
+  { code: 'LARGE', label: '대형' },
+  { code: 'MULTI_TIER', label: '다단' },
+  { code: 'ROUND', label: '원형' },
+  { code: 'BLACK_RIBBON', label: '검정리본' },
   { code: 'OBJET', label: '오브제' },
-  { code: 'RICE', label: '쌀' },
   { code: 'ORIENTAL_ORCHID', label: '동양란' },
   { code: 'WESTERN_ORCHID', label: '서양란' },
   { code: 'FLOWER', label: '꽃' },
   { code: 'FOLIAGE', label: '관엽' },
-  { code: 'NO_HOLIDAY', label: '공휴일불가' },
+  { code: 'BONSAI', label: '분재' },
+  { code: 'FRUITS', label: '과일' },
+  { code: 'HOLIDAY', label: '휴일가능' },
+  { code: 'NIGHT', label: '야간가능' },
 ];
 
 const GRADE_MAP: Record<number, string> = {
   1: '브론즈', 2: '실버', 3: '골드', 4: '플래티넘', 5: '다이아',
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
 function photoUrl(url: string) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
+  return `/api/proxy${url}`;
 }
 
 function formatCurrency(value: string): string {
@@ -156,7 +161,18 @@ export default function FloristDetailPage({
         sellingPrice: args.sellingPrice,
         memo: args.memo,
       }),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      const uploaded = (res as { data?: FloristPhoto })?.data ?? null;
+      addPhotoLog({
+        action: 'UPLOAD',
+        floristId: id,
+        floristName: florist?.name || id,
+        photoId: uploaded?.id ?? null,
+        before: null,
+        after: uploaded,
+        userName: useAuthStore.getState().user?.name || '-',
+        note: `카테고리: ${uploaded?.category || '?'}`,
+      });
       toast.success('사진이 업로드되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['floristPhotos', id] });
       setUploadDialogFile(null);
@@ -165,9 +181,22 @@ export default function FloristDetailPage({
   });
 
   const updatePhotoMutation = useMutation({
-    mutationFn: ({ photoId, data }: { photoId: number; data: Record<string, unknown> }) =>
-      updateFloristPhoto(id, photoId, data),
-    onSuccess: () => {
+    mutationFn: ({ photoId, data, beforeSnapshot }: { photoId: number; data: Record<string, unknown>; beforeSnapshot?: FloristPhoto | null }) => {
+      // beforeSnapshot은 로그 기록용 - 실제 API에는 전달하지 않음
+      return updateFloristPhoto(id, photoId, data).then((res) => ({ res, beforeSnapshot, photoId, data }));
+    },
+    onSuccess: ({ beforeSnapshot, photoId, data }) => {
+      const isToggle = Object.keys(data).length === 1 && 'isHidden' in data;
+      addPhotoLog({
+        action: isToggle ? 'TOGGLE_VISIBILITY' : 'UPDATE',
+        floristId: id,
+        floristName: florist?.name || id,
+        photoId,
+        before: beforeSnapshot ?? null,
+        after: { ...beforeSnapshot, ...data } as Partial<FloristPhoto>,
+        userName: useAuthStore.getState().user?.name || '-',
+        note: isToggle ? `표시상태: ${data.isHidden ? '숨김' : '표시'}` : undefined,
+      });
       toast.success('사진 정보가 수정되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['floristPhotos', id] });
       setSelectedPhoto(null);
@@ -176,8 +205,19 @@ export default function FloristDetailPage({
   });
 
   const deletePhotoMutation = useMutation({
-    mutationFn: (photoId: number) => deleteFloristPhoto(id, photoId),
-    onSuccess: () => {
+    mutationFn: ({ photoId, beforeSnapshot }: { photoId: number; beforeSnapshot?: FloristPhoto | null }) =>
+      deleteFloristPhoto(id, photoId).then(() => ({ photoId, beforeSnapshot })),
+    onSuccess: ({ photoId, beforeSnapshot }) => {
+      addPhotoLog({
+        action: 'DELETE',
+        floristId: id,
+        floristName: florist?.name || id,
+        photoId,
+        before: beforeSnapshot ?? null,
+        after: null,
+        userName: useAuthStore.getState().user?.name || '-',
+        note: beforeSnapshot ? `카테고리: ${beforeSnapshot.category}, URL: ${beforeSnapshot.fileUrl}` : undefined,
+      });
       toast.success('사진이 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['floristPhotos', id] });
       setSelectedPhoto(null);
@@ -248,6 +288,7 @@ export default function FloristDetailPage({
     updatePhotoMutation.mutate({
       photoId: photo.id,
       data: { isHidden: !photo.isHidden },
+      beforeSnapshot: photo,
     });
   }, [updatePhotoMutation]);
 
@@ -265,37 +306,48 @@ export default function FloristDetailPage({
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
       {/* Header */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+      <div className="bg-white border border-slate-200 rounded-lg px-4 py-2.5 shadow-sm">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
-              className="h-10 px-3 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+              size="sm"
+              className="h-8 px-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
               onClick={() => router.back()}
             >
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               목록
             </Button>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-bold text-slate-900">{florist.name}</h1>
-              <Badge
-                variant={florist.status === 'ACTIVE' ? 'default' : 'secondary'}
-                className={florist.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : ''}
-              >
-                {florist.status === 'ACTIVE' ? '활성' : florist.status === 'SUSPENDED' ? '중지' : '비활성'}
+            <div className="h-4 w-px bg-slate-200" />
+            <h1 className="text-lg font-bold text-slate-900">{florist.name}</h1>
+            <Badge
+              variant={florist.status === 'ACTIVE' ? 'default' : 'secondary'}
+              className={cn('text-[11px]', florist.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : '')}
+            >
+              {florist.status === 'ACTIVE' ? '활성' : florist.status === 'SUSPENDED' ? '중지' : '비활성'}
+            </Badge>
+            {florist.grade != null && florist.grade > 0 && (
+              <Badge variant="outline" className="text-[11px] border-amber-300 bg-amber-50 text-amber-700">
+                {GRADE_MAP[florist.grade] || `등급${florist.grade}`}
               </Badge>
-            </div>
+            )}
+            {florist.priority != null && florist.priority > 0 && (
+              <Badge variant="outline" className="text-[11px] border-blue-300 bg-blue-50 text-blue-700">
+                우선순위 {florist.priority}
+              </Badge>
+            )}
           </div>
           {!editing && (
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+              size="sm"
+              className="h-8 bg-emerald-600 hover:bg-emerald-700 shadow-sm"
               onClick={() => startEditing(florist)}
             >
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
               수정
@@ -305,9 +357,9 @@ export default function FloristDetailPage({
       </div>
 
       <Tabs defaultValue="info">
-        <TabsList className="bg-slate-100 rounded-xl p-1">
-          <TabsTrigger value="info" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700">기본 정보</TabsTrigger>
-          <TabsTrigger value="photos" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700">사진 관리 ({photos.length})</TabsTrigger>
+        <TabsList className="bg-slate-100 rounded-lg p-0.5 h-9">
+          <TabsTrigger value="info" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700">기본 정보</TabsTrigger>
+          <TabsTrigger value="photos" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700">사진 관리 ({photos.length})</TabsTrigger>
         </TabsList>
 
         {/* === Info Tab === */}
@@ -322,143 +374,157 @@ export default function FloristDetailPage({
               saving={updateMutation.isPending}
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 space-y-6">
-                <Card className="shadow-sm border-slate-200">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-slate-700">기본 정보</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 text-sm">
-                      <div>
-                        <dt className="text-slate-400 text-xs mb-0.5">화원명</dt>
-                        <dd className="font-semibold text-slate-900">{florist.name}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400 text-xs mb-0.5">전화번호</dt>
-                        <dd className="text-slate-700">{florist.phone || '-'}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400 text-xs mb-0.5">지역</dt>
-                        <dd className="text-emerald-700 font-medium">{florist.sido} {florist.gugun}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400 text-xs mb-0.5">ID</dt>
-                        <dd className="text-xs text-slate-400 font-mono">{florist.id}</dd>
-                      </div>
-                      <div className="col-span-2">
-                        <dt className="text-slate-400 text-xs mb-0.5">주소</dt>
-                        <dd className="text-slate-700">{florist.address || '-'}</dd>
-                      </div>
-                      <div className="col-span-2">
-                        <dt className="text-slate-400 text-xs mb-0.5">특이사항</dt>
-                        <dd className={florist.remarks ? 'text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-sm' : 'text-slate-400'}>{florist.remarks || '-'}</dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-
-                <Card className="shadow-sm border-slate-200">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-slate-700">사업 정보</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <dl className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 text-sm">
-                      <div>
-                        <dt className="text-slate-400 text-xs mb-0.5">등급</dt>
-                        <dd>{florist.grade ? <span className="font-semibold text-slate-900">{GRADE_MAP[florist.grade] || florist.grade}</span> : <span className="text-slate-400">-</span>}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400 text-xs mb-0.5">배정 우선순위</dt>
-                        <dd>{florist.priority ? <span className="font-semibold text-slate-900">{florist.priority}</span> : <span className="text-slate-400">-</span>}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400 text-xs mb-0.5">출처</dt>
-                        <dd className="text-slate-700">{florist.source === 'flower_shop' ? '외부' : florist.source === 'partner' ? '파트너' : florist.source || '-'}</dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-
-                <Card className="shadow-sm border-slate-200">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-slate-700">역량</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {florist.capabilities && florist.capabilities.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {florist.capabilities.map((cap) => (
-                          <span key={cap} className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {CAPABILITY_OPTIONS.find((o) => o.code === cap)?.label || cap}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 text-sm">설정된 역량 없음</span>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="shadow-sm border-slate-200">
-                  <CardHeader className="flex flex-row items-center justify-between pb-3">
-                    <CardTitle className="text-base text-slate-700">서비스 지역</CardTitle>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="지역명 입력"
-                        value={newServiceArea}
-                        onChange={(e) => setNewServiceArea(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddServiceArea()}
-                        className="h-8 w-28 sm:w-40 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                      />
-                      <Button size="sm" variant="outline" className="border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300" onClick={handleAddServiceArea} disabled={addAreaMutation.isPending}>추가</Button>
+            <div className="space-y-4">
+              {/* 기본 정보 + 영업 정보 통합 */}
+              <Card className="shadow-sm border-slate-200">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 text-sm">
+                    <div>
+                      <dt className="text-slate-400 text-[11px]">화원명</dt>
+                      <dd className="font-semibold text-slate-900">{florist.name}</dd>
                     </div>
-                  </CardHeader>
-                  <CardContent>
+                    <div>
+                      <dt className="text-slate-400 text-[11px]">전화번호</dt>
+                      <dd className="text-slate-700">{florist.phone || '-'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-400 text-[11px]">지역</dt>
+                      <dd className="text-emerald-700 font-medium">{florist.sido} {florist.gugun}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-400 text-[11px]">출처</dt>
+                      <dd className="text-slate-700">{florist.source === 'flower_shop' ? '외부' : florist.source === 'partner' ? '파트너' : florist.source || '-'}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-slate-400 text-[11px]">주소</dt>
+                      <dd className="text-slate-700 text-sm">{florist.address || '-'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-400 text-[11px]">등급</dt>
+                      <dd>{florist.grade ? <span className="font-semibold text-slate-900">{GRADE_MAP[florist.grade] || florist.grade}</span> : <span className="text-slate-400">-</span>}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-400 text-[11px]">배정 우선순위</dt>
+                      <dd>{florist.priority ? <span className="font-semibold text-slate-900">{florist.priority}</span> : <span className="text-slate-400">-</span>}</dd>
+                    </div>
+                  </div>
+                  {florist.remarks && (
+                    <div className="mt-3 text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-sm">
+                      <span className="text-amber-500 text-[11px] font-medium">특이사항</span>
+                      <p className="mt-0.5">{florist.remarks}</p>
+                    </div>
+                  )}
+                  <div className="text-[11px] text-slate-300 font-mono mt-2">ID: {florist.id}</div>
+                </CardContent>
+              </Card>
+
+              {/* 역량 + 서비스 지역 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* 역량 */}
+                <Card className="shadow-sm border-slate-200">
+                  <CardContent className="p-4">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">역량</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CAPABILITY_OPTIONS.map((opt) => {
+                        const isSelected = florist.capabilities?.includes(opt.code);
+                        return (
+                          <span
+                            key={opt.code}
+                            className={cn(
+                              'px-2 py-1 rounded-md text-[11px] font-medium border',
+                              isSelected
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-slate-50 text-slate-300 border-transparent'
+                            )}
+                          >
+                            {isSelected && (
+                              <svg className="inline w-2.5 h-2.5 mr-0.5 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                            )}
+                            {opt.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 서비스 지역 */}
+                <Card className="shadow-sm border-slate-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">서비스 지역</h3>
+                      <div className="flex gap-1.5">
+                        <Input
+                          placeholder="지역명"
+                          value={newServiceArea}
+                          onChange={(e) => setNewServiceArea(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddServiceArea()}
+                          className="h-7 w-24 text-xs border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        />
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300" onClick={handleAddServiceArea} disabled={addAreaMutation.isPending}>+</Button>
+                      </div>
+                    </div>
                     {florist.serviceAreas && florist.serviceAreas.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {florist.serviceAreas.map((area) => (
-                          <span key={area} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          <span key={area} className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
                             {area}
                             <button className="ml-0.5 text-blue-400 hover:text-red-500 transition-colors" onClick={() => { if (confirm(`"${area}" 서비스 지역을 삭제하시겠습니까?`)) removeAreaMutation.mutate(area); }}>
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-slate-400 text-sm">설정된 서비스 지역 없음</span>
+                      <span className="text-slate-400 text-xs">설정된 서비스 지역 없음</span>
                     )}
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Right: Gallery Preview */}
-              <div className="space-y-4">
-                <Card className="shadow-sm border-slate-200">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-slate-700">갤러리 미리보기</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {photos.length > 0 ? (
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {photos.slice(0, 9).map((photo) => (
-                          <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition" onClick={() => setViewerPhoto(photo)}>
-                            <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || ''} fill className="object-cover" sizes="80px" unoptimized />
+              {/* 갤러리 미리보기 (하단) */}
+              <Card className="shadow-sm border-slate-200">
+                <CardContent className="p-3">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">갤러리 ({photos.length})</h3>
+                  {photos.length > 0 ? (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
+                      {photos.slice(0, 16).map((photo) => (
+                        <div key={photo.id} className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition" onClick={() => setViewerPhoto(photo)}>
+                          <div className="relative aspect-square">
+                            <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || ''} fill className="object-cover" sizes="120px" unoptimized />
+                            {/* 카테고리 (좌상단) */}
+                            <span className="absolute top-0.5 left-0.5 bg-black/60 text-white text-[9px] font-medium px-1 py-px rounded">
+                              {CATEGORIES.find((c) => c.code === photo.category)?.name || photo.category}
+                            </span>
+                            {/* 추천 (우상단) */}
+                            {photo.isRecommended && (
+                              <span className="absolute top-0.5 right-0.5 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[9px] font-bold px-1 py-px rounded shadow">추천</span>
+                            )}
+                            {/* 등급 (좌하단) */}
+                            {photo.grade && (
+                              <span className={cn('absolute bottom-0.5 left-0.5 text-white text-[9px] font-bold px-1 py-px rounded', PHOTO_GRADES.find((g) => g.code === photo.grade)?.color || 'bg-slate-500')}>
+                                {PHOTO_GRADES.find((g) => g.code === photo.grade)?.name}
+                              </span>
+                            )}
+                            {/* 숨김 (우하단) */}
+                            {photo.isHidden && (
+                              <span className="absolute bottom-0.5 right-0.5 bg-orange-500/80 text-white text-[9px] px-1 py-px rounded">숨김</span>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-slate-400 text-sm py-6">
-                        <svg className="w-8 h-8 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        사진 없음
-                      </div>
-                    )}
-                    {photos.length > 9 && (
-                      <div className="text-center text-xs text-slate-400 mt-2">+{photos.length - 9}장 더보기 (사진 관리 탭)</div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-slate-400 text-xs py-4">
+                      <svg className="w-6 h-6 mx-auto mb-1 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      사진 없음
+                    </div>
+                  )}
+                  {photos.length > 16 && (
+                    <div className="text-center text-[11px] text-slate-400 mt-1">+{photos.length - 16}장 더보기</div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
         </TabsContent>
@@ -494,27 +560,55 @@ export default function FloristDetailPage({
                 </TabsList>
                 {['ALL', ...CATEGORIES.map((c) => c.code)].map((tab) => (
                   <TabsContent key={tab} value={tab}>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {photos
                         .filter((p) => tab === 'ALL' || p.category === tab)
                         .map((photo) => (
                           <div
                             key={photo.id}
-                            className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition-all group"
+                            className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition-all"
                             onClick={() => setSelectedPhoto(photo)}
                           >
-                            <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || '화원 사진'} fill className="object-cover" sizes="(max-width: 768px) 25vw, 12.5vw" unoptimized />
-                            {photo.isHidden && (
-                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <span className="text-white text-xs font-medium bg-black/40 px-2 py-0.5 rounded">숨김</span>
-                              </div>
-                            )}
-                            {photo.isRecommended && (
-                              <Badge className="absolute top-1 left-1 text-[10px] px-1.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 border-none">추천</Badge>
-                            )}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] px-1.5 py-1 opacity-0 group-hover:opacity-100 transition">
-                              {CATEGORIES.find((c) => c.code === photo.category)?.name}
-                              {photo.grade && ` / ${PHOTO_GRADES.find((g) => g.code === photo.grade)?.name}`}
+                            {/* 이미지 영역 (3:4 비율) */}
+                            <div className="relative aspect-[3/4] overflow-hidden">
+                              <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || '화원 사진'} fill className="object-cover" sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw" unoptimized />
+                              {/* 카테고리 배지 (좌상단) */}
+                              <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                                {CATEGORIES.find((c) => c.code === photo.category)?.name}
+                              </span>
+                              {/* 추천 배지 (상단 중앙) */}
+                              {photo.isRecommended && (
+                                <span className="absolute top-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm shadow-red-500/40">♥ 추천</span>
+                              )}
+                              {/* 등급 배지 (우상단) */}
+                              {photo.grade && (
+                                <span className={cn('absolute top-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded', PHOTO_GRADES.find((g) => g.code === photo.grade)?.color || 'bg-slate-500', photo.isHidden ? 'right-6' : 'right-1')}>
+                                  {PHOTO_GRADES.find((g) => g.code === photo.grade)?.name}
+                                </span>
+                              )}
+                              {/* 숨김 아이콘 (우상단) */}
+                              {photo.isHidden && (
+                                <svg className="absolute top-1 right-1 w-4 h-4 text-orange-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" /></svg>
+                              )}
+                              {/* 수정 아이콘 (우하단) */}
+                              <span className="absolute bottom-1 right-1 bg-black/50 text-white rounded p-0.5">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              </span>
+                            </div>
+                            {/* 하단 가격/메모 정보 */}
+                            <div className="px-2 py-1.5 bg-slate-50 text-[11px] space-y-0.5">
+                              {photo.costPrice != null && (
+                                <p className="text-slate-500 truncate">원가 {photo.costPrice.toLocaleString()}원</p>
+                              )}
+                              {photo.sellingPrice != null && (
+                                <p className="text-green-700 font-semibold truncate">판매 {photo.sellingPrice.toLocaleString()}원</p>
+                              )}
+                              {photo.memo && (
+                                <p className="text-blue-600 truncate">{photo.memo}</p>
+                              )}
+                              {!photo.costPrice && !photo.sellingPrice && !photo.memo && (
+                                <p className="text-slate-400/50">가격 미등록</p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -569,12 +663,13 @@ export default function FloristDetailPage({
           {selectedPhoto && (
             <PhotoEditForm
               photo={selectedPhoto}
-              onSave={(data) => updatePhotoMutation.mutate({ photoId: selectedPhoto.id, data })}
+              onSave={(data) => updatePhotoMutation.mutate({ photoId: selectedPhoto.id, data, beforeSnapshot: selectedPhoto })}
               onDelete={() => {
-                if (confirm('정말 삭제하시겠습니까?')) deletePhotoMutation.mutate(selectedPhoto.id);
+                if (confirm('정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: selectedPhoto.id, beforeSnapshot: selectedPhoto });
               }}
               onToggleVisibility={() => handleToggleVisibility(selectedPhoto)}
               onViewFull={() => { setViewerPhoto(selectedPhoto); setSelectedPhoto(null); }}
+              onCancel={() => setSelectedPhoto(null)}
               saving={updatePhotoMutation.isPending}
             />
           )}
@@ -588,7 +683,7 @@ export default function FloristDetailPage({
           onClose={() => setViewerPhoto(null)}
           onToggleVisibility={() => handleToggleVisibility(viewerPhoto)}
           onDelete={() => {
-            if (confirm('정말 삭제하시겠습니까?')) deletePhotoMutation.mutate(viewerPhoto.id);
+            if (confirm('정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: viewerPhoto.id, beforeSnapshot: viewerPhoto });
           }}
         />
       )}
@@ -729,6 +824,7 @@ function PhotoEditForm({
   onDelete,
   onToggleVisibility,
   onViewFull,
+  onCancel,
   saving,
 }: {
   photo: FloristPhoto;
@@ -736,6 +832,7 @@ function PhotoEditForm({
   onDelete: () => void;
   onToggleVisibility: () => void;
   onViewFull: () => void;
+  onCancel: () => void;
   saving: boolean;
 }) {
   const [category, setCategory] = useState<string>(photo.category);
@@ -841,7 +938,7 @@ function PhotoEditForm({
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between pt-2">
-        <Button variant="outline" size="sm" className="border-slate-200" onClick={() => onSave({})}>취소</Button>
+        <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -902,37 +999,49 @@ function FloristEditForm({
     setEditForm((prev) => ({ ...prev, [field]: value }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card className="shadow-sm border-slate-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base text-slate-700">기본 정보</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="p-4">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">기본 정보</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-1">
-              <Label className="text-slate-600">화원명 *</Label>
-              <Input value={(editForm.name as string) || ''} onChange={(e) => setField('name', e.target.value)} className="border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+              <Label className="text-slate-600 text-xs">화원명 *</Label>
+              <Input value={(editForm.name as string) || ''} onChange={(e) => setField('name', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
             </div>
             <div className="space-y-1">
-              <Label className="text-slate-600">전화번호</Label>
-              <Input value={(editForm.phone as string) || ''} onChange={(e) => setField('phone', e.target.value)} className="border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+              <Label className="text-slate-600 text-xs">전화번호</Label>
+              <Input value={(editForm.phone as string) || ''} onChange={(e) => setField('phone', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
             </div>
             <div className="space-y-1">
-              <Label className="text-slate-600">시/도</Label>
-              <Input value={(editForm.sido as string) || ''} onChange={(e) => setField('sido', e.target.value)} className="bg-slate-50 border-slate-200" />
+              <Label className="text-slate-600 text-xs">시/도</Label>
+              <Input value={(editForm.sido as string) || ''} onChange={(e) => setField('sido', e.target.value)} className="h-9 bg-slate-50 border-slate-200" />
             </div>
             <div className="space-y-1">
-              <Label className="text-slate-600">구/군</Label>
-              <Input value={(editForm.gugun as string) || ''} onChange={(e) => setField('gugun', e.target.value)} className="bg-slate-50 border-slate-200" />
+              <Label className="text-slate-600 text-xs">구/군</Label>
+              <Input value={(editForm.gugun as string) || ''} onChange={(e) => setField('gugun', e.target.value)} className="h-9 bg-slate-50 border-slate-200" />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label className="text-slate-600 text-xs">주소</Label>
+              <Input value={(editForm.address as string) || ''} onChange={(e) => setField('address', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-slate-600 text-xs">등급</Label>
+              <select className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition" value={(editForm.grade as string) || ''} onChange={(e) => setField('grade', e.target.value)}>
+                <option value="">미지정</option>
+                {[1, 2, 3, 4, 5].map((g) => <option key={g} value={g}>{GRADE_MAP[g]}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-slate-600 text-xs">배정 우선순위</Label>
+              <select className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition" value={(editForm.priority as string) || ''} onChange={(e) => setField('priority', e.target.value)}>
+                <option value="">미지정</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
             <div className="col-span-full space-y-1">
-              <Label className="text-slate-600">주소</Label>
-              <Input value={(editForm.address as string) || ''} onChange={(e) => setField('address', e.target.value)} className="border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
-            </div>
-            <div className="col-span-full space-y-1">
-              <Label className="text-slate-600">특이사항/메모</Label>
+              <Label className="text-slate-600 text-xs">특이사항/메모</Label>
               <textarea
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm min-h-[80px] resize-y focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm min-h-[60px] resize-y focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
                 value={(editForm.remarks as string) || ''}
                 onChange={(e) => setField('remarks', e.target.value)}
                 placeholder="특이사항이나 메모를 입력하세요"
@@ -943,35 +1052,9 @@ function FloristEditForm({
       </Card>
 
       <Card className="shadow-sm border-slate-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base text-slate-700">사업 정보</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label className="text-slate-600">등급</Label>
-              <select className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition" value={(editForm.grade as string) || ''} onChange={(e) => setField('grade', e.target.value)}>
-                <option value="">미지정</option>
-                {[1, 2, 3, 4, 5].map((g) => <option key={g} value={g}>{GRADE_MAP[g]}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-slate-600">배정 우선순위</Label>
-              <select className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition" value={(editForm.priority as string) || ''} onChange={(e) => setField('priority', e.target.value)}>
-                <option value="">미지정</option>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base text-slate-700">역량</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
+        <CardContent className="p-4">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">역량</h3>
+          <div className="flex flex-wrap gap-1.5">
             {CAPABILITY_OPTIONS.map((cap) => {
               const selected = ((editForm.capabilities as string[]) || []).includes(cap.code);
               return (
@@ -979,12 +1062,15 @@ function FloristEditForm({
                   key={cap.code}
                   onClick={() => toggleCapability(cap.code)}
                   className={cn(
-                    'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                    'px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all',
                     selected
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-600/20'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                       : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
                   )}
                 >
+                  {selected && (
+                    <svg className="inline w-2.5 h-2.5 mr-0.5 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                  )}
                   {cap.label}
                 </button>
               );
@@ -994,8 +1080,8 @@ function FloristEditForm({
       </Card>
 
       <div className="flex gap-2 justify-end">
-        <Button variant="outline" className="border-slate-200" onClick={onCancel}>취소</Button>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-sm" onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
+        <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
+        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm" onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode, Suspense } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/lib/auth/store';
@@ -15,7 +15,13 @@ function SessionLoader({ children }: { children: ReactNode }) {
     setLoaded(true);
   }, [loadSession]);
 
-  if (!loaded) return null;
+  if (!loaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+      </div>
+    );
+  }
   return <>{children}</>;
 }
 
@@ -35,7 +41,13 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SessionLoader>{children}</SessionLoader>
+        <Suspense fallback={
+          <div className="flex min-h-screen items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+          </div>
+        }>
+          <SessionLoader>{children}</SessionLoader>
+        </Suspense>
       </TooltipProvider>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>

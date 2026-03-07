@@ -31,15 +31,22 @@ const STATUS_OPTIONS = [
 ];
 
 const CAPABILITY_CHIPS = [
-  { code: 'CELEB_BASIC', label: '축하기본' },
-  { code: 'CELEB_LARGE', label: '축하(대)' },
-  { code: 'CONDO_BASIC', label: '근조기본' },
-  { code: 'CONDO_LARGE', label: '근조(대)' },
-  { code: 'CONDO_XLARGE', label: '근조(특대)' },
-  { code: 'CONDO_4TIER', label: '근조4단이상' },
+  { code: 'CELEBRATION', label: '축하' },
+  { code: 'CONDOLENCE', label: '근조' },
+  { code: 'BASKET', label: '바구니' },
+  { code: 'LARGE', label: '대형' },
+  { code: 'MULTI_TIER', label: '다단' },
+  { code: 'ROUND', label: '원형' },
+  { code: 'BLACK_RIBBON', label: '검정리본' },
   { code: 'OBJET', label: '오브제' },
-  { code: 'RICE', label: '쌀' },
   { code: 'ORIENTAL_ORCHID', label: '동양란' },
+  { code: 'WESTERN_ORCHID', label: '서양란' },
+  { code: 'FLOWER', label: '꽃' },
+  { code: 'FOLIAGE', label: '관엽' },
+  { code: 'BONSAI', label: '분재' },
+  { code: 'FRUITS', label: '과일' },
+  { code: 'HOLIDAY', label: '휴일가능' },
+  { code: 'NIGHT', label: '야간가능' },
 ];
 
 const GRADE_MAP: Record<number, { label: string; color: string }> = {
@@ -50,12 +57,10 @@ const GRADE_MAP: Record<number, { label: string; color: string }> = {
   5: { label: '다이아', color: 'bg-purple-500 text-white' },
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
 function photoUrl(url: string) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
+  return `/api/proxy${url}`;
 }
 
 function FloristThumb({ floristId }: { floristId: string }) {
@@ -131,6 +136,7 @@ export default function FloristsPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [selectedCaps, setSelectedCaps] = useState<string[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
   const pageSize = 30;
 
   const { data, isLoading, error } = useQuery({
@@ -184,7 +190,13 @@ export default function FloristsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">화원 관리</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">화원 관리</h1>
+        <Button variant="outline" size="sm" onClick={() => router.push('/admin/florists/photo-logs')}>
+          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+          사진 변경 로그
+        </Button>
+      </div>
 
       <Tabs defaultValue="list">
         <TabsList>
@@ -200,47 +212,71 @@ export default function FloristsPage() {
         <div className="space-y-4">
 
       {/* 필터 영역 */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-sm">
-        <div className="flex flex-wrap gap-2 items-center">
-          <select
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          >
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-
-          <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-0 w-full sm:w-auto sm:min-w-[200px] max-w-md">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        {/* 필터 헤더 (항상 보임) */}
+        <div className="flex items-center gap-2 px-4 py-2.5">
+          <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-0">
+            <select
+              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm hover:border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
             <Input
-              placeholder="검색 (화원명, 서비스지역명, 전화번호)"
+              placeholder="검색 (화원명, 지역, 전화번호)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="h-9 border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
-            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm">검색</Button>
+            <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0">검색</Button>
           </form>
-
-          <Button variant="outline" size="sm" className="border-slate-200 text-slate-500 hover:bg-slate-50" onClick={handleReset}>초기화</Button>
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className={cn(
+              'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all',
+              filterOpen || selectedCaps.length > 0
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'text-slate-500 border-slate-200 hover:bg-slate-50'
+            )}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+            필터
+            {selectedCaps.length > 0 && (
+              <span className="bg-emerald-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{selectedCaps.length}</span>
+            )}
+            <svg className={cn('w-3 h-3 transition-transform', filterOpen && 'rotate-180')} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600 px-2 shrink-0" onClick={handleReset} title="초기화">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          </Button>
         </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          {CAPABILITY_CHIPS.map((cap) => (
-            <button
-              key={cap.code}
-              onClick={() => toggleCap(cap.code)}
-              className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 min-h-[36px]',
-                selectedCaps.includes(cap.code)
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/30'
-              )}
-            >
-              {cap.label}
-            </button>
-          ))}
-        </div>
+        {/* 역량 필터 (접힘 가능) */}
+        {filterOpen && (
+          <div className="px-4 pb-3 pt-1 border-t border-slate-100">
+            <div className="flex flex-wrap gap-1.5">
+              {CAPABILITY_CHIPS.map((cap) => (
+                <button
+                  key={cap.code}
+                  onClick={() => toggleCap(cap.code)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
+                    selectedCaps.includes(cap.code)
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                  )}
+                >
+                  {selectedCaps.includes(cap.code) && (
+                    <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                  )}
+                  {cap.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {isLoading && <div className="text-center py-8 text-gray-500">로딩 중...</div>}

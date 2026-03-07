@@ -1,0 +1,843 @@
+{
+  "timestamp": "2026-03-06T07:51:34.239Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-03-06T05:41:16.473Z",
+    "activeFeatures": [
+      "login",
+      "florists",
+      "[id]",
+      "frontend_web",
+      "api",
+      "admin",
+      "dashboard",
+      "orders",
+      "order-register",
+      "branches",
+      "pricing",
+      "agents",
+      "statistics",
+      "commission",
+      "[branchId]",
+      "call-logs",
+      "audit",
+      "sessions",
+      "monitoring",
+      "cid-settings",
+      "announcements",
+      "profile"
+    ],
+    "primaryFeature": "login",
+    "features": {
+      "login": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T02:21:00.325Z",
+          "lastUpdated": "2026-03-06T02:34:23.665Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/login/page.tsx"
+      },
+      "florists": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T02:39:32.009Z",
+          "lastUpdated": "2026-03-06T04:30:27.646Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/florists/product-search.tsx"
+      },
+      "[id]": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T02:39:36.163Z",
+          "lastUpdated": "2026-03-06T04:59:41.078Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/announcements/[id]/page.tsx"
+      },
+      "frontend_web": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T02:39:49.263Z",
+          "lastUpdated": "2026-03-06T05:41:16.473Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/next.config.ts"
+      },
+      "api": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:15:51.348Z",
+          "lastUpdated": "2026-03-06T04:16:10.781Z"
+        },
+        "lastFile": "/home/blueadm/backend/apps/api/src/admin/florists/admin-florists.service.ts"
+      },
+      "admin": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:38:29.120Z",
+          "lastUpdated": "2026-03-06T04:42:05.731Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/page.tsx"
+      },
+      "dashboard": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:38:42.741Z",
+          "lastUpdated": "2026-03-06T04:56:38.164Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/dashboard/page.tsx"
+      },
+      "orders": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:03.614Z",
+          "lastUpdated": "2026-03-06T04:56:59.762Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/orders/page.tsx"
+      },
+      "order-register": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:15.590Z",
+          "lastUpdated": "2026-03-06T04:39:15.590Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/order-register/page.tsx"
+      },
+      "branches": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:24.987Z",
+          "lastUpdated": "2026-03-06T05:02:21.367Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/branches/page.tsx"
+      },
+      "pricing": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:34.618Z",
+          "lastUpdated": "2026-03-06T04:57:45.643Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/branches/[id]/pricing/page.tsx"
+      },
+      "agents": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:38.912Z",
+          "lastUpdated": "2026-03-06T04:57:59.395Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/agents/page.tsx"
+      },
+      "statistics": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:42:15.082Z",
+          "lastUpdated": "2026-03-06T04:58:16.911Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/statistics/page.tsx"
+      },
+      "commission": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:42:21.100Z",
+          "lastUpdated": "2026-03-06T05:02:23.996Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/commission/page.tsx"
+      },
+      "[branchId]": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:42:28.609Z",
+          "lastUpdated": "2026-03-06T04:58:39.635Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/commission/config/[branchId]/page.tsx"
+      },
+      "call-logs": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:42:41.049Z",
+          "lastUpdated": "2026-03-06T05:02:43.844Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/call-logs/page.tsx"
+      },
+      "audit": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:42:49.452Z",
+          "lastUpdated": "2026-03-06T04:58:49.677Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/audit/page.tsx"
+      },
+      "sessions": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:42:56.787Z",
+          "lastUpdated": "2026-03-06T05:02:49.935Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/sessions/page.tsx"
+      },
+      "monitoring": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:43:07.079Z",
+          "lastUpdated": "2026-03-06T04:59:22.864Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/monitoring/page.tsx"
+      },
+      "cid-settings": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:43:11.513Z",
+          "lastUpdated": "2026-03-06T05:02:45.671Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/cid-settings/page.tsx"
+      },
+      "announcements": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:43:19.968Z",
+          "lastUpdated": "2026-03-06T04:59:33.319Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/announcements/page.tsx"
+      },
+      "profile": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:43:32.396Z",
+          "lastUpdated": "2026-03-06T04:43:57.082Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/profile/page.tsx"
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-03-06T02:08:58.072Z",
+      "onboardingCompleted": false,
+      "lastActivity": "2026-03-06T05:41:16.473Z"
+    },
+    "history": [
+      {
+        "timestamp": "2026-03-06T02:21:00.325Z",
+        "feature": "login",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:27:47.588Z",
+        "feature": "login",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:27:53.788Z",
+        "feature": "login",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:34:23.665Z",
+        "feature": "login",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:32.009Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:36.163Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:40.255Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:49.263Z",
+        "feature": "frontend_web",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:58.003Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:40:07.977Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:40:17.959Z",
+        "feature": "frontend_web",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:43:36.646Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:48:35.566Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:52:39.810Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:52:48.088Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:52:54.016Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:52:59.634Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:04.180Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:08.372Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:13.688Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:17.731Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:22.797Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:36.687Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:41.715Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:45.817Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:54:05.146Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:54:10.181Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:15:51.348Z",
+        "feature": "api",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:16:01.027Z",
+        "feature": "api",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:16:10.781Z",
+        "feature": "api",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:29:26.251Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:29:54.306Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:30:01.884Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:30:27.646Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:38:29.120Z",
+        "feature": "admin",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:38:42.741Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:03.614Z",
+        "feature": "orders",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:08.908Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:15.590Z",
+        "feature": "order-register",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:24.987Z",
+        "feature": "branches",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:30.676Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:34.618Z",
+        "feature": "pricing",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:38.912Z",
+        "feature": "agents",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:41:57.087Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:41:57.926Z",
+        "feature": "orders",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:41:58.813Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:41:59.725Z",
+        "feature": "branches",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:00.574Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:01.165Z",
+        "feature": "agents",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:05.731Z",
+        "feature": "admin",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:15.082Z",
+        "feature": "statistics",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:21.100Z",
+        "feature": "commission",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:28.609Z",
+        "feature": "[branchId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:41.049Z",
+        "feature": "call-logs",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:49.452Z",
+        "feature": "audit",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:42:56.787Z",
+        "feature": "sessions",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:43:07.079Z",
+        "feature": "monitoring",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:43:11.513Z",
+        "feature": "cid-settings",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:43:19.968Z",
+        "feature": "announcements",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:43:28.201Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:43:32.396Z",
+        "feature": "profile",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:43:57.082Z",
+        "feature": "profile",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:56:38.164Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:56:59.762Z",
+        "feature": "orders",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:57:16.583Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:57:28.675Z",
+        "feature": "branches",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:57:38.132Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:57:45.643Z",
+        "feature": "pricing",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:57:59.395Z",
+        "feature": "agents",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:58:16.911Z",
+        "feature": "statistics",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:58:31.352Z",
+        "feature": "commission",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:58:39.635Z",
+        "feature": "[branchId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:58:49.677Z",
+        "feature": "audit",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:59:06.067Z",
+        "feature": "sessions",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:59:22.864Z",
+        "feature": "monitoring",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:59:33.319Z",
+        "feature": "announcements",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:59:41.078Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T05:02:21.367Z",
+        "feature": "branches",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T05:02:23.996Z",
+        "feature": "commission",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T05:02:43.844Z",
+        "feature": "call-logs",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T05:02:45.671Z",
+        "feature": "cid-settings",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T05:02:49.935Z",
+        "feature": "sessions",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T05:14:18.984Z",
+        "feature": "frontend_web",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T05:39:45.635Z",
+        "feature": "frontend_web",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T05:41:16.473Z",
+        "feature": "frontend_web",
+        "phase": "do",
+        "action": "updated"
+      }
+    ]
+  }
+}

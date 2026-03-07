@@ -32,9 +32,11 @@ export type PhotoCategory =
   | 'CONDOLENCE'
   | 'FLOWER'
   | 'FOLIAGE'
+  | 'FRUIT'
   | 'OBJET'
   | 'ORIENTAL'
   | 'OTHER'
+  | 'RICE'
   | 'WESTERN';
 
 export type PhotoGrade = 'PREMIUM' | 'HIGH' | 'STANDARD';

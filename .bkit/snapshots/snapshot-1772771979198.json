@@ -1,0 +1,451 @@
+{
+  "timestamp": "2026-03-06T04:39:39.198Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-03-06T04:39:38.912Z",
+    "activeFeatures": [
+      "login",
+      "florists",
+      "[id]",
+      "frontend_web",
+      "api",
+      "admin",
+      "dashboard",
+      "orders",
+      "order-register",
+      "branches",
+      "pricing",
+      "agents"
+    ],
+    "primaryFeature": "login",
+    "features": {
+      "login": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T02:21:00.325Z",
+          "lastUpdated": "2026-03-06T02:34:23.665Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/login/page.tsx"
+      },
+      "florists": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T02:39:32.009Z",
+          "lastUpdated": "2026-03-06T04:30:27.646Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/florists/product-search.tsx"
+      },
+      "[id]": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T02:39:36.163Z",
+          "lastUpdated": "2026-03-06T04:39:30.676Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/branches/[id]/page.tsx"
+      },
+      "frontend_web": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T02:39:49.263Z",
+          "lastUpdated": "2026-03-06T02:40:17.959Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/next.config.ts"
+      },
+      "api": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:15:51.348Z",
+          "lastUpdated": "2026-03-06T04:16:10.781Z"
+        },
+        "lastFile": "/home/blueadm/backend/apps/api/src/admin/florists/admin-florists.service.ts"
+      },
+      "admin": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:38:29.120Z",
+          "lastUpdated": "2026-03-06T04:38:29.120Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/components/admin/admin-sidebar.tsx"
+      },
+      "dashboard": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:38:42.741Z",
+          "lastUpdated": "2026-03-06T04:38:42.741Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/dashboard/page.tsx"
+      },
+      "orders": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:03.614Z",
+          "lastUpdated": "2026-03-06T04:39:03.614Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/orders/page.tsx"
+      },
+      "order-register": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:15.590Z",
+          "lastUpdated": "2026-03-06T04:39:15.590Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/order-register/page.tsx"
+      },
+      "branches": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:24.987Z",
+          "lastUpdated": "2026-03-06T04:39:24.987Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/branches/page.tsx"
+      },
+      "pricing": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:34.618Z",
+          "lastUpdated": "2026-03-06T04:39:34.618Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/branches/[id]/pricing/page.tsx"
+      },
+      "agents": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-06T04:39:38.912Z",
+          "lastUpdated": "2026-03-06T04:39:38.912Z"
+        },
+        "lastFile": "/home/blueadm/frontend_web/src/app/admin/agents/page.tsx"
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-03-06T02:08:58.072Z",
+      "onboardingCompleted": false,
+      "lastActivity": "2026-03-06T04:39:38.912Z"
+    },
+    "history": [
+      {
+        "timestamp": "2026-03-06T02:21:00.325Z",
+        "feature": "login",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:27:47.588Z",
+        "feature": "login",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:27:53.788Z",
+        "feature": "login",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:34:23.665Z",
+        "feature": "login",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:32.009Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:36.163Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:40.255Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:49.263Z",
+        "feature": "frontend_web",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:39:58.003Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:40:07.977Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:40:17.959Z",
+        "feature": "frontend_web",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:43:36.646Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:48:35.566Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:52:39.810Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:52:48.088Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:52:54.016Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:52:59.634Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:04.180Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:08.372Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:13.688Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:17.731Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:22.797Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:36.687Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:41.715Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:53:45.817Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:54:05.146Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T02:54:10.181Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:15:51.348Z",
+        "feature": "api",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:16:01.027Z",
+        "feature": "api",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:16:10.781Z",
+        "feature": "api",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:29:26.251Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:29:54.306Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:30:01.884Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:30:27.646Z",
+        "feature": "florists",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:38:29.120Z",
+        "feature": "admin",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:38:42.741Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:03.614Z",
+        "feature": "orders",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:08.908Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:15.590Z",
+        "feature": "order-register",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:24.987Z",
+        "feature": "branches",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:30.676Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:34.618Z",
+        "feature": "pricing",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-06T04:39:38.912Z",
+        "feature": "agents",
+        "phase": "do",
+        "action": "updated"
+      }
+    ]
+  }
+}

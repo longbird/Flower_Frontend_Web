@@ -25,6 +25,8 @@ const CATEGORIES: { code: PhotoCategory | ''; label: string }[] = [
   { code: 'WESTERN', label: '서양란' },
   { code: 'FLOWER', label: '꽃' },
   { code: 'FOLIAGE', label: '관엽' },
+  { code: 'RICE', label: '쌀' },
+  { code: 'FRUIT', label: '과일' },
   { code: 'OTHER', label: '기타' },
 ];
 
@@ -54,12 +56,10 @@ const GRADE_COLORS: Record<string, string> = {
   STANDARD: 'bg-teal-600/90 text-white',
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
 function photoUrl(url: string) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
+  return `/api/proxy${url}`;
 }
 
 function categoryLabel(code: string) {
@@ -76,6 +76,7 @@ export default function ProductSearch() {
   const [serviceArea, setServiceArea] = useState('');
   const [selectedItem, setSelectedItem] = useState<FloristPhotoSearchItem | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const pageSize = 40;
 
   const { data, isLoading } = useQuery({
@@ -111,66 +112,84 @@ export default function ProductSearch() {
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Filter */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-        <div className="flex flex-wrap gap-2 items-end w-full">
-          <div>
-            <label className="text-xs font-medium text-slate-500 block mb-1">상품구분</label>
-            <select
-              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-slate-500 block mb-1">등급</label>
-            <select
-              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
-            >
-              {GRADES.map((g) => (
-                <option key={g.code} value={g.code}>{g.label}</option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        {/* 필터 헤더 (항상 보임) - 핵심 필터만 */}
+        <div className="flex items-center gap-2 px-4 py-2.5">
+          <select
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+          </select>
+          <select
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+            value={grade}
+            onChange={(e) => { setGrade(e.target.value); setPage(1); }}
+          >
+            {GRADES.map((g) => (
+              <option key={g.code} value={g.code}>{g.label}</option>
+            ))}
+          </select>
           <button
             onClick={() => { setIsRecommended(!isRecommended); setPage(1); }}
             className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+              'px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0',
               isRecommended
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-600/20'
+                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
             )}
           >
+            {isRecommended && <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
             추천
           </button>
-          <div className="flex-1 min-w-0 w-full sm:w-auto sm:min-w-[120px] sm:max-w-[200px]">
-            <label className="text-xs font-medium text-slate-500 block mb-1">메모 검색</label>
-            <Input
-              placeholder="메모"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-            />
-          </div>
-          <div className="flex-1 min-w-0 w-full sm:w-auto sm:min-w-[120px] sm:max-w-[200px]">
-            <label className="text-xs font-medium text-slate-500 block mb-1">서비스 지역</label>
-            <Input
-              placeholder="서비스 지역"
-              value={serviceArea}
-              onChange={(e) => setServiceArea(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-            />
-          </div>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm" onClick={handleSearch}>검색</Button>
-          <Button size="sm" variant="outline" className="border-slate-200 hover:bg-slate-50" onClick={handleReset}>초기화</Button>
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0" onClick={handleSearch}>검색</Button>
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className={cn(
+              'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all',
+              filterOpen || memo || serviceArea
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'text-slate-500 border-slate-200 hover:bg-slate-50'
+            )}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+            더보기
+            <svg className={cn('w-3 h-3 transition-transform', filterOpen && 'rotate-180')} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600 px-2 shrink-0" onClick={handleReset} title="초기화">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          </Button>
         </div>
+        {/* 추가 필터 (접힘 가능) */}
+        {filterOpen && (
+          <div className="px-4 pb-3 pt-1 border-t border-slate-100">
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="flex-1 min-w-0 min-w-[120px] max-w-[200px]">
+                <label className="text-xs font-medium text-slate-500 block mb-1">메모 검색</label>
+                <Input
+                  placeholder="메모"
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="h-8 text-sm border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+              <div className="flex-1 min-w-0 min-w-[120px] max-w-[200px]">
+                <label className="text-xs font-medium text-slate-500 block mb-1">서비스 지역</label>
+                <Input
+                  placeholder="서비스 지역"
+                  value={serviceArea}
+                  onChange={(e) => setServiceArea(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="h-8 text-sm border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Result count */}
