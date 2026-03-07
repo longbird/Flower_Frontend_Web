@@ -1117,6 +1117,7 @@ function ImageViewer({
 }) {
   const [rotation, setRotation] = useState(0);
   const [copying, setCopying] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const url = photoUrl(photo.fileUrl);
 
   const handleRotateLeft = () => setRotation((r) => r - 90);
@@ -1149,6 +1150,36 @@ function ImageViewer({
     }
   };
 
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('이미지를 가져올 수 없습니다');
+      const blob = await res.blob();
+      const ext = blob.type === 'image/png' ? '.png' : blob.type === 'image/webp' ? '.webp' : '.jpg';
+      const filename = (photo.memo || '상품사진') + ext;
+      const file = new File([blob], filename, { type: blob.type });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: photo.memo || '상품 사진',
+        });
+        toast.success('공유 완료');
+      } else {
+        // fallback: URL 복사
+        await navigator.clipboard.writeText(window.location.origin + url);
+        toast.info('이 브라우저에서는 파일 공유가 지원되지 않아 URL을 복사했습니다');
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        toast.error('공유에 실패했습니다');
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const categoryName = CATEGORIES.find((c) => c.code === photo.category)?.name;
 
   return (
@@ -1166,6 +1197,9 @@ function ImageViewer({
         </ToolbarButton>
         <ToolbarButton title="이미지 다운로드" onClick={handleDownload}>
           <DownloadIcon />
+        </ToolbarButton>
+        <ToolbarButton title="카카오톡 공유" onClick={handleShare} disabled={sharing}>
+          {sharing ? <span className="animate-spin text-sm">...</span> : <ShareIcon />}
         </ToolbarButton>
         <ToolbarButton title="닫기" onClick={onClose}>
           <CloseIcon />
@@ -1249,6 +1283,14 @@ function DownloadIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
     </svg>
   );
 }
