@@ -101,6 +101,9 @@ export default function FloristDetailPage({
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const userRole = useAuthStore((s) => s.user?.role);
+  const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Record<string, unknown>>({});
   const [selectedPhoto, setSelectedPhoto] = useState<FloristPhoto | null>(null);
@@ -378,43 +381,38 @@ export default function FloristDetailPage({
               {/* 기본 정보 + 영업 정보 통합 */}
               <Card className="shadow-sm border-slate-200">
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 text-sm">
-                    <div>
-                      <dt className="text-slate-400 text-[11px]">화원명</dt>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4 text-sm">
+                    <div className="space-y-0.5">
+                      <dt className="text-xs font-semibold text-slate-500">화원명</dt>
                       <dd className="font-semibold text-slate-900">{florist.name}</dd>
                     </div>
-                    <div>
-                      <dt className="text-slate-400 text-[11px]">전화번호</dt>
+                    <div className="space-y-0.5">
+                      <dt className="text-xs font-semibold text-slate-500">전화번호</dt>
                       <dd className="text-slate-700">{florist.phone || '-'}</dd>
                     </div>
-                    <div>
-                      <dt className="text-slate-400 text-[11px]">지역</dt>
+                    <div className="space-y-0.5">
+                      <dt className="text-xs font-semibold text-slate-500">지역</dt>
                       <dd className="text-emerald-700 font-medium">{florist.sido} {florist.gugun}</dd>
                     </div>
-                    <div>
-                      <dt className="text-slate-400 text-[11px]">출처</dt>
-                      <dd className="text-slate-700">{florist.source === 'flower_shop' ? '외부' : florist.source === 'partner' ? '파트너' : florist.source || '-'}</dd>
-                    </div>
-                    <div className="col-span-2">
-                      <dt className="text-slate-400 text-[11px]">주소</dt>
-                      <dd className="text-slate-700 text-sm">{florist.address || '-'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-slate-400 text-[11px]">등급</dt>
+                    <div className="space-y-0.5">
+                      <dt className="text-xs font-semibold text-slate-500">등급</dt>
                       <dd>{florist.grade ? <span className="font-semibold text-slate-900">{GRADE_MAP[florist.grade] || florist.grade}</span> : <span className="text-slate-400">-</span>}</dd>
                     </div>
-                    <div>
-                      <dt className="text-slate-400 text-[11px]">배정 우선순위</dt>
+                    <div className="col-span-2 space-y-0.5">
+                      <dt className="text-xs font-semibold text-slate-500">주소</dt>
+                      <dd className="text-slate-700 text-sm">{florist.address || '-'}</dd>
+                    </div>
+                    <div className="space-y-0.5">
+                      <dt className="text-xs font-semibold text-slate-500">배정 우선순위</dt>
                       <dd>{florist.priority ? <span className="font-semibold text-slate-900">{florist.priority}</span> : <span className="text-slate-400">-</span>}</dd>
                     </div>
                   </div>
                   {florist.remarks && (
-                    <div className="mt-3 text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-sm">
-                      <span className="text-amber-500 text-[11px] font-medium">특이사항</span>
+                    <div className="mt-4 text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-sm">
+                      <span className="text-xs font-semibold text-amber-600">특이사항</span>
                       <p className="mt-0.5">{florist.remarks}</p>
                     </div>
                   )}
-                  <div className="text-[11px] text-slate-300 font-mono mt-2">ID: {florist.id}</div>
                 </CardContent>
               </Card>
 
@@ -487,11 +485,11 @@ export default function FloristDetailPage({
                 <CardContent className="p-3">
                   <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">갤러리 ({photos.length})</h3>
                   {photos.length > 0 ? (
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
-                      {photos.slice(0, 16).map((photo) => (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                      {photos.slice(0, 12).map((photo) => (
                         <div key={photo.id} className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition" onClick={() => setViewerPhoto(photo)}>
                           <div className="relative aspect-square">
-                            <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || ''} fill className="object-cover" sizes="120px" unoptimized />
+                            <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || ''} fill className="object-cover" sizes="160px" unoptimized />
                             {/* 카테고리 (좌상단) */}
                             <span className="absolute top-0.5 left-0.5 bg-black/60 text-white text-[9px] font-medium px-1 py-px rounded">
                               {CATEGORIES.find((c) => c.code === photo.category)?.name || photo.category}
@@ -520,11 +518,29 @@ export default function FloristDetailPage({
                       사진 없음
                     </div>
                   )}
-                  {photos.length > 16 && (
-                    <div className="text-center text-[11px] text-slate-400 mt-1">+{photos.length - 16}장 더보기</div>
+                  {photos.length > 12 && (
+                    <div className="text-center text-[11px] text-slate-400 mt-1">+{photos.length - 12}장 더보기</div>
                   )}
                 </CardContent>
               </Card>
+
+              {/* Admin 전용: ID + 출처 정보 */}
+              {isSuperAdmin && (
+                <div className="border border-dashed border-slate-300 rounded-lg px-4 py-3 bg-slate-50/50">
+                  <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">관리자 정보</h3>
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500 font-mono">
+                    <span>ID: {florist.id}</span>
+                    <span>출처: {florist.source || '-'}</span>
+                    {(florist as any).profileUrl && (
+                      <a href={(florist as any).profileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        크롤링 원본: {(florist as any).profileUrl}
+                      </a>
+                    )}
+                    {(florist as any).rateMemo && <span>수수료: {(florist as any).rateMemo}</span>}
+                    {(florist as any).basePrice != null && <span>기본가: {(florist as any).basePrice.toLocaleString()}원</span>}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
