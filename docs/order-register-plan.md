@@ -122,3 +122,44 @@
 - [ ] `POST /admin/orders` 엔드포인트 존재 여부 확인
 - [ ] 요청 body 필드 명세 확인 (현재는 order detail 페이지 기반으로 추정)
 - [ ] 응답 형식 확인
+
+## 10. 재개 시 참고 사항 (Claude Code 컨텍스트 복원용)
+
+> **디자인 검토가 완료되면 이 문서를 읽고 Phase 1부터 구현을 시작합니다.**
+
+### 현재 관련 파일 위치
+```
+docs/order-register-plan.md          ← 이 문서
+src/lib/types/order-register.ts      ← zod 스키마, 상수 18종 상품/8종 옵션/15종 경조사어/24종 카드 카테고리, 헬퍼 함수
+src/lib/api/admin.ts                 ← createOrder(), listOrders(), getOrder() 함수 (line 189~)
+src/app/admin/order-register/page.tsx ← 현재 스텁 (textarea만 있음, 이 파일을 교체)
+src/app/api/downloads/[filename]/route.ts ← 디자인 파일 다운로드 API
+public/downloads/                    ← 디자인 PNG, PPTX, HTML 목업
+```
+
+### 백엔드 기존 주문 필드 (GET /admin/orders/:id 응답 기준)
+```
+orderNo, id, status, receiverName, receiverPhone,
+customerPhone, senderPhone, totalPrice,
+addressLine1, addressLine2, deliveryAt, memo,
+floristName, floristPhone, funeralHall, roomNumber,
+deceasedName, chiefMourner, ribbonLeft, ribbonRight,
+venue, hallName, createdAt, updatedAt
+```
+
+### 주문 상태값 (admin)
+```
+UNCONFIRMED, RECEIVED, PENDING, CONFIRMED, ASSIGNED,
+ACCEPTED, PREPARING, DELIVERING, DELIVERED, CANCELED
+```
+
+### 경쟁사 ebestflower.co.kr 로그인 정보
+- ID: best6434 / PW: b1599@
+- 본부발주 URL: http://ebestflower.co.kr/gomenu.htm?urlkey=bonbalju
+
+### 구현 시작 명령어
+```bash
+# docs/order-register-plan.md 를 읽고
+# src/app/admin/order-register/page.tsx 를 새로 구현
+# npm run build → 로컬 배포 → 프로덕션 배포 → git commit & push
+```
