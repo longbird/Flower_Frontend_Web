@@ -97,7 +97,17 @@
 - [ ] 최근 발주 불러오기 (GET /admin/orders?size=5&sort=createdAt)
 - [ ] 경조사어/카드 메시지 프리셋 데이터
 
-### Phase 4: 배포 & QA
+### Phase 4: 주문 이관 기능 (외부 사이트 자동 발주)
+- [ ] 주문 상세에 "주문 이관" 버튼 UI 추가 (이관 대상 사이트 선택 드롭다운)
+- [ ] 서버 사이드 릴레이 API 구현 (`POST /api/relay/[site]`)
+  - [ ] ebestflower.co.kr 릴레이 어댑터
+  - [ ] 468.co.kr 릴레이 어댑터
+- [ ] 세션 관리 모듈 (로그인 유지, 토큰 갱신)
+- [ ] 필드 매핑 테이블 (우리 필드 → 각 사이트 필드)
+- [ ] 이관 결과 로깅 및 상태 표시
+- 상세: `docs/order-relay-feasibility.md` 참고
+
+### Phase 5: 배포 & QA
 - [ ] 빌드 + 로컬 배포 (dev 3030)
 - [ ] 프로덕션 배포 (seoulflower.co.kr)
 - [ ] Git commit & push
@@ -116,6 +126,7 @@
 - `src/lib/types/order-register.ts` — zod 스키마 + 타입 + 상수 (상품목록, 옵션, 경조사어 등)
 - `src/lib/api/admin.ts` — `createOrder()` 함수 추가
 - `src/app/api/downloads/[filename]/route.ts` — 디자인 파일 다운로드 API
+- `docs/order-relay-feasibility.md` — 주문 이관(외부 발주) 가능/불가 분석 문서
 
 ## 9. 백엔드 확인 필요 사항
 
@@ -130,6 +141,7 @@
 ### 현재 관련 파일 위치
 ```
 docs/order-register-plan.md          ← 이 문서
+docs/order-relay-feasibility.md      ← 주문 이관 가능/불가 분석
 src/lib/types/order-register.ts      ← zod 스키마, 상수 18종 상품/8종 옵션/15종 경조사어/24종 카드 카테고리, 헬퍼 함수
 src/lib/api/admin.ts                 ← createOrder(), listOrders(), getOrder() 함수 (line 189~)
 src/app/admin/order-register/page.tsx ← 현재 스텁 (textarea만 있음, 이 파일을 교체)
