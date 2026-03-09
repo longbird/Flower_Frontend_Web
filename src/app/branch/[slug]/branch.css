@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&display=swap');
+
+.branch-homepage {
+  font-family: 'Noto Serif KR', serif;
+  --branch-rose: #e8a0b4;
+  --branch-rose-light: #f5d5de;
+  --branch-peach: #f8c9a0;
+  --branch-peach-light: #fde8d0;
+  --branch-cream: #fef9f4;
+  --branch-white: #ffffff;
+  --branch-text: #3d2c2e;
+  --branch-text-light: #7a6365;
+  --branch-accent: #c77d8f;
+  --branch-gold: #c9a96e;
+  background-color: var(--branch-cream);
+  color: var(--branch-text);
+  font-size: 16px;
+}
+
+.branch-homepage * {
+  border-color: var(--branch-rose-light);
+}
+
+.branch-homepage h1,
+.branch-homepage h2,
+.branch-homepage h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-weight: 600;
+}

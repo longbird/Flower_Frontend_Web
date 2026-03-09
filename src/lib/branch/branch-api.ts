@@ -1,0 +1,93 @@
+import { useBranchAuthStore } from './auth-store';
+import type { ConsultRequest } from './types';
+
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+const API_BASE = RAW_API_BASE ? '/api/proxy' : '';
+
+/** 지사 관리자 로그인 (같은 admin auth 엔드포인트 사용) */
+export async function branchAdminLogin(username: string, password: string) {
+  const res = await fetch(`${API_BASE}/admin/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || '로그인에 실패했습니다.');
+  }
+
+  const data = await res.json();
+
+  // BRANCH_ADMIN 역할 체크
+  if (data.admin?.role !== 'BRANCH_ADMIN') {
+    throw new Error('지사 관리자 계정이 아닙니다.');
+  }
+
+  return data;
+}
+
+/** 인증된 지사 API 호출 */
+async function branchApi<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
+  const { accessToken, logout } = useBranchAuthStore.getState();
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+    'Content-Type': 'application/json',
+  };
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+
+  if (res.status === 401) {
+    logout();
+    throw new Error('인증이 만료되었습니다.');
+  }
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || '요청에 실패했습니다.');
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+/** 내 지사 정보 조회 */
+export async function fetchMyBranchInfo() {
+  return branchApi<{ ok: boolean; data: any }>('/branch/me');
+}
+
+/** 상담 요청 목록 조회 */
+export async function fetchConsultRequests(params?: {
+  status?: string;
+  page?: number;
+  size?: number;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.status) sp.set('status', params.status);
+  if (params?.page) sp.set('page', String(params.page));
+  if (params?.size) sp.set('size', String(params.size));
+  const qs = sp.toString();
+  return branchApi<{
+    ok: boolean;
+    data: ConsultRequest[];
+    total: number;
+    page: number;
+    size: number;
+  }>(`/branch/consults${qs ? `?${qs}` : ''}`);
+}
+
+/** 상담 요청 상태 변경 */
+export async function updateConsultRequestStatus(id: number, status: string) {
+  return branchApi<{ ok: boolean; data: { id: number; status: string } }>(
+    `/branch/consults/${id}/status`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }
+  );
+}
