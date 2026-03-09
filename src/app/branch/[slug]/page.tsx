@@ -3,11 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchBranchInfo, fetchBranchProducts } from '@/lib/branch/api';
-import type { BranchInfo, BranchProduct } from '@/lib/branch/types';
+import { fetchBranchInfo, fetchBranchProducts, submitConsultRequest } from '@/lib/branch/api';
+import type { BranchInfo, BranchProduct, ConsultRequestForm } from '@/lib/branch/types';
 
 function formatPrice(price: number) {
   return price.toLocaleString('ko-KR') + '원';
+}
+
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
 }
 
 function HeroSection({ branch }: { branch: BranchInfo }) {
@@ -84,10 +91,19 @@ function InfoSection({ branch }: { branch: BranchInfo }) {
   );
 }
 
-function ProductCard({ product }: { product: BranchProduct }) {
+function ProductCard({
+  product,
+  onClick,
+}: {
+  product: BranchProduct;
+  onClick: () => void;
+}) {
   return (
-    <div className="group bg-[var(--branch-white)] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-[var(--branch-rose-light)]/50">
-      {/* Product image placeholder */}
+    <div
+      className="group bg-[var(--branch-white)] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-[var(--branch-rose-light)]/50 cursor-pointer"
+      onClick={onClick}
+    >
+      {/* Product image */}
       <div className="aspect-[4/3] bg-gradient-to-br from-[var(--branch-rose-light)] to-[var(--branch-peach-light)] flex items-center justify-center overflow-hidden">
         {product.imageUrl ? (
           <img
@@ -126,7 +142,267 @@ function ProductCard({ product }: { product: BranchProduct }) {
   );
 }
 
-function ProductsSection({ products, slug }: { products: BranchProduct[]; slug: string }) {
+// ─── Product Detail Modal ─────────────────────────────────────────────────────
+
+function ProductDetailModal({
+  product,
+  slug,
+  onClose,
+}: {
+  product: BranchProduct;
+  slug: string;
+  onClose: () => void;
+}) {
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const [form, setForm] = useState<ConsultRequestForm>({
+    customerName: '',
+    customerPhone: '',
+    productCode: product.sku,
+    productName: product.name,
+    desiredDate: '',
+    message: '',
+  });
+
+  // Get tomorrow as min date
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDate = tomorrow.toISOString().split('T')[0];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!form.customerName.trim()) {
+      setError('이름을 입력해 주세요.');
+      return;
+    }
+    if (!form.customerPhone.trim() || form.customerPhone.replace(/\D/g, '').length < 10) {
+      setError('올바른 연락처를 입력해 주세요.');
+      return;
+    }
+
+    setSubmitting(true);
+    const result = await submitConsultRequest(slug, {
+      ...form,
+      customerPhone: form.customerPhone.replace(/\D/g, ''),
+    });
+    setSubmitting(false);
+
+    if (result.ok) {
+      setSubmitted(true);
+    } else {
+      setError(result.message || '요청에 실패했습니다.');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[var(--branch-white)] rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-[var(--branch-rose-light)]">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/80 text-[var(--branch-text-light)] hover:bg-white hover:text-[var(--branch-text)] transition-colors shadow-sm"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {submitted ? (
+          /* Success State */
+          <div className="p-8 text-center">
+            <div className="text-6xl mb-4">🌸</div>
+            <h2 className="text-xl text-[var(--branch-text)] mb-3">
+              주문 요청이 완료되었습니다
+            </h2>
+            <p className="text-[var(--branch-text-light)] font-light mb-6 leading-relaxed">
+              <strong>{product.name}</strong> 상품에 대해<br />
+              빠른 시간 내에 연락드리겠습니다.
+            </p>
+            <button
+              onClick={onClose}
+              className="px-8 py-3 bg-[var(--branch-accent)] text-white rounded-full font-medium hover:bg-[var(--branch-rose)] transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        ) : showOrderForm ? (
+          /* Order Request Form */
+          <div className="p-6">
+            {/* Product Summary */}
+            <div className="flex items-center gap-3 mb-6 p-3 rounded-xl bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]/50">
+              {product.imageUrl ? (
+                <img src={product.imageUrl} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />
+              ) : (
+                <div className="w-14 h-14 rounded-lg bg-[var(--branch-rose-light)] flex items-center justify-center text-2xl opacity-50">
+                  🌸
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-semibold text-[var(--branch-text)] truncate">{product.name}</h3>
+                <p className="text-sm font-bold text-[var(--branch-accent)]">{formatPrice(product.price)}</p>
+              </div>
+            </div>
+
+            <h2 className="text-lg font-semibold text-[var(--branch-text)] mb-4">주문 요청</h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm text-[var(--branch-text)] mb-1.5 font-medium">
+                  이름 <span className="text-[var(--branch-accent)]">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.customerName}
+                  onChange={(e) => setForm((prev) => ({ ...prev, customerName: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-[var(--branch-text)] placeholder-[var(--branch-text-light)]/50 focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors"
+                  placeholder="홍길동"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-[var(--branch-text)] mb-1.5 font-medium">
+                  연락처 <span className="text-[var(--branch-accent)]">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={form.customerPhone}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      customerPhone: formatPhone(e.target.value),
+                    }))
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-[var(--branch-text)] placeholder-[var(--branch-text-light)]/50 focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors"
+                  placeholder="010-1234-5678"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-[var(--branch-text)] mb-1.5 font-medium">
+                  희망 배달일
+                </label>
+                <input
+                  type="date"
+                  value={form.desiredDate}
+                  onChange={(e) => setForm((prev) => ({ ...prev, desiredDate: e.target.value }))}
+                  min={minDate}
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-[var(--branch-text)] focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-[var(--branch-text)] mb-1.5 font-medium">
+                  요청 사항
+                </label>
+                <textarea
+                  value={form.message}
+                  onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-[var(--branch-text)] placeholder-[var(--branch-text-light)]/50 focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors resize-none"
+                  placeholder="배달 주소, 카드 문구 등을 자유롭게 적어 주세요."
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowOrderForm(false)}
+                  className="flex-1 py-3 rounded-full border-2 border-[var(--branch-rose-light)] text-[var(--branch-text-light)] font-medium hover:bg-[var(--branch-rose-light)]/30 transition-colors"
+                >
+                  뒤로
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-3 rounded-full bg-[var(--branch-accent)] text-white font-medium hover:bg-[var(--branch-rose)] transition-colors disabled:opacity-60"
+                >
+                  {submitting ? '전송 중...' : '주문 요청하기'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          /* Product Detail View */
+          <>
+            {/* Image */}
+            <div className="aspect-[4/3] bg-gradient-to-br from-[var(--branch-rose-light)] to-[var(--branch-peach-light)] flex items-center justify-center overflow-hidden rounded-t-3xl">
+              {product.imageUrl ? (
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-center p-4">
+                  <div className="text-7xl mb-2 opacity-60">🌸</div>
+                  <p className="text-[var(--branch-text-light)] font-light">
+                    {product.category || '꽃'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <h2 className="text-2xl font-semibold text-[var(--branch-text)] mb-2">
+                {product.name}
+              </h2>
+
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl font-bold text-[var(--branch-accent)]">
+                  {formatPrice(product.price)}
+                </span>
+                {product.price !== product.basePrice && (
+                  <span className="text-base text-[var(--branch-text-light)] line-through">
+                    {formatPrice(product.basePrice)}
+                  </span>
+                )}
+              </div>
+
+              {product.description && (
+                <p className="text-[var(--branch-text-light)] font-light leading-relaxed mb-6 whitespace-pre-line">
+                  {product.description}
+                </p>
+              )}
+
+              {/* Order Request Button */}
+              <button
+                onClick={() => setShowOrderForm(true)}
+                className="w-full py-4 bg-[var(--branch-accent)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-rose)] transition-colors shadow-lg"
+              >
+                이 상품 주문 요청하기
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProductsSection({
+  products,
+  slug,
+  onProductClick,
+}: {
+  products: BranchProduct[];
+  slug: string;
+  onProductClick: (product: BranchProduct) => void;
+}) {
   if (products.length === 0) return null;
 
   // Group by category
@@ -158,7 +434,11 @@ function ProductsSection({ products, slug }: { products: BranchProduct[]; slug: 
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {items.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onClick={() => onProductClick(product)}
+                />
               ))}
             </div>
           </div>
@@ -231,6 +511,7 @@ export default function BranchHomePage() {
   const [products, setProducts] = useState<BranchProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<BranchProduct | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -261,8 +542,21 @@ export default function BranchHomePage() {
     <>
       <HeroSection branch={branch} />
       <InfoSection branch={branch} />
-      <ProductsSection products={products} slug={slug} />
+      <ProductsSection
+        products={products}
+        slug={slug}
+        onProductClick={(product) => setSelectedProduct(product)}
+      />
       <Footer branch={branch} />
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          slug={slug}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
     </>
   );
 }

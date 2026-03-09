@@ -35,6 +35,36 @@ interface EditForm {
   allowFloristPhotoManagement: boolean;
 }
 
+const ACCOUNT_STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  ACTIVE: { label: '활성', variant: 'default' },
+  PENDING: { label: '미생성', variant: 'secondary' },
+  SUSPENDED: { label: '정지', variant: 'destructive' },
+};
+
+interface AccountInfo {
+  username?: string;
+  managerName?: string;
+  managerPhone?: string;
+  status: string;
+  lastLoginAt?: string;
+}
+
+interface CreateAccountForm {
+  username: string;
+  password: string;
+  managerName: string;
+  managerPhone: string;
+}
+
+interface EditAccountForm {
+  managerName: string;
+  managerPhone: string;
+}
+
+interface ResetPasswordForm {
+  newPassword: string;
+}
+
 export default function BranchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -46,6 +76,20 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     name: '', type: 'BRANCH', delegationMode: 'NONE',
     isActive: true, businessRegistrationNo: '',
     allowFloristSearch: false, allowFloristPhotoManagement: false,
+  });
+
+  // Account management state
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [showEditAccount, setShowEditAccount] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [createAccountForm, setCreateAccountForm] = useState<CreateAccountForm>({
+    username: '', password: '', managerName: '', managerPhone: '',
+  });
+  const [editAccountForm, setEditAccountForm] = useState<EditAccountForm>({
+    managerName: '', managerPhone: '',
+  });
+  const [resetPasswordForm, setResetPasswordForm] = useState<ResetPasswordForm>({
+    newPassword: '',
   });
 
   const { data: branch, isLoading } = useQuery({
@@ -69,6 +113,53 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-branches'] });
       router.push('/admin/branches');
+    },
+  });
+
+  // Account query & mutations
+  const { data: account, isLoading: accountLoading } = useQuery<AccountInfo | null>({
+    queryKey: ['admin-branch-account', id],
+    queryFn: () => api<AccountInfo>(`/admin/branches/${id}/account`).catch(() => null),
+  });
+
+  const createAccountMutation = useMutation({
+    mutationFn: (body: CreateAccountForm) =>
+      api(`/admin/branches/${id}/account`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-branch-account', id] });
+      setShowCreateAccount(false);
+      setCreateAccountForm({ username: '', password: '', managerName: '', managerPhone: '' });
+    },
+  });
+
+  const updateAccountMutation = useMutation({
+    mutationFn: (body: EditAccountForm) =>
+      api(`/admin/branches/${id}/account`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-branch-account', id] });
+      setShowEditAccount(false);
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: (body: ResetPasswordForm) =>
+      api(`/admin/branches/${id}/account/reset-password`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-branch-account', id] });
+      setShowResetPassword(false);
+      setResetPasswordForm({ newPassword: '' });
     },
   });
 
@@ -97,6 +188,29 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     };
     if (form.businessRegistrationNo.trim()) body.businessRegistrationNo = form.businessRegistrationNo.trim();
     updateMutation.mutate(body);
+  };
+
+  const openEditAccount = () => {
+    if (!account) return;
+    setEditAccountForm({
+      managerName: account.managerName || '',
+      managerPhone: account.managerPhone || '',
+    });
+    setShowEditAccount(true);
+  };
+
+  const handleCreateAccount = () => {
+    if (!createAccountForm.username.trim() || !createAccountForm.password.trim()) return;
+    createAccountMutation.mutate(createAccountForm);
+  };
+
+  const handleUpdateAccount = () => {
+    updateAccountMutation.mutate(editAccountForm);
+  };
+
+  const handleResetPassword = () => {
+    if (!resetPasswordForm.newPassword.trim()) return;
+    resetPasswordMutation.mutate(resetPasswordForm);
   };
 
   const selectClass = 'h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none';
@@ -128,6 +242,93 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
             <div><dt className="text-slate-400 text-xs">화원 사진 관리 허용</dt><dd>{branch.allowFloristPhotoManagement ? '예' : '아니오'}</dd></div>
             <div><dt className="text-slate-400 text-xs">생성일</dt><dd>{branch.createdAt ? new Date(branch.createdAt).toLocaleDateString('ko-KR') : '-'}</dd></div>
           </dl>
+        </CardContent>
+      </Card>
+
+      {/* 홈페이지 정보 */}
+      {branch.code && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">홈페이지 정보</CardTitle></CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-slate-400 text-xs">지사 코드</dt>
+                <dd className="font-medium">{branch.code}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400 text-xs">홈페이지 URL</dt>
+                <dd>
+                  <a
+                    href={`/branch/${branch.code}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    /branch/{branch.code}
+                  </a>
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 관리자 계정 */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">관리자 계정</CardTitle>
+            {account && account.status !== 'PENDING' && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={openEditAccount}>수정</Button>
+                <Button variant="outline" size="sm" onClick={() => { setResetPasswordForm({ newPassword: '' }); setShowResetPassword(true); }}>
+                  비밀번호 초기화
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {accountLoading ? (
+            <div className="text-sm text-slate-400">로딩 중...</div>
+          ) : !account || account.status === 'PENDING' ? (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <p className="text-sm text-slate-500">등록된 계정이 없습니다.</p>
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => {
+                setCreateAccountForm({ username: '', password: '', managerName: '', managerPhone: '' });
+                setShowCreateAccount(true);
+              }}>
+                계정 생성
+              </Button>
+            </div>
+          ) : (
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-slate-400 text-xs">아이디</dt>
+                <dd className="font-medium">{account.username || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400 text-xs">상태</dt>
+                <dd>
+                  <Badge variant={ACCOUNT_STATUS_LABELS[account.status]?.variant || 'secondary'}>
+                    {ACCOUNT_STATUS_LABELS[account.status]?.label || account.status}
+                  </Badge>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-400 text-xs">담당자명</dt>
+                <dd>{account.managerName || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400 text-xs">담당자 연락처</dt>
+                <dd>{account.managerPhone || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400 text-xs">마지막 로그인</dt>
+                <dd>{account.lastLoginAt ? new Date(account.lastLoginAt).toLocaleString('ko-KR') : '-'}</dd>
+              </div>
+            </dl>
+          )}
         </CardContent>
       </Card>
 
@@ -212,6 +413,139 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
             <Button variant="outline" onClick={() => setShowDelete(false)}>취소</Button>
             <Button variant="destructive" disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
               {deleteMutation.isPending ? '삭제 중...' : '삭제'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 계정 생성 다이얼로그 */}
+      <Dialog open={showCreateAccount} onOpenChange={setShowCreateAccount}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>계정 생성</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>아이디 *</Label>
+              <Input
+                value={createAccountForm.username}
+                onChange={e => setCreateAccountForm(f => ({ ...f, username: e.target.value }))}
+                placeholder="로그인 아이디"
+              />
+            </div>
+            <div>
+              <Label>비밀번호 *</Label>
+              <Input
+                type="password"
+                value={createAccountForm.password}
+                onChange={e => setCreateAccountForm(f => ({ ...f, password: e.target.value }))}
+                placeholder="비밀번호"
+              />
+            </div>
+            <div>
+              <Label>담당자명</Label>
+              <Input
+                value={createAccountForm.managerName}
+                onChange={e => setCreateAccountForm(f => ({ ...f, managerName: e.target.value }))}
+                placeholder="담당자 이름"
+              />
+            </div>
+            <div>
+              <Label>담당자 연락처</Label>
+              <Input
+                value={createAccountForm.managerPhone}
+                onChange={e => setCreateAccountForm(f => ({ ...f, managerPhone: e.target.value }))}
+                placeholder="010-0000-0000"
+              />
+            </div>
+          </div>
+          {createAccountMutation.isError && (
+            <div className="text-sm text-red-500">계정 생성 실패: {(createAccountMutation.error as any)?.message || '오류가 발생했습니다'}</div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateAccount(false)}>취소</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={!createAccountForm.username.trim() || !createAccountForm.password.trim() || createAccountMutation.isPending}
+              onClick={handleCreateAccount}
+            >
+              {createAccountMutation.isPending ? '생성 중...' : '생성'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 계정 수정 다이얼로그 */}
+      <Dialog open={showEditAccount} onOpenChange={setShowEditAccount}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>계정 정보 수정</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>담당자명</Label>
+              <Input
+                value={editAccountForm.managerName}
+                onChange={e => setEditAccountForm(f => ({ ...f, managerName: e.target.value }))}
+                placeholder="담당자 이름"
+              />
+            </div>
+            <div>
+              <Label>담당자 연락처</Label>
+              <Input
+                value={editAccountForm.managerPhone}
+                onChange={e => setEditAccountForm(f => ({ ...f, managerPhone: e.target.value }))}
+                placeholder="010-0000-0000"
+              />
+            </div>
+          </div>
+          {updateAccountMutation.isError && (
+            <div className="text-sm text-red-500">수정 실패: {(updateAccountMutation.error as any)?.message || '오류가 발생했습니다'}</div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditAccount(false)}>취소</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={updateAccountMutation.isPending}
+              onClick={handleUpdateAccount}
+            >
+              {updateAccountMutation.isPending ? '저장 중...' : '저장'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 비밀번호 초기화 다이얼로그 */}
+      <Dialog open={showResetPassword} onOpenChange={setShowResetPassword}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>비밀번호 초기화</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              <strong>{account?.username}</strong> 계정의 비밀번호를 초기화합니다.
+            </p>
+            <div>
+              <Label>새 비밀번호 *</Label>
+              <Input
+                type="password"
+                value={resetPasswordForm.newPassword}
+                onChange={e => setResetPasswordForm(f => ({ ...f, newPassword: e.target.value }))}
+                placeholder="새 비밀번호 입력"
+              />
+            </div>
+          </div>
+          {resetPasswordMutation.isError && (
+            <div className="text-sm text-red-500">초기화 실패: {(resetPasswordMutation.error as any)?.message || '오류가 발생했습니다'}</div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResetPassword(false)}>취소</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={!resetPasswordForm.newPassword.trim() || resetPasswordMutation.isPending}
+              onClick={handleResetPassword}
+            >
+              {resetPasswordMutation.isPending ? '초기화 중...' : '초기화'}
             </Button>
           </DialogFooter>
         </DialogContent>

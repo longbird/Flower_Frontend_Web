@@ -91,3 +91,43 @@ export async function updateConsultRequestStatus(id: number, status: string) {
     }
   );
 }
+
+/** 지사 상품 목록 조회 (관리자) */
+export interface BranchProductSetting {
+  productId: number;
+  productName: string;
+  sku: string;
+  description?: string;
+  imageUrl?: string;
+  category?: string;
+  basePrice: number;
+  isVisible: boolean;
+  sellingPrice: number;
+}
+
+export async function fetchBranchProducts() {
+  return branchApi<{ ok: boolean; data: BranchProductSetting[] }>('/branch/products');
+}
+
+/** 지사 상품 설정 변경 (관리자) */
+export async function updateBranchProduct(
+  productId: number,
+  body: { isVisible?: boolean; sellingPrice?: number }
+) {
+  return branchApi<{ ok: boolean }>(`/branch/products/${productId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+/** 지사 추가 요금 목록 조회 (관리자) */
+export interface BranchSurcharge {
+  id: number;
+  surchargeType: string;
+  name: string;
+  amount: number;
+}
+
+export async function fetchBranchSurcharges() {
+  return branchApi<{ ok: boolean; data: BranchSurcharge[] }>('/branch/surcharges');
+}
