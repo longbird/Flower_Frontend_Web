@@ -27,12 +27,15 @@ interface Branch {
 }
 
 interface BranchProduct {
-  productId: number;
-  productName: string;
+  id: number;
+  name: string;
   sku: string;
   basePrice: number;
   isVisible: boolean;
-  sellingPrice: number;
+  sellingPrice: number | null;
+  customName?: string | null;
+  imageUrl?: string;
+  category?: string;
 }
 
 interface Surcharge {
@@ -56,6 +59,39 @@ const CATEGORY_OPTIONS = [
   { value: 'event', label: '이벤트' },
   { value: 'etc', label: '기타' },
 ];
+
+// 화원 사진에서 자동 등록된 상품의 카테고리 코드 매핑
+const CATEGORY_LABEL_MAP: Record<string, string> = {
+  // 카탈로그 고유
+  bouquet: '꽃다발', basket: '꽃바구니', box: '플라워박스', wreath: '화환',
+  plant: '관엽식물', event: '이벤트', etc: '기타',
+  // 화원 사진 카테고리 (대문자)
+  CELEBRATION: '축하', CONDOLENCE: '근조', OBJET: '오브제',
+  ORIENTAL: '동양란', WESTERN: '서양란', FLOWER: '꽃',
+  FOLIAGE: '관엽', RICE: '쌀', FRUIT: '과일', OTHER: '기타',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  CELEBRATION: 'bg-pink-500 text-white', CONDOLENCE: 'bg-slate-700 text-white',
+  OBJET: 'bg-purple-500 text-white', ORIENTAL: 'bg-teal-500 text-white',
+  WESTERN: 'bg-indigo-500 text-white', FLOWER: 'bg-rose-500 text-white',
+  FOLIAGE: 'bg-emerald-500 text-white', RICE: 'bg-amber-600 text-white',
+  FRUIT: 'bg-orange-500 text-white', OTHER: 'bg-slate-500 text-white',
+  bouquet: 'bg-rose-500 text-white', basket: 'bg-pink-500 text-white',
+  box: 'bg-purple-500 text-white', wreath: 'bg-slate-700 text-white',
+  plant: 'bg-emerald-500 text-white', event: 'bg-amber-500 text-white',
+  etc: 'bg-slate-500 text-white',
+};
+
+function categoryLabel(code: string) {
+  return CATEGORY_LABEL_MAP[code] || code;
+}
+
+function photoUrl(url: string) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `/api/proxy${url}`;
+}
 
 const SURCHARGE_TYPE_OPTIONS = [
   { value: 'REGION', label: '지역' },
@@ -706,10 +742,10 @@ function ProductsTab() {
                 </div>
 
                 {/* Image */}
-                <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden">
+                <div className="relative aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden">
                   {product.imageUrl ? (
                     <img
-                      src={product.imageUrl}
+                      src={photoUrl(product.imageUrl)}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
@@ -718,6 +754,20 @@ function ProductsTab() {
                       <div className="text-4xl opacity-30 mb-1">🌸</div>
                       <p className="text-xs text-slate-400">이미지 없음</p>
                     </div>
+                  )}
+                  {/* Category badge */}
+                  {product.category && (
+                    <span className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-sm ${
+                      CATEGORY_COLORS[product.category] || 'bg-slate-500 text-white'
+                    }`}>
+                      {categoryLabel(product.category)}
+                    </span>
+                  )}
+                  {/* Branch default badge */}
+                  {branchDefault && (
+                    <span className="absolute bottom-2 right-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm">
+                      추천
+                    </span>
                   )}
                 </div>
 
@@ -728,13 +778,8 @@ function ProductsTab() {
                       <h3 className="text-sm font-semibold text-slate-900 truncate">
                         {product.name}
                       </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {product.sku}
-                        {product.category && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
-                            {CATEGORY_OPTIONS.find((c) => c.value === product.category)?.label || product.category}
-                          </span>
-                        )}
+                      <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                        <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{product.sku}</span>
                       </p>
                     </div>
                   </div>
@@ -818,6 +863,7 @@ function BranchSettingsTab() {
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [editedPrices, setEditedPrices] = useState<Record<number, string>>({});
+  const [editedNames, setEditedNames] = useState<Record<number, string>>({});
   const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
 
   const loadBranches = useCallback(async () => {
@@ -840,6 +886,7 @@ function BranchSettingsTab() {
   const loadBranchProducts = useCallback(async (branchId: number) => {
     setLoadingProducts(true);
     setEditedPrices({});
+    setEditedNames({});
     try {
       const res = await api<{ ok: boolean; data: BranchProduct[] }>(
         `/admin/catalog/branches/${branchId}/products`
@@ -860,11 +907,11 @@ function BranchSettingsTab() {
 
   const handleToggleVisibility = async (product: BranchProduct) => {
     if (selectedBranchId === null) return;
-    setSavingIds((prev) => new Set(prev).add(product.productId));
+    setSavingIds((prev) => new Set(prev).add(product.id));
     try {
-      const priceStr = editedPrices[product.productId];
+      const priceStr = editedPrices[product.id];
       const sellingPrice = priceStr !== undefined ? Number(priceStr) : product.sellingPrice;
-      await api(`/admin/catalog/branches/${selectedBranchId}/products/${product.productId}`, {
+      await api(`/admin/catalog/branches/${selectedBranchId}/products/${product.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           isVisible: !product.isVisible,
@@ -877,35 +924,42 @@ function BranchSettingsTab() {
     } finally {
       setSavingIds((prev) => {
         const next = new Set(prev);
-        next.delete(product.productId);
+        next.delete(product.id);
         return next;
       });
     }
   };
 
-  const handleSavePrice = async (product: BranchProduct) => {
+  const handleSave = async (product: BranchProduct) => {
     if (selectedBranchId === null) return;
-    const priceStr = editedPrices[product.productId];
-    if (priceStr === undefined) return;
-    const sellingPrice = Number(priceStr);
-    if (isNaN(sellingPrice) || sellingPrice < 0) return;
+    const priceStr = editedPrices[product.id];
+    const nameStr = editedNames[product.id];
+    if (priceStr === undefined && nameStr === undefined) return;
 
-    setSavingIds((prev) => new Set(prev).add(product.productId));
+    const sellingPrice = priceStr !== undefined ? Number(priceStr) : product.sellingPrice;
+    if (priceStr !== undefined && (isNaN(Number(priceStr)) || Number(priceStr) < 0)) return;
+
+    const customName = nameStr !== undefined ? (nameStr.trim() || null) : product.customName;
+
+    setSavingIds((prev) => new Set(prev).add(product.id));
     try {
-      await api(`/admin/catalog/branches/${selectedBranchId}/products/${product.productId}`, {
+      await api(`/admin/catalog/branches/${selectedBranchId}/products/${product.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           isVisible: product.isVisible,
           sellingPrice,
+          customName,
         }),
       });
       loadBranchProducts(selectedBranchId);
+      setEditedPrices((prev) => { const n = { ...prev }; delete n[product.id]; return n; });
+      setEditedNames((prev) => { const n = { ...prev }; delete n[product.id]; return n; });
     } catch {
       // ignore
     } finally {
       setSavingIds((prev) => {
         const next = new Set(prev);
-        next.delete(product.productId);
+        next.delete(product.id);
         return next;
       });
     }
@@ -968,37 +1022,53 @@ function BranchSettingsTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">상품명</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">SKU</th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">기본가</th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">판매가</th>
-                  <th className="text-center px-4 py-3 font-medium text-slate-600">노출</th>
-                  <th className="text-center px-4 py-3 font-medium text-slate-600">저장</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600 w-16">코드</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">상품명 (지사용)</th>
+                  <th className="text-right px-4 py-3 font-medium text-slate-600 w-28">기본가</th>
+                  <th className="text-right px-4 py-3 font-medium text-slate-600 w-36">판매가</th>
+                  <th className="text-center px-4 py-3 font-medium text-slate-600 w-16">노출</th>
+                  <th className="text-center px-4 py-3 font-medium text-slate-600 w-16">저장</th>
                 </tr>
               </thead>
               <tbody>
                 {branchProducts.map((bp) => {
-                  const isSaving = savingIds.has(bp.productId);
-                  const editedPrice = editedPrices[bp.productId];
-                  const priceValue = editedPrice !== undefined ? editedPrice : String(bp.sellingPrice);
-                  const priceChanged = editedPrice !== undefined && Number(editedPrice) !== bp.sellingPrice;
+                  const isSaving = savingIds.has(bp.id);
+                  const editedPrice = editedPrices[bp.id];
+                  const editedName = editedNames[bp.id];
+                  const displayPrice = bp.sellingPrice ?? bp.basePrice;
+                  const priceValue = editedPrice !== undefined ? editedPrice : String(displayPrice);
+                  const nameValue = editedName !== undefined ? editedName : (bp.customName || bp.name);
+                  const hasChanges =
+                    (editedPrice !== undefined && Number(editedPrice) !== displayPrice) ||
+                    (editedName !== undefined && editedName !== (bp.customName || bp.name));
 
                   return (
-                    <tr key={bp.productId} className="border-b border-slate-100 last:border-0">
-                      <td className="px-4 py-3 font-medium text-slate-900">{bp.productName}</td>
-                      <td className="px-4 py-3 text-slate-500">{bp.sku}</td>
-                      <td className="px-4 py-3 text-right text-slate-500">{formatPrice(bp.basePrice)}</td>
+                    <tr key={bp.id} className={`border-b border-slate-100 last:border-0 ${!bp.isVisible ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">{bp.sku}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Input
+                          value={nameValue}
+                          onChange={(e) =>
+                            setEditedNames((prev) => ({ ...prev, [bp.id]: e.target.value }))
+                          }
+                          className="w-full text-sm"
+                          disabled={isSaving}
+                          placeholder={bp.name}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-500 whitespace-nowrap">
+                        {bp.basePrice.toLocaleString()}원
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <Input
                           type="number"
                           value={priceValue}
                           onChange={(e) =>
-                            setEditedPrices((prev) => ({
-                              ...prev,
-                              [bp.productId]: e.target.value,
-                            }))
+                            setEditedPrices((prev) => ({ ...prev, [bp.id]: e.target.value }))
                           }
-                          className="w-28 ml-auto text-right"
+                          className="w-32 ml-auto text-right"
                           disabled={isSaving}
                         />
                       </td>
@@ -1024,10 +1094,10 @@ function BranchSettingsTab() {
                         </button>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {priceChanged && (
+                        {hasChanges && (
                           <Button
                             size="sm"
-                            onClick={() => handleSavePrice(bp)}
+                            onClick={() => handleSave(bp)}
                             disabled={isSaving}
                             className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3"
                           >
