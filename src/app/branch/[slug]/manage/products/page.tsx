@@ -14,6 +14,16 @@ function formatPrice(price: number) {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
+  CELEBRATION: '축하',
+  CONDOLENCE: '근조',
+  OBJET: '오브제',
+  ORIENTAL: '동양란',
+  WESTERN: '서양란',
+  FLOWER: '꽃',
+  FOLIAGE: '관엽',
+  RICE: '쌀',
+  FRUIT: '과일',
+  OTHER: '기타',
   bouquet: '꽃다발',
   basket: '꽃바구니',
   box: '플라워박스',
@@ -157,6 +167,10 @@ export default function BranchManageProductsPage() {
   const [editProduct, setEditProduct] = useState<BranchProductSetting | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<'products' | 'surcharges'>('products');
+  // 필터
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterName, setFilterName] = useState('');
+  const [filterVisibility, setFilterVisibility] = useState<'' | 'visible' | 'hidden'>('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -252,7 +266,19 @@ export default function BranchManageProductsPage() {
       </div>
 
       {/* Products Tab */}
-      {activeTab === 'products' && (
+      {activeTab === 'products' && (() => {
+        // 필터링
+        const filtered = products.filter((p) => {
+          if (filterCategory && p.category !== filterCategory) return false;
+          if (filterName && !p.name.toLowerCase().includes(filterName.toLowerCase())) return false;
+          if (filterVisibility === 'visible' && !p.isVisible) return false;
+          if (filterVisibility === 'hidden' && p.isVisible) return false;
+          return true;
+        });
+        // 카테고리 목록 (상품에 있는 것만)
+        const usedCategories = [...new Set(products.map((p) => p.category).filter(Boolean))] as string[];
+
+        return (
         <>
           {products.length === 0 ? (
             <div className="text-center py-16 bg-[var(--branch-white)] rounded-2xl border border-[var(--branch-rose-light)]">
@@ -266,6 +292,50 @@ export default function BranchManageProductsPage() {
             </div>
           ) : (
             <>
+              {/* 필터 */}
+              <div className="mb-4 p-3 rounded-2xl bg-[var(--branch-white)] border border-[var(--branch-rose-light)]">
+                {/* 1줄: 카테고리 + 노출상태 */}
+                <div className="flex gap-2">
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-sm text-[var(--branch-text)] focus:outline-none focus:border-[var(--branch-accent)] transition-colors"
+                  >
+                    <option value="">전체 카테고리</option>
+                    {usedCategories.map((cat) => (
+                      <option key={cat} value={cat}>{CATEGORY_LABELS[cat] || cat}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterVisibility}
+                    onChange={(e) => setFilterVisibility(e.target.value as '' | 'visible' | 'hidden')}
+                    className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-sm text-[var(--branch-text)] focus:outline-none focus:border-[var(--branch-accent)] transition-colors"
+                  >
+                    <option value="">전체 상태</option>
+                    <option value="visible">노출중</option>
+                    <option value="hidden">숨김</option>
+                  </select>
+                </div>
+                {/* 2줄: 상품명 검색 */}
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="text"
+                    placeholder="상품명 검색"
+                    value={filterName}
+                    onChange={(e) => setFilterName(e.target.value)}
+                    className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-sm text-[var(--branch-text)] placeholder:text-[var(--branch-text-light)]/60 focus:outline-none focus:border-[var(--branch-accent)] transition-colors"
+                  />
+                  {(filterCategory || filterName || filterVisibility) && (
+                    <button
+                      onClick={() => { setFilterCategory(''); setFilterName(''); setFilterVisibility(''); }}
+                      className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium text-[var(--branch-text-light)] border border-[var(--branch-rose-light)] hover:bg-[var(--branch-rose-light)]/50 transition-colors"
+                    >
+                      초기화
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div className="p-4 rounded-2xl bg-[var(--branch-white)] border border-[var(--branch-rose-light)]">
@@ -280,9 +350,16 @@ export default function BranchManageProductsPage() {
                 </div>
               </div>
 
+              {/* 필터 결과 카운트 */}
+              {(filterCategory || filterName || filterVisibility) && (
+                <p className="text-xs text-[var(--branch-text-light)] mb-3">
+                  검색 결과 <span className="font-semibold text-[var(--branch-accent)]">{filtered.length}</span>개
+                </p>
+              )}
+
               {/* Product List */}
               <div className="space-y-3">
-                {products.map((product) => {
+                {filtered.map((product) => {
                   const isToggling = togglingIds.has(product.id);
                   return (
                     <div
@@ -374,7 +451,8 @@ export default function BranchManageProductsPage() {
             </>
           )}
         </>
-      )}
+        );
+      })()}
 
       {/* Surcharges Tab */}
       {activeTab === 'surcharges' && (

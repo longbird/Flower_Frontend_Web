@@ -99,7 +99,7 @@ export default function ProductSearch() {
   const [selectedItem, setSelectedItem] = useState<FloristPhotoSearchItem | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
+
   const pageSize = 40;
   const queryClient = useQueryClient();
 
@@ -189,11 +189,11 @@ export default function ProductSearch() {
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Filter */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        {/* 필터 헤더 (항상 보임) - 핵심 필터만 */}
-        <div className="flex items-center gap-2 px-4 py-2.5">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-3 space-y-2">
+        {/* 1줄: 카테고리, 등급, 추천, 숨김포함, 초기화 */}
+        <div className="flex items-center gap-2">
           <select
-            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+            className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
             value={category}
             onChange={(e) => { setCategory(e.target.value); setPage(1); }}
           >
@@ -202,7 +202,7 @@ export default function ProductSearch() {
             ))}
           </select>
           <select
-            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+            className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
             value={grade}
             onChange={(e) => { setGrade(e.target.value); setPage(1); }}
           >
@@ -234,51 +234,28 @@ export default function ProductSearch() {
             {includeHidden && <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
             숨김포함
           </button>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0" onClick={handleSearch}>검색</Button>
-          <button
-            onClick={() => setFilterOpen(!filterOpen)}
-            className={cn(
-              'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all',
-              filterOpen || memo || serviceArea
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'text-slate-500 border-slate-200 hover:bg-slate-50'
-            )}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-            더보기
-            <svg className={cn('w-3 h-3 transition-transform', filterOpen && 'rotate-180')} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </button>
           <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600 px-2 shrink-0" onClick={handleReset} title="초기화">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           </Button>
         </div>
-        {/* 추가 필터 (접힘 가능) */}
-        {filterOpen && (
-          <div className="px-4 pb-3 pt-1 border-t border-slate-100">
-            <div className="flex flex-wrap gap-2 items-end">
-              <div className="flex-1 min-w-0 min-w-[120px] max-w-[200px]">
-                <label className="text-xs font-medium text-slate-500 block mb-1">메모 검색</label>
-                <Input
-                  placeholder="메모"
-                  value={memo}
-                  onChange={(e) => setMemo(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="h-8 text-sm border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
-              </div>
-              <div className="flex-1 min-w-0 min-w-[120px] max-w-[200px]">
-                <label className="text-xs font-medium text-slate-500 block mb-1">서비스 지역</label>
-                <Input
-                  placeholder="서비스 지역"
-                  value={serviceArea}
-                  onChange={(e) => setServiceArea(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="h-8 text-sm border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* 2줄: 메모 검색, 서비스 지역, 검색 버튼 */}
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="메모 검색"
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="flex-1 min-w-0 h-8 text-sm border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+          />
+          <Input
+            placeholder="서비스 지역"
+            value={serviceArea}
+            onChange={(e) => setServiceArea(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="flex-1 min-w-0 h-8 text-sm border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+          />
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0 h-8" onClick={handleSearch}>검색</Button>
+        </div>
       </div>
 
       {/* Result count */}
