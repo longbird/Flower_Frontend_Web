@@ -41,7 +41,7 @@ function ProductEditModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [sellingPrice, setSellingPrice] = useState(product.sellingPrice);
+  const [sellingPrice, setSellingPrice] = useState(product.sellingPrice ?? product.basePrice);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,7 +53,7 @@ function ProductEditModal({
     setSaving(true);
     setError('');
     try {
-      await updateBranchProduct(product.productId, { sellingPrice });
+      await updateBranchProduct(product.id, { sellingPrice });
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장에 실패했습니다.');
@@ -90,14 +90,14 @@ function ProductEditModal({
           {/* Product Info */}
           <div className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]/50">
             {product.imageUrl ? (
-              <img src={product.imageUrl} alt={product.productName} className="w-14 h-14 rounded-lg object-cover" />
+              <img src={product.imageUrl} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />
             ) : (
               <div className="w-14 h-14 rounded-lg bg-[var(--branch-rose-light)] flex items-center justify-center text-2xl opacity-50">
                 🌸
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-[var(--branch-text)] truncate">{product.productName}</h3>
+              <h3 className="text-sm font-semibold text-[var(--branch-text)] truncate">{product.name}</h3>
               <p className="text-xs text-[var(--branch-text-light)]">
                 기본가: {formatPrice(product.basePrice)}
               </p>
@@ -179,9 +179,9 @@ export default function BranchManageProductsPage() {
   }, [loadData]);
 
   const handleToggleVisibility = async (product: BranchProductSetting) => {
-    setTogglingIds((prev) => new Set(prev).add(product.productId));
+    setTogglingIds((prev) => new Set(prev).add(product.id));
     try {
-      await updateBranchProduct(product.productId, {
+      await updateBranchProduct(product.id, {
         isVisible: !product.isVisible,
       });
       loadData();
@@ -190,7 +190,7 @@ export default function BranchManageProductsPage() {
     } finally {
       setTogglingIds((prev) => {
         const next = new Set(prev);
-        next.delete(product.productId);
+        next.delete(product.id);
         return next;
       });
     }
@@ -283,10 +283,10 @@ export default function BranchManageProductsPage() {
               {/* Product List */}
               <div className="space-y-3">
                 {products.map((product) => {
-                  const isToggling = togglingIds.has(product.productId);
+                  const isToggling = togglingIds.has(product.id);
                   return (
                     <div
-                      key={product.productId}
+                      key={product.id}
                       className={`bg-[var(--branch-white)] rounded-2xl border border-[var(--branch-rose-light)] overflow-hidden transition-opacity ${
                         !product.isVisible ? 'opacity-60' : ''
                       }`}
@@ -297,7 +297,7 @@ export default function BranchManageProductsPage() {
                           {product.imageUrl ? (
                             <img
                               src={product.imageUrl}
-                              alt={product.productName}
+                              alt={product.name}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -311,7 +311,7 @@ export default function BranchManageProductsPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="text-sm font-semibold text-[var(--branch-text)] truncate">
-                              {product.productName}
+                              {product.name}
                             </h3>
                             {product.category && (
                               <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-[var(--branch-rose-light)] text-[var(--branch-text-light)] text-[10px]">
@@ -321,9 +321,9 @@ export default function BranchManageProductsPage() {
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-base font-bold text-[var(--branch-accent)]">
-                              {formatPrice(product.sellingPrice)}
+                              {formatPrice(product.sellingPrice ?? product.basePrice)}
                             </span>
-                            {product.sellingPrice !== product.basePrice && (
+                            {product.sellingPrice !== null && product.sellingPrice !== product.basePrice && (
                               <span className="text-xs text-[var(--branch-text-light)] line-through">
                                 {formatPrice(product.basePrice)}
                               </span>

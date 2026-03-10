@@ -101,15 +101,15 @@ export async function updateConsultRequestStatus(id: number, status: string) {
 
 /** 지사 상품 목록 조회 (관리자) */
 export interface BranchProductSetting {
-  productId: number;
-  productName: string;
+  id: number;
+  name: string;
   sku: string;
   description?: string;
   imageUrl?: string;
   category?: string;
   basePrice: number;
   isVisible: boolean;
-  sellingPrice: number;
+  sellingPrice: number | null;
 }
 
 export async function fetchBranchProducts() {
@@ -119,7 +119,7 @@ export async function fetchBranchProducts() {
 /** 지사 상품 설정 변경 (관리자) */
 export async function updateBranchProduct(
   productId: number,
-  body: { isVisible?: boolean; sellingPrice?: number }
+  body: { isVisible?: boolean; sellingPrice?: number | null }
 ) {
   return branchApi<{ ok: boolean }>(`/branch/products/${productId}`, {
     method: 'PATCH',
