@@ -1181,6 +1181,7 @@ function ImageViewer({
   const [isPainting, setIsPainting] = useState(false);
   const [inpaintLoading, setInpaintLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [savedMaskBlob, setSavedMaskBlob] = useState<Blob | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -1284,36 +1285,49 @@ function ImageViewer({
   const handleInpaintPreview = async () => {
     const maskBlob = await getMaskBlob();
     if (!maskBlob) { toast.error('마스크를 먼저 칠해주세요'); return; }
+    setSavedMaskBlob(maskBlob);
     setInpaintLoading(true);
     try {
       const res = await removeFloristPhotoText(floristId, photo.id, maskBlob, 'preview');
+      console.log('[inpaint preview]', res);
       if (res.ok && res.previewUrl) {
-        setPreviewUrl(photoUrl(res.previewUrl));
+        const previewWithCache = `${photoUrl(res.previewUrl)}${res.previewUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+        setPreviewUrl(previewWithCache);
       } else {
-        toast.error('미리보기 생성 실패');
+        toast.error(res.message || '미리보기 생성 실패');
       }
-    } catch {
-      toast.error('문구 제거 실패');
+    } catch (err) {
+      console.error('[inpaint preview error]', err);
+      toast.error(err instanceof Error ? err.message : '문구 제거 실패');
     } finally {
       setInpaintLoading(false);
     }
   };
 
   const handleInpaintApply = async () => {
-    const maskBlob = await getMaskBlob();
-    if (!maskBlob) return;
+    // 미리보기 모드에서는 canvas가 없으므로 저장된 마스크 사용
+    const maskBlob = savedMaskBlob || await getMaskBlob();
+    if (!maskBlob) {
+      toast.error('마스크 데이터가 없습니다. 다시 칠해주세요.');
+      return;
+    }
     setInpaintLoading(true);
     try {
       const res = await removeFloristPhotoText(floristId, photo.id, maskBlob, 'apply');
+      console.log('[inpaint apply]', res);
       if (res.ok) {
         toast.success('문구가 제거되었습니다');
         setPreviewUrl(null);
+        setSavedMaskBlob(null);
         setBrushMode(false);
         setCacheBuster(Date.now());
         onTextRemoved?.();
+      } else {
+        toast.error(res.message || '적용 실패');
       }
-    } catch {
-      toast.error('적용 실패');
+    } catch (err) {
+      console.error('[inpaint apply error]', err);
+      toast.error(err instanceof Error ? err.message : '적용 실패');
     } finally {
       setInpaintLoading(false);
     }
@@ -1401,7 +1415,7 @@ function ImageViewer({
           문구 제거 미리보기
         </div>
         <div className="absolute top-4 right-4 z-10">
-          <ToolbarButton title="닫기" onClick={() => setPreviewUrl(null)}>
+          <ToolbarButton title="닫기" onClick={() => { setPreviewUrl(null); setSavedMaskBlob(null); }}>
             <CloseIcon />
           </ToolbarButton>
         </div>
@@ -1412,7 +1426,7 @@ function ImageViewer({
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-3">
           <button
             className="bg-white/10 backdrop-blur-md text-white px-5 py-2.5 rounded-xl border border-white/20 hover:bg-white/20 transition text-sm font-medium"
-            onClick={() => setPreviewUrl(null)}
+            onClick={() => { setPreviewUrl(null); setSavedMaskBlob(null); }}
           >
             다시 칠하기
           </button>
