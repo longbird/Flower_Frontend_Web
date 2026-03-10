@@ -64,6 +64,7 @@ export interface FloristPhotoSearchItem {
   floristServiceAreas: string[];
   category: PhotoCategory;
   grade?: PhotoGrade | null;
+  isHidden?: boolean;
   isRecommended: boolean;
   fileUrl: string;
   thumbnailUrl?: string;

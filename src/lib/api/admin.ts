@@ -84,6 +84,7 @@ export async function searchAllPhotos(params?: {
   category?: string;
   grade?: string;
   isRecommended?: boolean;
+  includeHidden?: boolean;
   memo?: string;
   serviceArea?: string;
 }) {
@@ -93,6 +94,7 @@ export async function searchAllPhotos(params?: {
   if (params?.category) sp.set('category', params.category);
   if (params?.grade) sp.set('grade', params.grade);
   if (params?.isRecommended) sp.set('isRecommended', 'true');
+  if (params?.includeHidden) sp.set('includeHidden', 'true');
   if (params?.memo) sp.set('memo', params.memo);
   if (params?.serviceArea) sp.set('serviceArea', params.serviceArea);
   const qs = sp.toString();
@@ -162,6 +164,37 @@ export async function deleteFloristPhoto(floristId: string, photoId: number) {
   return api(`/admin/florists/${floristId}/gallery/${photoId}`, {
     method: 'DELETE',
   });
+}
+
+export async function removeFloristPhotoText(
+  floristId: string,
+  photoId: number,
+  maskBlob: Blob,
+  mode: 'preview' | 'apply' = 'preview'
+) {
+  const formData = new FormData();
+  formData.append('mask', maskBlob, 'mask.png');
+  return api<{ ok: boolean; previewUrl?: string; message?: string }>(
+    `/admin/florists/${floristId}/gallery/${photoId}/remove-text?mode=${mode}`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  );
+}
+
+export async function rotateFloristPhoto(
+  floristId: string,
+  photoId: number,
+  angle: number
+) {
+  return api<{ ok: boolean; message: string; fileUrl?: string }>(
+    `/admin/florists/${floristId}/gallery/${photoId}/rotate`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ angle }),
+    }
+  );
 }
 
 // ─── Service Areas ──────────────────────────────────────

@@ -4,6 +4,7 @@ import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api/client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -91,6 +92,11 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
   const [resetPasswordForm, setResetPasswordForm] = useState<ResetPasswordForm>({
     newPassword: '',
   });
+  const [showEditHomepage, setShowEditHomepage] = useState(false);
+  const [homepageForm, setHomepageForm] = useState({
+    code: '', phone: '', address: '', description: '',
+    serviceAreas: '', virtualAccountBank: '', virtualAccountNumber: '',
+  });
 
   const { data: branch, isLoading } = useQuery({
     queryKey: ['admin-branch', id],
@@ -162,6 +168,49 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       setResetPasswordForm({ newPassword: '' });
     },
   });
+
+  const updateHomepageMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api(`/admin/organizations/${id}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-branch', id] });
+      setShowEditHomepage(false);
+      toast.success('홈페이지 정보가 저장되었습니다');
+    },
+    onError: () => {
+      toast.error('저장에 실패했습니다');
+    },
+  });
+
+  const openEditHomepage = () => {
+    if (!branch) return;
+    setHomepageForm({
+      code: branch.code || '',
+      phone: branch.phone || '',
+      address: branch.address || '',
+      description: branch.description || '',
+      serviceAreas: Array.isArray(branch.serviceAreas) ? branch.serviceAreas.join(', ') : (branch.serviceAreas || ''),
+      virtualAccountBank: branch.virtualAccountBank || '',
+      virtualAccountNumber: branch.virtualAccountNumber || '',
+    });
+    setShowEditHomepage(true);
+  };
+
+  const handleUpdateHomepage = () => {
+    const serviceAreasArr = homepageForm.serviceAreas
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    updateHomepageMutation.mutate({
+      code: homepageForm.code.trim() || undefined,
+      phone: homepageForm.phone.trim() || undefined,
+      address: homepageForm.address.trim() || undefined,
+      description: homepageForm.description.trim() || undefined,
+      serviceAreas: serviceAreasArr.length > 0 ? serviceAreasArr : undefined,
+      virtualAccountBank: homepageForm.virtualAccountBank.trim() || undefined,
+      virtualAccountNumber: homepageForm.virtualAccountNumber.trim() || undefined,
+    });
+  };
 
   const openEdit = () => {
     if (!branch) return;
@@ -246,32 +295,61 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       </Card>
 
       {/* 홈페이지 정보 */}
-      {branch.code && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">홈페이지 정보</CardTitle></CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-slate-400 text-xs">지사 코드</dt>
-                <dd className="font-medium">{branch.code}</dd>
-              </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">홈페이지 정보</CardTitle>
+            <Button variant="outline" size="sm" onClick={openEditHomepage}>수정</Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div>
+              <dt className="text-slate-400 text-xs">지사 코드 (slug)</dt>
+              <dd className="font-medium">{branch.code || <span className="text-slate-300">-</span>}</dd>
+            </div>
+            {branch.code && (
               <div>
                 <dt className="text-slate-400 text-xs">홈페이지 URL</dt>
                 <dd>
                   <a
-                    href={`/branch/${branch.code}`}
+                    href={`https://${branch.code}.seoulflower.co.kr`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline"
                   >
-                    /branch/{branch.code}
+                    {branch.code}.seoulflower.co.kr
                   </a>
                 </dd>
               </div>
-            </dl>
-          </CardContent>
-        </Card>
-      )}
+            )}
+            <div>
+              <dt className="text-slate-400 text-xs">전화번호</dt>
+              <dd>{branch.phone || <span className="text-slate-300">-</span>}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 text-xs">주소</dt>
+              <dd>{branch.address || <span className="text-slate-300">-</span>}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-slate-400 text-xs">지사 소개</dt>
+              <dd>{branch.description || <span className="text-slate-300">-</span>}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 text-xs">서비스 지역</dt>
+              <dd>{Array.isArray(branch.serviceAreas) ? branch.serviceAreas.join(', ') : (branch.serviceAreas || <span className="text-slate-300">-</span>)}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-400 text-xs">가상계좌</dt>
+              <dd>
+                {branch.virtualAccountBank && branch.virtualAccountNumber
+                  ? `${branch.virtualAccountBank} ${branch.virtualAccountNumber}`
+                  : <span className="text-slate-300">-</span>}
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
 
       {/* 관리자 계정 */}
       <Card>
@@ -546,6 +624,96 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
               onClick={handleResetPassword}
             >
               {resetPasswordMutation.isPending ? '초기화 중...' : '초기화'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 홈페이지 정보 수정 다이얼로그 */}
+      <Dialog open={showEditHomepage} onOpenChange={setShowEditHomepage}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>홈페이지 정보 수정</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+            <div>
+              <Label>지사 코드 (slug) *</Label>
+              <Input
+                value={homepageForm.code}
+                onChange={e => setHomepageForm(f => ({ ...f, code: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                placeholder="영문소문자, 숫자, 하이픈만"
+              />
+              {homepageForm.code && (
+                <p className="text-xs text-slate-400 mt-1">URL: {homepageForm.code}.seoulflower.co.kr</p>
+              )}
+            </div>
+            <div>
+              <Label>전화번호</Label>
+              <Input
+                value={homepageForm.phone}
+                onChange={e => setHomepageForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="02-1234-5678"
+              />
+            </div>
+            <div>
+              <Label>주소</Label>
+              <Input
+                value={homepageForm.address}
+                onChange={e => setHomepageForm(f => ({ ...f, address: e.target.value }))}
+                placeholder="서울시 강남구..."
+              />
+            </div>
+            <div>
+              <Label>지사 소개</Label>
+              <textarea
+                className="w-full h-20 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none resize-none"
+                value={homepageForm.description}
+                onChange={e => setHomepageForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="지사 소개 문구"
+              />
+            </div>
+            <div>
+              <Label>서비스 지역</Label>
+              <Input
+                value={homepageForm.serviceAreas}
+                onChange={e => setHomepageForm(f => ({ ...f, serviceAreas: e.target.value }))}
+                placeholder="강남구, 서초구, 송파구 (쉼표 구분)"
+              />
+              <p className="text-xs text-slate-400 mt-1">쉼표(,)로 구분하여 입력</p>
+            </div>
+            <div className="border-t border-slate-100 pt-4">
+              <p className="text-xs font-medium text-slate-500 mb-3">가상계좌 정보</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>은행명</Label>
+                  <Input
+                    value={homepageForm.virtualAccountBank}
+                    onChange={e => setHomepageForm(f => ({ ...f, virtualAccountBank: e.target.value }))}
+                    placeholder="국민은행"
+                  />
+                </div>
+                <div>
+                  <Label>계좌번호</Label>
+                  <Input
+                    value={homepageForm.virtualAccountNumber}
+                    onChange={e => setHomepageForm(f => ({ ...f, virtualAccountNumber: e.target.value }))}
+                    placeholder="123-456-789012"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          {updateHomepageMutation.isError && (
+            <div className="text-sm text-red-500">저장 실패: {(updateHomepageMutation.error as any)?.message || '오류가 발생했습니다'}</div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditHomepage(false)}>취소</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={updateHomepageMutation.isPending}
+              onClick={handleUpdateHomepage}
+            >
+              {updateHomepageMutation.isPending ? '저장 중...' : '저장'}
             </Button>
           </DialogFooter>
         </DialogContent>

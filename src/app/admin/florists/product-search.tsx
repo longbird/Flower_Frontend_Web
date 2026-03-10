@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { searchAllPhotos } from '@/lib/api/admin';
+import { toast } from 'sonner';
+import { searchAllPhotos, updateFloristPhoto } from '@/lib/api/admin';
 import type { FloristPhotoSearchItem, PhotoCategory } from '@/lib/types/florist';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -56,6 +58,14 @@ const GRADE_COLORS: Record<string, string> = {
   STANDARD: 'bg-teal-600/90 text-white',
 };
 
+const PHOTO_GRADES: { code: string; label: string; color: string }[] = [
+  { code: 'PREMIUM', label: '프리미엄', color: 'bg-amber-700 text-white' },
+  { code: 'HIGH', label: '고급형', color: 'bg-blue-600 text-white' },
+  { code: 'STANDARD', label: '실속형', color: 'bg-teal-600 text-white' },
+];
+
+const EDIT_CATEGORIES = CATEGORIES.filter((c) => c.code !== '');
+
 function photoUrl(url: string) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
@@ -66,6 +76,17 @@ function categoryLabel(code: string) {
   return CATEGORIES.find((c) => c.code === code)?.label || code;
 }
 
+function formatCurrency(value: string): string {
+  const num = value.replace(/[^\d]/g, '');
+  if (!num) return '';
+  return Number(num).toLocaleString();
+}
+
+function parseCurrency(value: string): number | null {
+  const num = parseInt(value.replace(/[^\d]/g, ''), 10);
+  return isNaN(num) ? null : num;
+}
+
 export default function ProductSearch() {
   const router = useRouter();
   const [page, setPage] = useState(1);
@@ -74,13 +95,16 @@ export default function ProductSearch() {
   const [isRecommended, setIsRecommended] = useState(false);
   const [memo, setMemo] = useState('');
   const [serviceArea, setServiceArea] = useState('');
+  const [includeHidden, setIncludeHidden] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FloristPhotoSearchItem | null>(null);
+  const [editMode, setEditMode] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const pageSize = 40;
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['allPhotos', page, category, grade, isRecommended, memo, serviceArea],
+    queryKey: ['allPhotos', page, category, grade, isRecommended, includeHidden, memo, serviceArea],
     queryFn: () =>
       searchAllPhotos({
         page,
@@ -88,9 +112,57 @@ export default function ProductSearch() {
         category: category || undefined,
         grade: grade || undefined,
         isRecommended: isRecommended || undefined,
+        includeHidden: includeHidden || undefined,
         memo: memo || undefined,
         serviceArea: serviceArea || undefined,
       }),
+  });
+
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: (item: FloristPhotoSearchItem) =>
+      updateFloristPhoto(item.floristId, item.id, { isHidden: !item.isHidden }),
+    onSuccess: (_data, item) => {
+      const newHidden = !item.isHidden;
+      toast.success(newHidden ? '숨김 처리되었습니다' : '공개 처리되었습니다');
+      // Update the selected item in-place
+      setSelectedItem((prev) =>
+        prev && prev.id === item.id ? { ...prev, isHidden: newHidden } : prev
+      );
+      queryClient.invalidateQueries({ queryKey: ['allPhotos'] });
+    },
+    onError: () => {
+      toast.error('상태 변경에 실패했습니다');
+    },
+  });
+
+  const updatePhotoDetailMutation = useMutation({
+    mutationFn: ({ item, data }: { item: FloristPhotoSearchItem; data: Record<string, unknown> }) =>
+      updateFloristPhoto(item.floristId, item.id, data),
+    onSuccess: () => {
+      toast.success('사진 정보가 수정되었습니다');
+      queryClient.invalidateQueries({ queryKey: ['allPhotos'] });
+      setSelectedItem(null);
+      setEditMode(false);
+    },
+    onError: () => {
+      toast.error('수정에 실패했습니다');
+    },
+  });
+
+  const toggleRecommendedMutation = useMutation({
+    mutationFn: (item: FloristPhotoSearchItem) =>
+      updateFloristPhoto(item.floristId, item.id, { isRecommended: !item.isRecommended }),
+    onSuccess: (_data, item) => {
+      const newRecommended = !item.isRecommended;
+      toast.success(newRecommended ? '전 지사 기본 노출로 설정되었습니다' : '전 지사 기본 노출이 해제되었습니다');
+      setSelectedItem((prev) =>
+        prev && prev.id === item.id ? { ...prev, isRecommended: newRecommended } : prev
+      );
+      queryClient.invalidateQueries({ queryKey: ['allPhotos'] });
+    },
+    onError: () => {
+      toast.error('상태 변경에 실패했습니다');
+    },
   });
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
@@ -104,10 +176,15 @@ export default function ProductSearch() {
     setCategory('');
     setGrade('');
     setIsRecommended(false);
+    setIncludeHidden(false);
     setMemo('');
     setServiceArea('');
     setPage(1);
   };
+
+  const handleToggleVisibility = useCallback((item: FloristPhotoSearchItem) => {
+    toggleVisibilityMutation.mutate(item);
+  }, [toggleVisibilityMutation]);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -144,6 +221,18 @@ export default function ProductSearch() {
           >
             {isRecommended && <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
             추천
+          </button>
+          <button
+            onClick={() => { setIncludeHidden(!includeHidden); setPage(1); }}
+            className={cn(
+              'px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0',
+              includeHidden
+                ? 'bg-orange-100 text-orange-800 border-orange-300'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300'
+            )}
+          >
+            {includeHidden && <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+            숨김포함
           </button>
           <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0" onClick={handleSearch}>검색</Button>
           <button
@@ -241,12 +330,12 @@ export default function ProductSearch() {
       )}
 
       {/* Product detail dialog */}
-      <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-auto">
+      <Dialog open={!!selectedItem} onOpenChange={() => { setSelectedItem(null); setEditMode(false); }}>
+        <DialogContent className="w-[95vw] max-w-6xl max-h-[95vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle className="text-slate-800">상품 상세</DialogTitle>
+            <DialogTitle className="text-slate-800">{editMode ? '사진 정보 수정' : '상품 상세'}</DialogTitle>
           </DialogHeader>
-          {selectedItem && (
+          {selectedItem && !editMode && (
             <ProductDetail
               item={selectedItem}
               onViewFull={() => {
@@ -256,6 +345,19 @@ export default function ProductSearch() {
                 setSelectedItem(null);
                 router.push(`/admin/florists/${selectedItem.floristId}`);
               }}
+              onToggleVisibility={() => handleToggleVisibility(selectedItem)}
+              onToggleRecommended={() => toggleRecommendedMutation.mutate(selectedItem)}
+              isToggling={toggleVisibilityMutation.isPending || toggleRecommendedMutation.isPending}
+              onEdit={() => setEditMode(true)}
+            />
+          )}
+          {selectedItem && editMode && (
+            <ProductDetailEdit
+              item={selectedItem}
+              onSave={(data) => updatePhotoDetailMutation.mutate({ item: selectedItem, data })}
+              onCancel={() => setEditMode(false)}
+              onViewFull={() => setViewerUrl(photoUrl(selectedItem.fileUrl))}
+              saving={updatePhotoDetailMutation.isPending}
             />
           )}
         </DialogContent>
@@ -315,6 +417,12 @@ function ProductCard({
             추천
           </span>
         )}
+        {/* Hidden badge */}
+        {item.isHidden && (
+          <span className="absolute bottom-1 right-1 bg-orange-500/80 text-white text-[9px] px-1.5 py-0.5 rounded-md font-medium">
+            숨김
+          </span>
+        )}
         {/* Grade badge */}
         {item.grade && (
           <span className={cn(
@@ -355,16 +463,27 @@ function ProductDetail({
   item,
   onViewFull,
   onFloristClick,
+  onToggleVisibility,
+  onToggleRecommended,
+  isToggling,
+  onEdit,
 }: {
   item: FloristPhotoSearchItem;
   onViewFull: () => void;
   onFloristClick: () => void;
+  onToggleVisibility: () => void;
+  onToggleRecommended: () => void;
+  isToggling?: boolean;
+  onEdit: () => void;
 }) {
   return (
-    <div className="flex flex-col md:flex-row gap-4">
+    <div className="flex flex-col md:flex-row gap-5">
       {/* Image */}
       <div
-        className="relative w-full md:w-[40%] aspect-[3/4] rounded-xl overflow-hidden border border-slate-200 cursor-pointer flex-shrink-0 group"
+        className={cn(
+          'relative w-full md:w-[35%] aspect-square rounded-xl overflow-hidden border cursor-pointer flex-shrink-0 group',
+          item.isHidden ? 'border-orange-300 opacity-60' : 'border-slate-200'
+        )}
         onClick={onViewFull}
       >
         <Image
@@ -374,6 +493,11 @@ function ProductDetail({
           className="object-contain group-hover:scale-105 transition-transform duration-300"
           unoptimized
         />
+        {item.isHidden && (
+          <span className="absolute top-2 left-2 bg-orange-500/90 text-white text-[10px] px-2 py-0.5 rounded-md font-bold">
+            숨김
+          </span>
+        )}
         <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
           크게 보기
@@ -381,7 +505,48 @@ function ProductDetail({
       </div>
 
       {/* Info */}
-      <div className="flex-1 space-y-5">
+      <div className="flex-1 min-w-0 space-y-4">
+        {/* Toggle controls */}
+        <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none flex-1">
+              <input
+                type="checkbox"
+                checked={!item.isHidden}
+                onChange={onToggleVisibility}
+                disabled={isToggling}
+                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer disabled:opacity-50"
+              />
+              <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
+            </label>
+            <span className={cn(
+              'text-[11px] font-semibold px-2 py-0.5 rounded-md',
+              item.isHidden
+                ? 'bg-orange-100 text-orange-700'
+                : 'bg-emerald-100 text-emerald-700'
+            )}>
+              {item.isHidden ? '숨김' : '공개'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none flex-1">
+              <input
+                type="checkbox"
+                checked={item.isRecommended}
+                onChange={onToggleRecommended}
+                disabled={isToggling}
+                className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500/30 cursor-pointer disabled:opacity-50"
+              />
+              <span className="text-sm font-medium text-slate-700">전 지사 기본 노출</span>
+            </label>
+            {item.isRecommended && (
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">
+                추천
+              </span>
+            )}
+          </div>
+        </div>
+
         <div>
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">상품 정보</h3>
           <dl className="text-sm space-y-2.5">
@@ -407,12 +572,6 @@ function ProductDetail({
                     {GRADES.find((g) => g.code === item.grade)?.label || item.grade}
                   </span>
                 </dd>
-              </div>
-            )}
-            {item.isRecommended && (
-              <div className="flex gap-2">
-                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">추천</dt>
-                <dd className="text-amber-600 font-semibold">추천 상품</dd>
               </div>
             )}
             {item.memo && (
@@ -459,16 +618,206 @@ function ProductDetail({
             {item.floristAddress && (
               <div className="flex gap-2">
                 <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">주소</dt>
-                <dd className="text-slate-700">{item.floristAddress}</dd>
+                <dd className="text-slate-700 break-all min-w-0">{item.floristAddress}</dd>
               </div>
             )}
             {item.floristServiceAreas.length > 0 && (
               <div className="flex gap-2">
                 <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">서비스지역</dt>
-                <dd className="text-emerald-600 font-medium">{item.floristServiceAreas.join(', ')}</dd>
+                <dd className="text-emerald-600 font-medium break-all min-w-0">{item.floristServiceAreas.join(', ')}</dd>
               </div>
             )}
           </dl>
+        </div>
+
+        {/* Edit button */}
+        <div className="pt-2 border-t border-slate-100">
+          <Button
+            size="sm"
+            className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+            onClick={onEdit}
+          >
+            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            사진 정보 수정
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --- Product Detail Edit Form --- */
+function ProductDetailEdit({
+  item,
+  onSave,
+  onCancel,
+  onViewFull,
+  saving,
+}: {
+  item: FloristPhotoSearchItem;
+  onSave: (data: Record<string, unknown>) => void;
+  onCancel: () => void;
+  onViewFull: () => void;
+  saving: boolean;
+}) {
+  const [editCategory, setEditCategory] = useState<string>(item.category);
+  const [editGrade, setEditGrade] = useState<string>(item.grade || '');
+  const [editIsRecommended, setEditIsRecommended] = useState(item.isRecommended || false);
+  const [editIsHidden, setEditIsHidden] = useState(item.isHidden || false);
+  const [editMemo, setEditMemo] = useState(item.memo || '');
+  const [editCostPrice, setEditCostPrice] = useState(item.costPrice ? item.costPrice.toLocaleString() : '');
+  const [editSellingPrice, setEditSellingPrice] = useState(item.sellingPrice ? item.sellingPrice.toLocaleString() : '');
+
+  const handleSave = () => {
+    onSave({
+      category: editCategory,
+      ...(editGrade ? { grade: editGrade } : {}),
+      isRecommended: editIsRecommended,
+      isHidden: editIsHidden,
+      ...(editCostPrice ? { costPrice: parseCurrency(editCostPrice) } : { costPrice: null }),
+      ...(editSellingPrice ? { sellingPrice: parseCurrency(editSellingPrice) } : { sellingPrice: null }),
+      ...(editMemo ? { memo: editMemo } : { memo: null }),
+    });
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row gap-4">
+      {/* Image */}
+      <div
+        className="relative w-full md:w-[35%] aspect-[3/4] rounded-xl overflow-hidden border border-slate-200 cursor-pointer flex-shrink-0 group bg-slate-50"
+        onClick={onViewFull}
+      >
+        <Image
+          src={photoUrl(item.fileUrl)}
+          alt={item.memo || '상품 사진'}
+          fill
+          className="object-contain group-hover:scale-105 transition-transform duration-300"
+          unoptimized
+        />
+        <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+          크게 보기
+        </span>
+      </div>
+
+      {/* Edit Form */}
+      <div className="flex-1 min-w-0 space-y-4">
+        {/* Visibility & Recommended toggles */}
+        <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={!editIsHidden}
+              onChange={() => setEditIsHidden(!editIsHidden)}
+              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer"
+            />
+            <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
+            <span className={cn(
+              'text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto',
+              editIsHidden ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'
+            )}>
+              {editIsHidden ? '숨김' : '공개'}
+            </span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={editIsRecommended}
+              onChange={() => setEditIsRecommended(!editIsRecommended)}
+              className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500/30 cursor-pointer"
+            />
+            <span className="text-sm font-medium text-slate-700">전 지사 기본 노출</span>
+            {editIsRecommended && (
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto bg-amber-100 text-amber-700">추천</span>
+            )}
+          </label>
+        </div>
+
+        {/* Category */}
+        <div className="space-y-1.5">
+          <Label className="text-slate-600">상품 구분 *</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {EDIT_CATEGORIES.map((c) => (
+              <button
+                key={c.code}
+                onClick={() => setEditCategory(c.code as string)}
+                className={cn(
+                  'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
+                  editCategory === c.code
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-600/20'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Grade + Recommended */}
+        <div className="space-y-1.5">
+          <Label className="text-slate-600">상품 등급</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {PHOTO_GRADES.map((g) => (
+              <button
+                key={g.code}
+                onClick={() => setEditGrade(editGrade === g.code ? '' : g.code)}
+                className={cn(
+                  'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
+                  editGrade === g.code ? `${g.color} border-transparent shadow-sm` : 'bg-white text-slate-600 border-slate-200'
+                )}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Memo */}
+        <div className="space-y-1">
+          <Label className="text-slate-600">메모 (제품명 등)</Label>
+          <Input value={editMemo} onChange={(e) => setEditMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+        </div>
+
+        {/* Prices */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-slate-600">입금가 (원가)</Label>
+            <div className="relative">
+              <Input
+                value={editCostPrice}
+                onChange={(e) => setEditCostPrice(formatCurrency(e.target.value))}
+                placeholder="예: 50,000"
+                className="pr-8 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-slate-600">판매가</Label>
+            <div className="relative">
+              <Input
+                value={editSellingPrice}
+                onChange={(e) => setEditSellingPrice(formatCurrency(e.target.value))}
+                placeholder="예: 70,000"
+                className="pr-8 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!editCategory || saving}
+            className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+          >
+            {saving ? '저장 중...' : '저장'}
+          </Button>
         </div>
       </div>
     </div>

@@ -62,6 +62,11 @@ function InfoSection({ branch }: { branch: BranchInfo }) {
     branch.phone && { label: '전화번호', value: branch.phone, icon: '📞' },
     branch.address && { label: '주소', value: branch.address, icon: '📍' },
     branch.serviceAreas && { label: '서비스 지역', value: branch.serviceAreas, icon: '🚗' },
+    branch.virtualAccountBank && branch.virtualAccountNumber && {
+      label: '입금 계좌',
+      value: `${branch.virtualAccountBank} ${branch.virtualAccountNumber}`,
+      icon: '🏦',
+    },
   ].filter(Boolean) as { label: string; value: string; icon: string }[];
 
   if (infoItems.length === 0) return null;

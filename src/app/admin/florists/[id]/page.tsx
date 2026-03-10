@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useRef, useCallback } from 'react';
+import { use, useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -12,6 +12,8 @@ import {
   uploadFloristPhoto,
   updateFloristPhoto,
   deleteFloristPhoto,
+  rotateFloristPhoto,
+  removeFloristPhotoText,
   addFloristServiceArea,
   removeFloristServiceArea,
 } from '@/lib/api/admin';
@@ -108,6 +110,7 @@ export default function FloristDetailPage({
   const [editForm, setEditForm] = useState<Record<string, unknown>>({});
   const [selectedPhoto, setSelectedPhoto] = useState<FloristPhoto | null>(null);
   const [viewerPhoto, setViewerPhoto] = useState<FloristPhoto | null>(null);
+  const [photoCacheBuster, setPhotoCacheBuster] = useState(0);
   const [uploadDialogFile, setUploadDialogFile] = useState<File | null>(null);
   const [newServiceArea, setNewServiceArea] = useState('');
 
@@ -205,6 +208,21 @@ export default function FloristDetailPage({
       setSelectedPhoto(null);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : '수정 실패'),
+  });
+
+  const rotatePhotoMutation = useMutation({
+    mutationFn: ({ photoId, angle }: { photoId: number; angle: number }) =>
+      rotateFloristPhoto(id, photoId, angle),
+    onSuccess: (result, { photoId }) => {
+      toast.success('사진이 회전 저장되었습니다.');
+      // 백엔드가 새 fileUrl을 반환하면 (파일명 변경으로 CDN 캐시 우회) viewerPhoto 업데이트
+      if (result.fileUrl) {
+        setViewerPhoto(prev => prev && prev.id === photoId ? { ...prev, fileUrl: result.fileUrl! } : prev);
+      }
+      setPhotoCacheBuster(Date.now());
+      queryClient.invalidateQueries({ queryKey: ['floristPhotos', id] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : '회전 저장 실패'),
   });
 
   const deletePhotoMutation = useMutation({
@@ -489,7 +507,7 @@ export default function FloristDetailPage({
                       {photos.slice(0, 12).map((photo) => (
                         <div key={photo.id} className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition" onClick={() => setViewerPhoto(photo)}>
                           <div className="relative aspect-square">
-                            <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || ''} fill className="object-cover" sizes="160px" unoptimized />
+                            <Image src={photoUrl(photo.fileUrl) + (photoCacheBuster ? `?t=${photoCacheBuster}` : '')} alt={photo.memo || ''} fill className="object-cover" sizes="160px" unoptimized />
                             {/* 카테고리 (좌상단) */}
                             <span className="absolute top-0.5 left-0.5 bg-black/60 text-white text-[9px] font-medium px-1 py-px rounded">
                               {CATEGORIES.find((c) => c.code === photo.category)?.name || photo.category}
@@ -587,7 +605,7 @@ export default function FloristDetailPage({
                           >
                             {/* 이미지 영역 (3:4 비율) */}
                             <div className="relative aspect-[3/4] overflow-hidden">
-                              <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || '화원 사진'} fill className="object-cover" sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw" unoptimized />
+                              <Image src={photoUrl(photo.fileUrl) + (photoCacheBuster ? `?t=${photoCacheBuster}` : '')} alt={photo.memo || '화원 사진'} fill className="object-cover" sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw" unoptimized />
                               {/* 카테고리 배지 (좌상단) */}
                               <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
                                 {CATEGORIES.find((c) => c.code === photo.category)?.name}
@@ -696,10 +714,19 @@ export default function FloristDetailPage({
       {viewerPhoto && (
         <ImageViewer
           photo={viewerPhoto}
+          floristId={id}
           onClose={() => setViewerPhoto(null)}
           onToggleVisibility={() => handleToggleVisibility(viewerPhoto)}
           onDelete={() => {
             if (confirm('정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: viewerPhoto.id, beforeSnapshot: viewerPhoto });
+          }}
+          onRotateSave={async (angle) => {
+            await rotatePhotoMutation.mutateAsync({ photoId: viewerPhoto.id, angle });
+          }}
+          isRotating={rotatePhotoMutation.isPending}
+          onTextRemoved={() => {
+            setPhotoCacheBuster(Date.now());
+            queryClient.invalidateQueries({ queryKey: ['floristPhotos', id] });
           }}
         />
       )}
@@ -854,6 +881,7 @@ function PhotoEditForm({
   const [category, setCategory] = useState<string>(photo.category);
   const [grade, setGrade] = useState<string>(photo.grade || '');
   const [isRecommended, setIsRecommended] = useState(photo.isRecommended || false);
+  const [isHidden, setIsHidden] = useState(photo.isHidden || false);
   const [memo, setMemo] = useState(photo.memo || '');
   const [costPrice, setCostPrice] = useState(photo.costPrice ? photo.costPrice.toLocaleString() : '');
   const [sellingPrice, setSellingPrice] = useState(photo.sellingPrice ? photo.sellingPrice.toLocaleString() : '');
@@ -867,6 +895,37 @@ function PhotoEditForm({
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
           크게 보기
         </span>
+      </div>
+
+      {/* Visibility & Recommended checkboxes */}
+      <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={!isHidden}
+            onChange={() => setIsHidden(!isHidden)}
+            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer"
+          />
+          <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
+          <span className={cn(
+            'text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto',
+            isHidden ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'
+          )}>
+            {isHidden ? '숨김' : '공개'}
+          </span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={isRecommended}
+            onChange={() => setIsRecommended(!isRecommended)}
+            className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500/30 cursor-pointer"
+          />
+          <span className="text-sm font-medium text-slate-700">전 지사 기본 노출</span>
+          {isRecommended && (
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto bg-amber-100 text-amber-700">추천</span>
+          )}
+        </label>
       </div>
 
       {/* Category */}
@@ -956,18 +1015,6 @@ function PhotoEditForm({
       <div className="flex items-center justify-between pt-2">
         <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-slate-200"
-            onClick={onToggleVisibility}
-          >
-            {photo.isHidden ? (
-              <><svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>공개</>
-            ) : (
-              <><svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>숨김</>
-            )}
-          </Button>
           <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600" onClick={onDelete}>
             <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             삭제
@@ -979,6 +1026,7 @@ function PhotoEditForm({
                 category,
                 ...(grade ? { grade } : {}),
                 isRecommended,
+                isHidden,
                 ...(costPrice ? { costPrice: parseCurrency(costPrice) } : { costPrice: null }),
                 ...(sellingPrice ? { sellingPrice: parseCurrency(sellingPrice) } : { sellingPrice: null }),
                 ...(memo ? { memo } : { memo: null }),
@@ -1106,22 +1154,186 @@ function FloristEditForm({
 /* --- Full-screen Image Viewer --- */
 function ImageViewer({
   photo,
+  floristId,
   onClose,
   onToggleVisibility,
   onDelete,
+  onRotateSave,
+  isRotating,
+  onTextRemoved,
 }: {
   photo: FloristPhoto;
+  floristId: string;
   onClose: () => void;
   onToggleVisibility: () => void;
   onDelete: () => void;
+  onRotateSave?: (angle: number) => Promise<void> | void;
+  isRotating?: boolean;
+  onTextRemoved?: () => void;
 }) {
   const [rotation, setRotation] = useState(0);
   const [copying, setCopying] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const url = photoUrl(photo.fileUrl);
+  const [cacheBuster, setCacheBuster] = useState(0);
+  // 문구 삭제 모드
+  const [brushMode, setBrushMode] = useState(false);
+  const [brushSize, setBrushSize] = useState(20);
+  const [isPainting, setIsPainting] = useState(false);
+  const [inpaintLoading, setInpaintLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const baseUrl = photoUrl(photo.fileUrl);
+  const url = cacheBuster ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${cacheBuster}` : baseUrl;
+
+  // 이미지 로드 시 canvas 크기 동기화
+  useEffect(() => {
+    if (brushMode && imgLoaded && canvasRef.current && imgRef.current) {
+      const img = imgRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+  }, [brushMode, imgLoaded]);
+
+  const getCanvasPos = (e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return {
+      x: ((clientX - rect.left) / rect.width) * canvas.width,
+      y: ((clientY - rect.top) / rect.height) * canvas.height,
+    };
+  };
+
+  const paintAt = (x: number, y: number) => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    // 원본 이미지 기준 브러시 크기 계산
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const scale = canvas.width / rect.width;
+    const r = brushSize * scale;
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+    ctx.beginPath();
+    ctx.arc(x, y, r / 2, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const handlePaintStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!brushMode) return;
+    e.preventDefault();
+    setIsPainting(true);
+    const { x, y } = getCanvasPos(e);
+    paintAt(x, y);
+  };
+
+  const handlePaintMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isPainting || !brushMode) return;
+    e.preventDefault();
+    const { x, y } = getCanvasPos(e);
+    paintAt(x, y);
+  };
+
+  const handlePaintEnd = () => {
+    setIsPainting(false);
+  };
+
+  const handleClearMask = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const getMaskBlob = (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return resolve(null);
+      // 마스크 생성: 칠한 영역을 흰색, 나머지는 검정
+      const w = canvas.width;
+      const h = canvas.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(null);
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const maskCanvas = document.createElement('canvas');
+      maskCanvas.width = w;
+      maskCanvas.height = h;
+      const maskCtx = maskCanvas.getContext('2d')!;
+      const maskData = maskCtx.createImageData(w, h);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        // 빨간색(alpha > 0)이면 흰색, 아니면 검정
+        const painted = imageData.data[i + 3] > 0;
+        maskData.data[i] = painted ? 255 : 0;
+        maskData.data[i + 1] = painted ? 255 : 0;
+        maskData.data[i + 2] = painted ? 255 : 0;
+        maskData.data[i + 3] = 255;
+      }
+      maskCtx.putImageData(maskData, 0, 0);
+      maskCanvas.toBlob((blob) => resolve(blob), 'image/png');
+    });
+  };
+
+  const handleInpaintPreview = async () => {
+    const maskBlob = await getMaskBlob();
+    if (!maskBlob) { toast.error('마스크를 먼저 칠해주세요'); return; }
+    setInpaintLoading(true);
+    try {
+      const res = await removeFloristPhotoText(floristId, photo.id, maskBlob, 'preview');
+      if (res.ok && res.previewUrl) {
+        setPreviewUrl(photoUrl(res.previewUrl));
+      } else {
+        toast.error('미리보기 생성 실패');
+      }
+    } catch {
+      toast.error('문구 제거 실패');
+    } finally {
+      setInpaintLoading(false);
+    }
+  };
+
+  const handleInpaintApply = async () => {
+    const maskBlob = await getMaskBlob();
+    if (!maskBlob) return;
+    setInpaintLoading(true);
+    try {
+      const res = await removeFloristPhotoText(floristId, photo.id, maskBlob, 'apply');
+      if (res.ok) {
+        toast.success('문구가 제거되었습니다');
+        setPreviewUrl(null);
+        setBrushMode(false);
+        setCacheBuster(Date.now());
+        onTextRemoved?.();
+      }
+    } catch {
+      toast.error('적용 실패');
+    } finally {
+      setInpaintLoading(false);
+    }
+  };
 
   const handleRotateLeft = () => setRotation((r) => r - 90);
   const handleRotateRight = () => setRotation((r) => r + 90);
+
+  const handleRotateSave = async () => {
+    if (!onRotateSave || rotation === 0) return;
+    const normalized = ((rotation % 360) + 360) % 360;
+    if (normalized === 0) return;
+    try {
+      await onRotateSave(normalized);
+      setRotation(0);
+      setCacheBuster(Date.now());
+    } catch {
+      // error handled by parent mutation
+    }
+  };
 
   const handleCopy = async () => {
     setCopying(true);
@@ -1167,7 +1379,6 @@ function ImageViewer({
         });
         toast.success('공유 완료');
       } else {
-        // fallback: URL 복사
         await navigator.clipboard.writeText(window.location.origin + url);
         toast.info('이 브라우저에서는 파일 공유가 지원되지 않아 URL을 복사했습니다');
       }
@@ -1182,63 +1393,193 @@ function ImageViewer({
 
   const categoryName = CATEGORIES.find((c) => c.code === photo.category)?.name;
 
+  // 미리보기 모드
+  if (previewUrl) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-amber-500/90 text-white text-sm font-medium px-4 py-2 rounded-xl">
+          문구 제거 미리보기
+        </div>
+        <div className="absolute top-4 right-4 z-10">
+          <ToolbarButton title="닫기" onClick={() => setPreviewUrl(null)}>
+            <CloseIcon />
+          </ToolbarButton>
+        </div>
+        <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={previewUrl} alt="미리보기" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" />
+        </div>
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-3">
+          <button
+            className="bg-white/10 backdrop-blur-md text-white px-5 py-2.5 rounded-xl border border-white/20 hover:bg-white/20 transition text-sm font-medium"
+            onClick={() => setPreviewUrl(null)}
+          >
+            다시 칠하기
+          </button>
+          <button
+            className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition text-sm font-medium shadow-lg disabled:opacity-50"
+            onClick={handleInpaintApply}
+            disabled={inpaintLoading}
+          >
+            {inpaintLoading ? '적용 중...' : '원본에 적용'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={brushMode ? undefined : onClose}>
       {/* Top Toolbar */}
       <div className="absolute top-4 right-4 z-10 flex gap-2" onClick={(e) => e.stopPropagation()}>
-        <ToolbarButton title="왼쪽 회전" onClick={handleRotateLeft}>
-          <RotateLeftIcon />
-        </ToolbarButton>
-        <ToolbarButton title="오른쪽 회전" onClick={handleRotateRight}>
-          <RotateRightIcon />
-        </ToolbarButton>
-        <ToolbarButton title="클립보드에 복사" onClick={handleCopy} disabled={copying}>
-          {copying ? <span className="animate-spin text-sm">...</span> : <CopyIcon />}
-        </ToolbarButton>
-        <ToolbarButton title="이미지 다운로드" onClick={handleDownload}>
-          <DownloadIcon />
-        </ToolbarButton>
-        <ToolbarButton title="카카오톡 공유" onClick={handleShare} disabled={sharing}>
-          {sharing ? <span className="animate-spin text-sm">...</span> : <ShareIcon />}
-        </ToolbarButton>
-        <ToolbarButton title="닫기" onClick={onClose}>
+        {!brushMode && (
+          <>
+            <ToolbarButton title="왼쪽 회전" onClick={handleRotateLeft}>
+              <RotateLeftIcon />
+            </ToolbarButton>
+            <ToolbarButton title="오른쪽 회전" onClick={handleRotateRight}>
+              <RotateRightIcon />
+            </ToolbarButton>
+            <ToolbarButton title="문구 삭제" onClick={() => setBrushMode(true)}>
+              <EraserIcon />
+            </ToolbarButton>
+            <ToolbarButton title="클립보드에 복사" onClick={handleCopy} disabled={copying}>
+              {copying ? <span className="animate-spin text-sm">...</span> : <CopyIcon />}
+            </ToolbarButton>
+            <ToolbarButton title="이미지 다운로드" onClick={handleDownload}>
+              <DownloadIcon />
+            </ToolbarButton>
+            <ToolbarButton title="카카오톡 공유" onClick={handleShare} disabled={sharing}>
+              {sharing ? <span className="animate-spin text-sm">...</span> : <ShareIcon />}
+            </ToolbarButton>
+          </>
+        )}
+        <ToolbarButton title="닫기" onClick={brushMode ? () => { setBrushMode(false); handleClearMask(); } : onClose}>
           <CloseIcon />
         </ToolbarButton>
       </div>
 
-      {/* Image */}
+      {/* Brush mode toolbar (top-left) */}
+      {brushMode && (
+        <div className="absolute top-4 left-4 z-10 flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
+          <span className="text-amber-400 text-sm font-medium bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-amber-400/30">
+            리본 문구 영역을 칠하세요
+          </span>
+          <div className="flex gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10">
+            {[{ size: 10, label: '소' }, { size: 20, label: '중' }, { size: 35, label: '대' }].map((b) => (
+              <button
+                key={b.size}
+                onClick={() => setBrushSize(b.size)}
+                className={cn(
+                  'px-2.5 py-1 rounded-md text-xs font-medium transition-all',
+                  brushSize === b.size ? 'bg-amber-500 text-white' : 'text-white/60 hover:text-white'
+                )}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={handleClearMask}
+            className="text-white/60 hover:text-white text-xs bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/10 transition"
+          >
+            초기화
+          </button>
+        </div>
+      )}
+
+      {/* Image + Canvas overlay */}
       <div className="flex-1 flex items-center justify-center overflow-hidden p-4" onClick={(e) => e.stopPropagation()}>
-        <div style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }} className="max-w-full max-h-full">
-          <Image src={url} alt="전체 화면" width={1200} height={900} className="max-w-[90vw] max-h-[85vh] object-contain" unoptimized />
+        <div className="relative" style={{ transform: brushMode ? 'none' : `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            ref={imgRef}
+            src={url}
+            alt="전체 화면"
+            className="max-w-[90vw] max-h-[85vh] object-contain select-none"
+            draggable={false}
+            onLoad={() => setImgLoaded(true)}
+          />
+          {brushMode && (
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 w-full h-full"
+              style={{ cursor: 'crosshair', touchAction: 'none' }}
+              onMouseDown={handlePaintStart}
+              onMouseMove={handlePaintMove}
+              onMouseUp={handlePaintEnd}
+              onMouseLeave={handlePaintEnd}
+              onTouchStart={handlePaintStart}
+              onTouchMove={handlePaintMove}
+              onTouchEnd={handlePaintEnd}
+            />
+          )}
         </div>
       </div>
 
       {/* Bottom Info Bar */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10" onClick={(e) => e.stopPropagation()}>
-        <div className="bg-black/80 backdrop-blur-md rounded-xl px-5 py-3 flex flex-col items-center gap-2 min-w-[200px] border border-white/10">
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            {categoryName && (
-              <span className="bg-emerald-600 text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
-            )}
-            {photo.memo && <span className="text-white text-sm">{photo.memo}</span>}
-            {photo.isHidden && (
-              <span className="bg-amber-500 text-white text-[11px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium">
-                비공개
-              </span>
-            )}
-          </div>
-          {rotation !== 0 && <span className="text-white/60 text-[13px]">{rotation}°</span>}
-          <div className="flex gap-4">
-            <button className="text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors" onClick={onToggleVisibility}>
-              {photo.isHidden ? '공개' : '비공개'}
+        {brushMode ? (
+          <div className="bg-black/80 backdrop-blur-md rounded-xl px-5 py-3 flex items-center gap-3 border border-white/10">
+            <button
+              className="text-white/60 hover:text-white text-sm transition-colors"
+              onClick={() => { setBrushMode(false); handleClearMask(); }}
+            >
+              취소
             </button>
-            <button className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 transition-colors" onClick={onDelete}>
-              삭제
+            <button
+              className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition disabled:opacity-50"
+              onClick={handleInpaintPreview}
+              disabled={inpaintLoading}
+            >
+              {inpaintLoading ? '처리 중...' : '문구 삭제 실행'}
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="bg-black/80 backdrop-blur-md rounded-xl px-5 py-3 flex flex-col items-center gap-2 min-w-[200px] border border-white/10">
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              {categoryName && (
+                <span className="bg-emerald-600 text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
+              )}
+              {photo.memo && <span className="text-white text-sm">{photo.memo}</span>}
+              {photo.isHidden && (
+                <span className="bg-amber-500 text-white text-[11px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium">
+                  비공개
+                </span>
+              )}
+            </div>
+            {rotation !== 0 && <span className="text-white/60 text-[13px]">{rotation}°</span>}
+            <div className="flex gap-4">
+              {rotation !== 0 && onRotateSave && (
+                <button
+                  className="text-emerald-400 hover:text-emerald-300 text-sm font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                  onClick={handleRotateSave}
+                  disabled={isRotating}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  {isRotating ? '저장 중...' : '회전 저장'}
+                </button>
+              )}
+              <button className="text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors" onClick={onToggleVisibility}>
+                {photo.isHidden ? '공개' : '비공개'}
+              </button>
+              <button className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 transition-colors" onClick={onDelete}>
+                삭제
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function EraserIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.6 1.6c.8-.8 2-.8 2.8 0l5 5c.8.8.8 2 0 2.8L11 20" />
+      <path d="M6 11l4 4" />
+    </svg>
   );
 }
 

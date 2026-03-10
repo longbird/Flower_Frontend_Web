@@ -554,18 +554,38 @@ function ProductsTab() {
   const [editProduct, setEditProduct] = useState<CatalogProduct | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api<{ ok: boolean; data: CatalogProduct[] }>('/admin/catalog/products');
-      setProducts(res.data);
+      setProducts(res.data ?? []);
     } catch {
       // handled by auth
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleToggle = async (product: CatalogProduct, field: 'isActive' | 'isBranchDefault', e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTogglingId(product.id);
+    try {
+      const newValue = field === 'isActive' ? !Boolean(product.isActive) : !product.isBranchDefault;
+      await api(`/admin/catalog/products/${product.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ [field]: newValue }),
+      });
+      setProducts(prev => prev.map(p =>
+        p.id === product.id ? { ...p, [field]: newValue } : p
+      ));
+    } catch {
+      // ignore
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   useEffect(() => {
     loadProducts();
@@ -577,12 +597,28 @@ function ProductsTab() {
     loadProducts();
   };
 
-  const handleDelete = async (product: CatalogProduct, e: React.MouseEvent) => {
+  const handleDeactivate = async (product: CatalogProduct, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`"${product.name}" 상품을 삭제(비활성화)하시겠습니까?`)) return;
+    if (!confirm(`"${product.name}" 상품을 비활성화하시겠습니까?\n(목록에서 숨겨지지만 데이터는 유지됩니다)`)) return;
     setDeletingId(product.id);
     try {
       await api(`/admin/catalog/products/${product.id}`, { method: 'DELETE' });
+      loadProducts();
+    } catch {
+      // ignore
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeletePermanent = async (product: CatalogProduct, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`"${product.name}" 상품을 영구 삭제하시겠습니까?\n\n⚠ 이 작업은 되돌릴 수 없습니다.`)) return;
+    // 2차 확인
+    if (!confirm(`정말로 영구 삭제하시겠습니까?`)) return;
+    setDeletingId(product.id);
+    try {
+      await api(`/admin/catalog/products/${product.id}?permanent=true`, { method: 'DELETE' });
       loadProducts();
     } catch {
       // ignore
@@ -643,17 +679,31 @@ function ProductsTab() {
                   </div>
                 )}
 
-                {/* Delete button */}
-                <button
-                  onClick={(e) => handleDelete(product, e)}
-                  disabled={deletingId === product.id}
-                  className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shadow-sm disabled:opacity-50"
-                  title="삭제"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                {/* Action buttons */}
+                <div className="absolute top-2 right-2 z-10 flex gap-1">
+                  {active && (
+                    <button
+                      onClick={(e) => handleDeactivate(product, e)}
+                      disabled={deletingId === product.id}
+                      className="w-7 h-7 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors shadow-sm disabled:opacity-50"
+                      title="비활성화"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878l4.242 4.242M21 21l-4.879-4.879" />
+                      </svg>
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => handleDeletePermanent(product, e)}
+                    disabled={deletingId === product.id}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shadow-sm disabled:opacity-50"
+                    title="영구 삭제"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
 
                 {/* Image */}
                 <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden">
@@ -697,22 +747,40 @@ function ProductsTab() {
                     </span>
                   </div>
 
-                  {/* Branch Default Badge */}
-                  <div className="mt-2 flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
-                        branchDefault
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}
+                  {/* Inline Toggles */}
+                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+                    <label
+                      className="flex items-center gap-2 cursor-pointer select-none"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <span
-                        className={`inline-block w-2 h-2 rounded-full ${
-                          branchDefault ? 'bg-emerald-500' : 'bg-slate-400'
-                        }`}
+                      <input
+                        type="checkbox"
+                        checked={active}
+                        onChange={() => {}}
+                        onClick={(e) => handleToggle(product, 'isActive', e)}
+                        disabled={togglingId === product.id}
+                        className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer disabled:opacity-50"
                       />
-                      {branchDefault ? '전 지사 노출' : '지사 미노출'}
-                    </span>
+                      <span className={`text-xs font-medium ${active ? 'text-emerald-700' : 'text-slate-400'}`}>
+                        표시
+                      </span>
+                    </label>
+                    <label
+                      className="flex items-center gap-2 cursor-pointer select-none"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={branchDefault}
+                        onChange={() => {}}
+                        onClick={(e) => handleToggle(product, 'isBranchDefault', e)}
+                        disabled={togglingId === product.id}
+                        className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer disabled:opacity-50"
+                      />
+                      <span className={`text-xs font-medium ${branchDefault ? 'text-emerald-700' : 'text-slate-400'}`}>
+                        전 지사 기본 노출
+                      </span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -755,8 +823,9 @@ function BranchSettingsTab() {
   const loadBranches = useCallback(async () => {
     setLoadingBranches(true);
     try {
-      const res = await api<{ ok: boolean; data: Branch[] }>('/admin/branches');
-      setBranches(res.data);
+      const res = await api<Branch[] | { ok: boolean; data: Branch[] }>('/admin/branches');
+      // /admin/branches returns array directly (not wrapped in { ok, data })
+      setBranches(Array.isArray(res) ? res : (res.data ?? []));
     } catch {
       // handled by auth
     } finally {
@@ -775,7 +844,7 @@ function BranchSettingsTab() {
       const res = await api<{ ok: boolean; data: BranchProduct[] }>(
         `/admin/catalog/branches/${branchId}/products`
       );
-      setBranchProducts(res.data);
+      setBranchProducts(res.data ?? []);
     } catch {
       setBranchProducts([]);
     } finally {
@@ -1170,10 +1239,11 @@ function SurchargesTab() {
     try {
       const [surchargesRes, branchesRes] = await Promise.all([
         api<{ ok: boolean; data: Surcharge[] }>('/admin/catalog/surcharges'),
-        api<{ ok: boolean; data: Branch[] }>('/admin/branches'),
+        api<Branch[] | { ok: boolean; data: Branch[] }>('/admin/branches'),
       ]);
-      setSurcharges(surchargesRes.data);
-      setBranches(branchesRes.data);
+      setSurcharges(surchargesRes.data ?? []);
+      // /admin/branches returns array directly (not wrapped in { ok, data })
+      setBranches(Array.isArray(branchesRes) ? branchesRes : (branchesRes.data ?? []));
     } catch {
       // handled by auth
     } finally {
