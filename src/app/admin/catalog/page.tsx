@@ -124,6 +124,7 @@ function ProductEditModal({
   const [isActive, setIsActive] = useState(product.isActive === undefined ? true : Boolean(product.isActive));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showFullImage, setShowFullImage] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -171,23 +172,38 @@ function ProductEditModal({
             {/* Image Preview */}
             <div>
               <Label className="text-sm font-medium text-slate-700">이미지 미리보기</Label>
-              <div className="mt-2 w-full aspect-[4/3] bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+              <div className="mt-2 w-full bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
                 {imageUrl ? (
                   <img
-                    src={imageUrl}
+                    src={photoUrl(imageUrl)}
                     alt={name}
-                    className="w-full h-full object-cover"
+                    className="w-full max-h-72 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setShowFullImage(true)}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                  <div className="w-full h-32 flex items-center justify-center text-slate-400 text-sm">
                     이미지 없음
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Full Image Overlay */}
+            {showFullImage && imageUrl && (
+              <div
+                className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
+                onClick={() => setShowFullImage(false)}
+              >
+                <img
+                  src={photoUrl(imageUrl)}
+                  alt={name}
+                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                />
+              </div>
+            )}
 
             {/* Image URL */}
             <div>
@@ -910,7 +926,7 @@ function BranchSettingsTab() {
     setSavingIds((prev) => new Set(prev).add(product.id));
     try {
       const priceStr = editedPrices[product.id];
-      const sellingPrice = priceStr !== undefined ? Number(priceStr) : product.sellingPrice;
+      const sellingPrice = priceStr !== undefined ? Number(priceStr.replace(/[^0-9]/g, '')) : product.sellingPrice;
       await api(`/admin/catalog/branches/${selectedBranchId}/products/${product.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -936,8 +952,9 @@ function BranchSettingsTab() {
     const nameStr = editedNames[product.id];
     if (priceStr === undefined && nameStr === undefined) return;
 
-    const sellingPrice = priceStr !== undefined ? Number(priceStr) : product.sellingPrice;
-    if (priceStr !== undefined && (isNaN(Number(priceStr)) || Number(priceStr) < 0)) return;
+    const priceNum = priceStr !== undefined ? Number(priceStr.replace(/[^0-9]/g, '')) : null;
+    const sellingPrice = priceNum !== null ? priceNum : product.sellingPrice;
+    if (priceStr !== undefined && (isNaN(priceNum!) || priceNum! < 0)) return;
 
     const customName = nameStr !== undefined ? (nameStr.trim() || null) : product.customName;
 
@@ -1038,8 +1055,8 @@ function BranchSettingsTab() {
                   const displayPrice = bp.sellingPrice ?? bp.basePrice;
                   const priceValue = editedPrice !== undefined ? editedPrice : String(displayPrice);
                   const nameValue = editedName !== undefined ? editedName : (bp.customName || bp.name);
-                  const hasChanges =
-                    (editedPrice !== undefined && Number(editedPrice) !== displayPrice) ||
+                   const hasChanges =
+                    (editedPrice !== undefined && Number(editedPrice.replace(/[^0-9]/g, '')) !== displayPrice) ||
                     (editedName !== undefined && editedName !== (bp.customName || bp.name));
 
                   return (
@@ -1063,11 +1080,49 @@ function BranchSettingsTab() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Input
-                          type="number"
-                          value={priceValue}
-                          onChange={(e) =>
-                            setEditedPrices((prev) => ({ ...prev, [bp.id]: e.target.value }))
+                          type="text"
+                          inputMode="numeric"
+                          value={
+                            editedPrice !== undefined
+                              ? editedPrice
+                              : displayPrice.toLocaleString('ko-KR')
                           }
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9]/g, '');
+                            setEditedPrices((prev) => ({ ...prev, [bp.id]: raw }));
+                          }}
+                          onBlur={() => {
+                            const raw = editedPrices[bp.id];
+                            if (raw !== undefined) {
+                              const num = Number(raw);
+                              if (num === displayPrice) {
+                                setEditedPrices((prev) => {
+                                  const next = { ...prev };
+                                  delete next[bp.id];
+                                  return next;
+                                });
+                              } else {
+                                setEditedPrices((prev) => ({
+                                  ...prev,
+                                  [bp.id]: num.toLocaleString('ko-KR'),
+                                }));
+                              }
+                            }
+                          }}
+                          onFocus={() => {
+                            const raw = editedPrices[bp.id];
+                            if (raw !== undefined) {
+                              setEditedPrices((prev) => ({
+                                ...prev,
+                                [bp.id]: raw.replace(/[^0-9]/g, ''),
+                              }));
+                            } else {
+                              setEditedPrices((prev) => ({
+                                ...prev,
+                                [bp.id]: String(displayPrice),
+                              }));
+                            }
+                          }}
                           className="w-32 ml-auto text-right"
                           disabled={isSaving}
                         />

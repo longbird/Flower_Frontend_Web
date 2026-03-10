@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { fetchBranchInfo, fetchBranchProducts, submitConsultRequest } from '@/lib/branch/api';
@@ -17,38 +17,82 @@ function formatPhone(value: string): string {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
 }
 
+// 카테고리 코드 → 한글 라벨
+const CATEGORY_LABEL_MAP: Record<string, string> = {
+  bouquet: '꽃다발', basket: '꽃바구니', box: '플라워박스', wreath: '화환',
+  plant: '관엽식물', event: '이벤트', etc: '기타',
+  CELEBRATION: '축하', CONDOLENCE: '근조', OBJET: '오브제',
+  ORIENTAL: '동양란', WESTERN: '서양란', FLOWER: '꽃',
+  FOLIAGE: '관엽', RICE: '쌀', FRUIT: '과일', OTHER: '기타',
+};
+
+function categoryLabel(code: string) {
+  return CATEGORY_LABEL_MAP[code] || code;
+}
+
+function photoUrl(url: string) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  return RAW_API_BASE ? `/api/proxy${url}` : url;
+}
+
+// ─── Hero Section (compact) ──────────────────────────────────────────────────
+
 function HeroSection({ branch }: { branch: BranchInfo }) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[var(--branch-rose-light)] via-[var(--branch-peach-light)] to-[var(--branch-cream)] py-20 px-4">
-      {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-[var(--branch-rose)] opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-[var(--branch-peach)] opacity-10 rounded-full translate-x-1/3 translate-y-1/3" />
-      
+    <section className="relative overflow-hidden bg-gradient-to-br from-[var(--branch-rose-light)] via-[var(--branch-peach-light)] to-[var(--branch-cream)] py-8 px-4">
+      <div className="absolute top-0 left-0 w-48 h-48 bg-[var(--branch-rose)] opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-64 h-64 bg-[var(--branch-peach)] opacity-10 rounded-full translate-x-1/3 translate-y-1/3" />
+
       <div className="relative max-w-4xl mx-auto text-center">
-        <p className="text-[var(--branch-accent)] text-sm tracking-[0.3em] uppercase mb-4 font-light">
+        <p className="text-[var(--branch-accent)] text-xs tracking-[0.3em] uppercase mb-2 font-light">
           Flower Delivery Service
         </p>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-[var(--branch-text)] mb-6 leading-tight">
+        <h1 className="text-3xl md:text-4xl font-semibold text-[var(--branch-text)] mb-3 leading-tight">
           {branch.name}
         </h1>
         {branch.description && (
-          <p className="text-lg md:text-xl text-[var(--branch-text-light)] mb-8 max-w-2xl mx-auto leading-relaxed font-light">
+          <p className="text-base text-[var(--branch-text-light)] mb-4 max-w-2xl mx-auto leading-relaxed font-light">
             {branch.description}
           </p>
         )}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+
+        {/* Compact info chips */}
+        <div className="flex flex-wrap justify-center gap-3 mb-5 text-sm">
+          {branch.phone && (
+            <a
+              href={`tel:${branch.phone}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 text-[var(--branch-text)] hover:bg-white transition-colors"
+            >
+              <span className="text-base">📞</span> {branch.phone}
+            </a>
+          )}
+          {branch.address && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 text-[var(--branch-text)]">
+              <span className="text-base">📍</span> {branch.address}
+            </span>
+          )}
+          {branch.serviceAreas && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 text-[var(--branch-text)]">
+              <span className="text-base">🚗</span> {branch.serviceAreas}
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href={`/branch/${branch.code}/consult`}
-            className="inline-flex items-center justify-center px-8 py-4 bg-[var(--branch-accent)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-rose)] transition-colors shadow-lg hover:shadow-xl"
+            className="inline-flex items-center justify-center px-6 py-3 bg-[var(--branch-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--branch-rose)] transition-colors shadow-lg hover:shadow-xl"
           >
             상담 요청하기
           </Link>
           {branch.phone && (
             <a
               href={`tel:${branch.phone}`}
-              className="inline-flex items-center justify-center px-8 py-4 border-2 border-[var(--branch-accent)] text-[var(--branch-accent)] rounded-full text-base font-medium hover:bg-[var(--branch-accent)] hover:text-white transition-colors"
+              className="inline-flex items-center justify-center px-6 py-3 border-2 border-[var(--branch-accent)] text-[var(--branch-accent)] rounded-full text-sm font-medium hover:bg-[var(--branch-accent)] hover:text-white transition-colors"
             >
-              전화 문의 {branch.phone}
+              전화 문의
             </a>
           )}
         </div>
@@ -57,44 +101,7 @@ function HeroSection({ branch }: { branch: BranchInfo }) {
   );
 }
 
-function InfoSection({ branch }: { branch: BranchInfo }) {
-  const infoItems = [
-    branch.phone && { label: '전화번호', value: branch.phone, icon: '📞' },
-    branch.address && { label: '주소', value: branch.address, icon: '📍' },
-    branch.serviceAreas && { label: '서비스 지역', value: branch.serviceAreas, icon: '🚗' },
-    branch.virtualAccountBank && branch.virtualAccountNumber && {
-      label: '입금 계좌',
-      value: `${branch.virtualAccountBank} ${branch.virtualAccountNumber}`,
-      icon: '🏦',
-    },
-  ].filter(Boolean) as { label: string; value: string; icon: string }[];
-
-  if (infoItems.length === 0) return null;
-
-  return (
-    <section className="py-16 px-4 bg-[var(--branch-white)]">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl md:text-3xl text-center mb-12 text-[var(--branch-text)]">
-          안내 정보
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {infoItems.map((item) => (
-            <div
-              key={item.label}
-              className="text-center p-6 rounded-2xl bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]"
-            >
-              <div className="text-3xl mb-3">{item.icon}</div>
-              <h3 className="text-sm text-[var(--branch-text-light)] mb-2 tracking-wider">
-                {item.label}
-              </h3>
-              <p className="text-[var(--branch-text)] font-medium">{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+// ─── Product Card ─────────────────────────────────────────────────────────────
 
 function ProductCard({
   product,
@@ -103,16 +110,18 @@ function ProductCard({
   product: BranchProduct;
   onClick: () => void;
 }) {
+  const imgSrc = product.imageUrl ? photoUrl(product.imageUrl) : '';
+
   return (
     <div
       className="group bg-[var(--branch-white)] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-[var(--branch-rose-light)]/50 cursor-pointer"
       onClick={onClick}
     >
       {/* Product image */}
-      <div className="aspect-[4/3] bg-gradient-to-br from-[var(--branch-rose-light)] to-[var(--branch-peach-light)] flex items-center justify-center overflow-hidden">
-        {product.imageUrl ? (
+      <div className="aspect-[4/3] bg-gradient-to-br from-[var(--branch-rose-light)] to-[var(--branch-peach-light)] flex items-center justify-center overflow-hidden relative">
+        {imgSrc ? (
           <img
-            src={product.imageUrl}
+            src={imgSrc}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
@@ -120,9 +129,15 @@ function ProductCard({
           <div className="text-center p-4">
             <div className="text-5xl mb-2 opacity-60">🌸</div>
             <p className="text-sm text-[var(--branch-text-light)] font-light">
-              {product.category || '꽃'}
+              {product.category ? categoryLabel(product.category) : '꽃'}
             </p>
           </div>
+        )}
+        {/* Category badge */}
+        {product.category && (
+          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/40 text-white text-xs backdrop-blur-sm">
+            {categoryLabel(product.category)}
+          </span>
         )}
       </div>
       <div className="p-5">
@@ -162,6 +177,7 @@ function ProductDetailModal({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const imgSrc = product.imageUrl ? photoUrl(product.imageUrl) : '';
 
   const [form, setForm] = useState<ConsultRequestForm>({
     customerName: '',
@@ -241,8 +257,8 @@ function ProductDetailModal({
           <div className="p-6">
             {/* Product Summary */}
             <div className="flex items-center gap-3 mb-6 p-3 rounded-xl bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]/50">
-              {product.imageUrl ? (
-                <img src={product.imageUrl} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />
+              {imgSrc ? (
+                <img src={imgSrc} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />
               ) : (
                 <div className="w-14 h-14 rounded-lg bg-[var(--branch-rose-light)] flex items-center justify-center text-2xl opacity-50">
                   🌸
@@ -345,9 +361,9 @@ function ProductDetailModal({
           <>
             {/* Image */}
             <div className="aspect-[4/3] bg-gradient-to-br from-[var(--branch-rose-light)] to-[var(--branch-peach-light)] flex items-center justify-center overflow-hidden rounded-t-3xl">
-              {product.imageUrl ? (
+              {imgSrc ? (
                 <img
-                  src={product.imageUrl}
+                  src={imgSrc}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
@@ -355,7 +371,7 @@ function ProductDetailModal({
                 <div className="text-center p-4">
                   <div className="text-7xl mb-2 opacity-60">🌸</div>
                   <p className="text-[var(--branch-text-light)] font-light">
-                    {product.category || '꽃'}
+                    {product.category ? categoryLabel(product.category) : '꽃'}
                   </p>
                 </div>
               )}
@@ -363,6 +379,11 @@ function ProductDetailModal({
 
             {/* Content */}
             <div className="p-6">
+              {product.category && (
+                <span className="inline-block px-2.5 py-0.5 rounded-full bg-[var(--branch-rose-light)] text-[var(--branch-accent)] text-xs mb-2">
+                  {categoryLabel(product.category)}
+                </span>
+              )}
               <h2 className="text-2xl font-semibold text-[var(--branch-text)] mb-2">
                 {product.name}
               </h2>
@@ -399,30 +420,63 @@ function ProductDetailModal({
   );
 }
 
+// ─── Products Section (with category filter + area filter) ────────────────────
+
 function ProductsSection({
   products,
   slug,
+  branch,
   onProductClick,
 }: {
   products: BranchProduct[];
   slug: string;
+  branch: BranchInfo;
   onProductClick: (product: BranchProduct) => void;
 }) {
+  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
+  const [deliveryArea, setDeliveryArea] = useState('');
+
+  // Build category list
+  const categoryList = useMemo(() => {
+    const cats = new Set<string>();
+    for (const p of products) {
+      if (p.category) cats.add(p.category);
+    }
+    return ['전체', ...Array.from(cats)];
+  }, [products]);
+
+  // Parse service areas from branch for area suggestions
+  const serviceAreaList = useMemo(() => {
+    if (!branch.serviceAreas) return [];
+    return branch.serviceAreas.split(',').map((a) => a.trim()).filter(Boolean);
+  }, [branch.serviceAreas]);
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    let result = products;
+    if (selectedCategory !== '전체') {
+      result = result.filter((p) => p.category === selectedCategory);
+    }
+    return result;
+  }, [products, selectedCategory]);
+
+  // Check if entered delivery area matches service areas
+  const areaMatchResult = useMemo(() => {
+    if (!deliveryArea.trim() || serviceAreaList.length === 0) return null;
+    const input = deliveryArea.trim();
+    const matched = serviceAreaList.some(
+      (area) => input.includes(area) || area.includes(input)
+    );
+    return matched;
+  }, [deliveryArea, serviceAreaList]);
+
   if (products.length === 0) return null;
 
-  // Group by category
-  const categories = new Map<string, BranchProduct[]>();
-  for (const p of products) {
-    const cat = p.category || '기타';
-    if (!categories.has(cat)) categories.set(cat, []);
-    categories.get(cat)!.push(p);
-  }
-
   return (
-    <section className="py-16 px-4">
+    <section className="py-10 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <p className="text-[var(--branch-accent)] text-sm tracking-[0.3em] uppercase mb-3 font-light">
+        <div className="text-center mb-8">
+          <p className="text-[var(--branch-accent)] text-xs tracking-[0.3em] uppercase mb-2 font-light">
             Our Products
           </p>
           <h2 className="text-2xl md:text-3xl text-[var(--branch-text)]">
@@ -430,26 +484,88 @@ function ProductsSection({
           </h2>
         </div>
 
-        {Array.from(categories.entries()).map(([category, items]) => (
-          <div key={category} className="mb-12">
-            {categories.size > 1 && (
-              <h3 className="text-xl text-[var(--branch-text-light)] mb-6 text-center font-light tracking-wider">
-                {category}
-              </h3>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onClick={() => onProductClick(product)}
-                />
-              ))}
+        {/* Filters row */}
+        <div className="mb-8 space-y-4">
+          {/* Category filter tabs */}
+          {categoryList.length > 2 && (
+            <div className="flex flex-wrap justify-center gap-2">
+              {categoryList.map((cat) => {
+                const isActive = cat === selectedCategory;
+                const label = cat === '전체' ? '전체' : categoryLabel(cat);
+                const count = cat === '전체'
+                  ? products.length
+                  : products.filter((p) => p.category === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[var(--branch-accent)] text-white shadow-md'
+                        : 'bg-white/70 text-[var(--branch-text-light)] hover:bg-white border border-[var(--branch-rose-light)]'
+                    }`}
+                  >
+                    {label} ({count})
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        ))}
+          )}
 
-        <div className="text-center mt-12">
+          {/* Delivery area filter */}
+          {serviceAreaList.length > 0 && (
+            <div className="max-w-md mx-auto">
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base">🚗</span>
+                <input
+                  type="text"
+                  value={deliveryArea}
+                  onChange={(e) => setDeliveryArea(e.target.value)}
+                  placeholder="배달 지역을 입력하세요 (예: 서울, 강남)"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-full border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] placeholder-[var(--branch-text-light)]/50 focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors text-sm"
+                />
+              </div>
+              {areaMatchResult !== null && (
+                <p className={`text-center text-sm mt-2 ${areaMatchResult ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {areaMatchResult
+                    ? '배달 가능 지역입니다!'
+                    : '서비스 가능 지역이 아닐 수 있습니다. 전화로 문의해 주세요.'}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+                {serviceAreaList.map((area) => (
+                  <button
+                    key={area}
+                    onClick={() => setDeliveryArea(area)}
+                    className="px-2.5 py-1 rounded-full bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]/50 text-xs text-[var(--branch-text-light)] hover:bg-white hover:text-[var(--branch-text)] transition-colors"
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Product grid */}
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-12 text-[var(--branch-text-light)]">
+            <div className="text-4xl mb-3 opacity-40">🌷</div>
+            <p className="font-light">해당 카테고리에 상품이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onClick={() => onProductClick(product)}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="text-center mt-10">
           <Link
             href={`/branch/${slug}/consult`}
             className="inline-flex items-center justify-center px-10 py-4 bg-[var(--branch-accent)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-rose)] transition-colors shadow-lg"
@@ -462,22 +578,42 @@ function ProductsSection({
   );
 }
 
+// ─── Footer (with 입금 계좌) ──────────────────────────────────────────────────
+
 function Footer({ branch }: { branch: BranchInfo }) {
   return (
-    <footer className="bg-[var(--branch-text)] text-white/80 py-12 px-4">
-      <div className="max-w-4xl mx-auto text-center">
-        <h3 className="text-lg font-medium text-white mb-4">{branch.name}</h3>
-        <div className="space-y-1 text-sm font-light">
-          {branch.address && <p>{branch.address}</p>}
-          {branch.phone && <p>전화: {branch.phone}</p>}
+    <footer className="bg-[var(--branch-text)] text-white/80 py-10 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-6">
+          <h3 className="text-lg font-medium text-white mb-3">{branch.name}</h3>
+          <div className="space-y-1 text-sm font-light">
+            {branch.address && <p>{branch.address}</p>}
+            {branch.phone && <p>전화: {branch.phone}</p>}
+          </div>
         </div>
-        <div className="mt-8 pt-6 border-t border-white/20 text-xs text-white/50">
+
+        {/* 입금 계좌 정보 */}
+        {branch.virtualAccountBank && branch.virtualAccountNumber && (
+          <div className="text-center mb-6 py-4 px-6 rounded-2xl bg-white/10 border border-white/20 max-w-sm mx-auto">
+            <p className="text-xs text-white/50 tracking-wider mb-2">입금 계좌</p>
+            <p className="text-white font-medium text-base">
+              {branch.virtualAccountBank}
+            </p>
+            <p className="text-white/90 text-lg font-semibold tracking-wider mt-0.5">
+              {branch.virtualAccountNumber}
+            </p>
+          </div>
+        )}
+
+        <div className="pt-4 border-t border-white/20 text-center text-xs text-white/50">
           <p>&copy; {new Date().getFullYear()} {branch.name}. All rights reserved.</p>
         </div>
       </div>
     </footer>
   );
 }
+
+// ─── Utility screens ──────────────────────────────────────────────────────────
 
 function LoadingScreen() {
   return (
@@ -507,6 +643,8 @@ function NotFoundScreen() {
     </div>
   );
 }
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function BranchHomePage() {
   const params = useParams();
@@ -546,10 +684,10 @@ export default function BranchHomePage() {
   return (
     <>
       <HeroSection branch={branch} />
-      <InfoSection branch={branch} />
       <ProductsSection
         products={products}
         slug={slug}
+        branch={branch}
         onProductClick={(product) => setSelectedProduct(product)}
       />
       <Footer branch={branch} />
