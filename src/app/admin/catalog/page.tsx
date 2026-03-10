@@ -85,6 +85,7 @@ function ProductEditModal({
   const [basePrice, setBasePrice] = useState(product.basePrice);
   const [sortOrder, setSortOrder] = useState(product.sortOrder);
   const [isBranchDefault, setIsBranchDefault] = useState(product.isBranchDefault ?? true);
+  const [isActive, setIsActive] = useState(product.isActive === undefined ? true : Boolean(product.isActive));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -102,6 +103,7 @@ function ProductEditModal({
           basePrice,
           sortOrder,
           isBranchDefault,
+          isActive,
         }),
       });
       onSaved();
@@ -242,6 +244,31 @@ function ProductEditModal({
               </div>
             </div>
 
+            {/* isActive Toggle (카탈로그 표시 여부) */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <div>
+                <Label className="text-sm font-medium text-slate-700">카탈로그 표시</Label>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  비활성화하면 카탈로그에서 숨겨집니다.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isActive}
+                onClick={() => setIsActive(!isActive)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  isActive ? 'bg-emerald-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isActive ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* Branch Default Toggle */}
             <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200">
               <div>
@@ -298,12 +325,235 @@ function ProductEditModal({
   );
 }
 
+// ─── Product Create Modal ────────────────────────────────────────────────────
+
+function ProductCreateModal({
+  onClose,
+  onSaved,
+}: {
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [sku, setSku] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [category, setCategory] = useState('');
+  const [basePrice, setBasePrice] = useState(0);
+  const [sortOrder, setSortOrder] = useState(1000);
+  const [isBranchDefault, setIsBranchDefault] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = async () => {
+    if (!sku.trim()) { setError('SKU를 입력하세요.'); return; }
+    if (!name.trim()) { setError('상품명을 입력하세요.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await api('/admin/catalog/products', {
+        method: 'POST',
+        body: JSON.stringify({
+          sku: sku.trim(),
+          name: name.trim(),
+          description: description || undefined,
+          imageUrl: imageUrl || null,
+          category: category || null,
+          basePrice,
+          sortOrder,
+          isBranchDefault,
+        }),
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '등록에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-slate-900">상품 등록</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {/* SKU */}
+            <div>
+              <Label htmlFor="sku" className="text-sm font-medium text-slate-700">
+                SKU <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="sku"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder="예: BOUQUET-001"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Name */}
+            <div>
+              <Label htmlFor="createName" className="text-sm font-medium text-slate-700">
+                상품명 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="createName"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="예: 로맨틱 장미 꽃다발"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Image URL */}
+            <div>
+              <Label htmlFor="createImageUrl" className="text-sm font-medium text-slate-700">
+                이미지 URL
+              </Label>
+              <Input
+                id="createImageUrl"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="createDescription" className="text-sm font-medium text-slate-700">
+                설명
+              </Label>
+              <textarea
+                id="createDescription"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
+                placeholder="상품 설명을 입력하세요."
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <Label htmlFor="createCategory" className="text-sm font-medium text-slate-700">
+                카테고리
+              </Label>
+              <select
+                id="createCategory"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              >
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Price + Sort Order */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="createBasePrice" className="text-sm font-medium text-slate-700">
+                  기본 가격
+                </Label>
+                <Input
+                  id="createBasePrice"
+                  type="number"
+                  value={basePrice}
+                  onChange={(e) => setBasePrice(Number(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="createSortOrder" className="text-sm font-medium text-slate-700">
+                  정렬 순서
+                </Label>
+                <Input
+                  id="createSortOrder"
+                  type="number"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(Number(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Branch Default Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <div>
+                <Label className="text-sm font-medium text-slate-700">전 지사 기본 노출</Label>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  활성화하면 모든 지사에 기본으로 표시됩니다.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isBranchDefault}
+                onClick={() => setIsBranchDefault(!isBranchDefault)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  isBranchDefault ? 'bg-emerald-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isBranchDefault ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                취소
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {saving ? '등록 중...' : '등록'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Products Tab ────────────────────────────────────────────────────────────
 
 function ProductsTab() {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [editProduct, setEditProduct] = useState<CatalogProduct | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -323,20 +573,21 @@ function ProductsTab() {
 
   const handleSaved = () => {
     setEditProduct(null);
+    setShowCreate(false);
     loadProducts();
   };
 
-  const toggleBranchDefault = async (product: CatalogProduct, e: React.MouseEvent) => {
+  const handleDelete = async (product: CatalogProduct, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newValue = !(product.isBranchDefault ?? true);
+    if (!confirm(`"${product.name}" 상품을 삭제(비활성화)하시겠습니까?`)) return;
+    setDeletingId(product.id);
     try {
-      await api(`/admin/catalog/products/${product.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ isBranchDefault: newValue }),
-      });
+      await api(`/admin/catalog/products/${product.id}`, { method: 'DELETE' });
       loadProducts();
     } catch {
       // ignore
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -349,96 +600,140 @@ function ProductsTab() {
     );
   }
 
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
-        <p className="text-slate-400">등록된 상품이 없습니다.</p>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {products.map((product) => {
-          const branchDefault = product.isBranchDefault ?? true;
-          return (
-            <div
-              key={product.id}
-              className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setEditProduct(product)}
-            >
-              {/* Image */}
-              <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden">
-                {product.imageUrl ? (
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-center">
-                    <div className="text-4xl opacity-30 mb-1">🌸</div>
-                    <p className="text-xs text-slate-400">이미지 없음</p>
+      {/* Header with Create Button */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-slate-500">
+          전체 {products.length}개 (활성 {products.filter(p => Boolean(p.isActive)).length}개)
+        </p>
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          상품 등록
+        </Button>
+      </div>
+
+      {products.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+          <p className="text-slate-400">등록된 상품이 없습니다.</p>
+          <p className="text-sm text-slate-400 mt-1">위 &quot;상품 등록&quot; 버튼을 눌러 상품을 추가하세요.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {products.map((product) => {
+            const branchDefault = product.isBranchDefault ?? true;
+            const active = Boolean(product.isActive);
+            return (
+              <div
+                key={product.id}
+                className={`bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer relative ${
+                  active ? 'border-slate-200' : 'border-red-200 opacity-60'
+                }`}
+                onClick={() => setEditProduct(product)}
+              >
+                {/* Inactive badge */}
+                {!active && (
+                  <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded bg-red-500 text-white text-xs font-medium">
+                    비활성
                   </div>
                 )}
-              </div>
 
-              {/* Info */}
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-slate-900 truncate">
-                      {product.name}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {product.sku}
-                      {product.category && (
-                        <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
-                          {CATEGORY_OPTIONS.find((c) => c.value === product.category)?.label || product.category}
-                        </span>
-                      )}
-                    </p>
+                {/* Delete button */}
+                <button
+                  onClick={(e) => handleDelete(product, e)}
+                  disabled={deletingId === product.id}
+                  className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shadow-sm disabled:opacity-50"
+                  title="삭제"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+
+                {/* Image */}
+                <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden">
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-4xl opacity-30 mb-1">🌸</div>
+                      <p className="text-xs text-slate-400">이미지 없음</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-semibold text-slate-900 truncate">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {product.sku}
+                        {product.category && (
+                          <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
+                            {CATEGORY_OPTIONS.find((c) => c.value === product.category)?.label || product.category}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-base font-bold text-emerald-700">
+                      {formatPrice(product.basePrice)}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      순서: {product.sortOrder}
+                    </span>
+                  </div>
+
+                  {/* Branch Default Badge */}
+                  <div className="mt-2 flex items-center justify-between">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                        branchDefault
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block w-2 h-2 rounded-full ${
+                          branchDefault ? 'bg-emerald-500' : 'bg-slate-400'
+                        }`}
+                      />
+                      {branchDefault ? '전 지사 노출' : '지사 미노출'}
+                    </span>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-base font-bold text-emerald-700">
-                    {formatPrice(product.basePrice)}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    순서: {product.sortOrder}
-                  </span>
-                </div>
-
-                {/* Branch Default Badge */}
-                <div className="mt-2 flex items-center justify-between">
-                  <button
-                    onClick={(e) => toggleBranchDefault(product, e)}
-                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-                      branchDefault
-                        ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block w-2 h-2 rounded-full ${
-                        branchDefault ? 'bg-emerald-500' : 'bg-slate-400'
-                      }`}
-                    />
-                    {branchDefault ? '전 지사 노출' : '지사 미노출'}
-                  </button>
-                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editProduct && (
         <ProductEditModal
           product={editProduct}
           onClose={() => setEditProduct(null)}
+          onSaved={handleSaved}
+        />
+      )}
+
+      {/* Create Modal */}
+      {showCreate && (
+        <ProductCreateModal
+          onClose={() => setShowCreate(false)}
           onSaved={handleSaved}
         />
       )}

@@ -20,8 +20,15 @@ export async function branchAdminLogin(username: string, password: string) {
   const data = await res.json();
 
   // BRANCH_ADMIN 역할 체크
-  if (data.admin?.role !== 'BRANCH_ADMIN') {
+  const role = data.admin?.role;
+  if (role !== 'BRANCH_ADMIN') {
     throw new Error('지사 관리자 계정이 아닙니다.');
+  }
+
+  // API는 admin.organization.id 로 반환하지만 store는 organizationId를 기대
+  // 호환성을 위해 매핑
+  if (data.admin && data.admin.organization && !data.admin.organizationId) {
+    data.admin.organizationId = data.admin.organization.id;
   }
 
   return data;
