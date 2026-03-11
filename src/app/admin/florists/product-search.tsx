@@ -94,7 +94,7 @@ export default function ProductSearch() {
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState('');
   const [grade, setGrade] = useState('');
-  const [isRecommended, setIsRecommended] = useState(false);
+  const [isRecommended, setIsRecommended] = useState(true);
   const [memo, setMemo] = useState('');
   const [serviceArea, setServiceArea] = useState('');
   const [includeHidden, setIncludeHidden] = useState(false);
