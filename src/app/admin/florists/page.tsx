@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { FloristSummary } from '@/lib/types/florist';
 import ProductSearch from './product-search';
+import FloristDetailDialog from './florist-dialog';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: '활성' },
@@ -137,6 +138,7 @@ export default function FloristsPage() {
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [selectedCaps, setSelectedCaps] = useState<string[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedFloristId, setSelectedFloristId] = useState<string | null>(null);
   const pageSize = 30;
 
   const { data, isLoading, error } = useQuery({
@@ -307,7 +309,7 @@ export default function FloristsPage() {
                   <TableRow
                     key={f.id}
                     className="cursor-pointer hover:bg-emerald-50/40 transition-colors duration-150"
-                    onClick={() => router.push(`/admin/florists/${f.id}`)}
+                    onClick={() => setSelectedFloristId(f.id)}
                   >
                     <TableCell className="text-center">
                       <PriorityBadge priority={f.priority} />
@@ -373,7 +375,7 @@ export default function FloristsPage() {
                         <button
                           className="p-2 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
                           title="수정"
-                          onClick={() => router.push(`/admin/florists/${f.id}`)}
+                          onClick={() => setSelectedFloristId(f.id)}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
@@ -412,7 +414,7 @@ export default function FloristsPage() {
               <div
                 key={f.id}
                 className="bg-white border border-slate-200 rounded-xl p-3.5 flex gap-3 active:bg-slate-50 shadow-sm hover:shadow-md transition-shadow"
-                onClick={() => router.push(`/admin/florists/${f.id}`)}
+                onClick={() => setSelectedFloristId(f.id)}
               >
                 <div className="flex-shrink-0">
                   <FloristThumb floristId={f.id} />
@@ -470,6 +472,18 @@ export default function FloristsPage() {
       </div>
       </TabsContent>
       </Tabs>
+
+      {selectedFloristId && (
+        <FloristDetailDialog
+          floristId={selectedFloristId}
+          open={!!selectedFloristId}
+          onClose={() => setSelectedFloristId(null)}
+          onNavigateDetail={() => {
+            router.push(`/admin/florists/${selectedFloristId}`);
+            setSelectedFloristId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
