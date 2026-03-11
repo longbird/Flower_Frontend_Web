@@ -507,20 +507,21 @@ function ProductDetail({
             <div className="flex gap-2">
               <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">등급</dt>
               <dd>
+                {item.isRecommended && (
+                  <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900">
+                    추천
+                  </span>
+                )}
                 {item.grade ? (
                   <span className={cn(
                     'px-2 py-0.5 rounded-md text-[11px] font-semibold',
+                    item.isRecommended && 'ml-1.5',
                     GRADE_COLORS[item.grade] || 'bg-slate-500/90 text-white'
                   )}>
                     {GRADES.find((g) => g.code === item.grade)?.label || item.grade}
                   </span>
                 ) : (
-                  <span className="text-slate-300 text-xs">미설정</span>
-                )}
-                {item.isRecommended && (
-                  <span className="ml-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900">
-                    추천
-                  </span>
+                  <span className={cn('text-slate-300 text-xs', item.isRecommended && 'ml-1.5')}>미설정</span>
                 )}
               </dd>
             </div>
