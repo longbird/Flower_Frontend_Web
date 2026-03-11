@@ -119,7 +119,7 @@ export default function FloristDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="w-[95vw] max-w-7xl h-[92vh] max-h-[92vh] overflow-hidden p-0 gap-0 border-stone-300/60 shadow-2xl flex flex-col">
+      <DialogContent showCloseButton={false} className="w-[95vw] max-w-7xl h-[92vh] max-h-[92vh] overflow-hidden p-0 gap-0 border-stone-300/60 shadow-2xl flex flex-col">
         {isLoading || !florist ? (
           <div className="flex items-center justify-center flex-1 bg-[#F5F5F5]">
             <div className="w-7 h-7 border-[2.5px] border-[#C8E6C9] border-t-[#4CAF50] rounded-full animate-spin" />
