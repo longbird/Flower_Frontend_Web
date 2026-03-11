@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -90,10 +90,10 @@ export default function FloristDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="w-[95vw] max-w-5xl max-h-[92vh] overflow-hidden p-0 gap-0">
+      <DialogContent className="w-[95vw] max-w-7xl max-h-[92vh] overflow-hidden p-0 gap-0 border-stone-300/60 shadow-2xl">
         {isLoading || !florist ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+          <div className="flex items-center justify-center py-20 bg-stone-50">
+            <div className="w-7 h-7 border-[2.5px] border-stone-200 border-t-stone-500 rounded-full animate-spin" />
           </div>
         ) : (
           <FloristEditPanel
@@ -195,39 +195,39 @@ function FloristEditPanel({
   };
 
   const statusLabel = florist.status === 'ACTIVE' ? '활성' : florist.status === 'SUSPENDED' ? '중지' : '비활성';
-  const statusColor = florist.status === 'ACTIVE' ? 'bg-emerald-500' : florist.status === 'SUSPENDED' ? 'bg-orange-500' : 'bg-slate-400';
+  const statusColor = florist.status === 'ACTIVE' ? 'bg-emerald-600' : florist.status === 'SUSPENDED' ? 'bg-amber-600' : 'bg-stone-400';
 
   return (
     <div className="flex flex-col max-h-[92vh]">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+      {/* ── 헤더: 다크 ── */}
+      <div className="flex items-center justify-between px-6 py-3.5 bg-stone-800 text-stone-100">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-slate-800">{florist.name}</h2>
-          <span className={cn('w-2 h-2 rounded-full', statusColor)} />
-          <span className="text-sm text-slate-500">{statusLabel}</span>
+          <h2 className="text-xl font-bold tracking-tight">{florist.name}</h2>
+          <span className={cn('w-2 h-2 rounded-full ring-2 ring-stone-600', statusColor)} />
+          <span className="text-sm text-stone-400">{statusLabel}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onNavigateDetail}
-            className="text-xs text-slate-500 hover:text-blue-600 transition-colors px-2 py-1"
-            title="상세 페이지로 이동"
+            className="text-sm text-stone-400 hover:text-white transition-colors px-2.5 py-1 rounded hover:bg-stone-700"
           >
             사진관리 &rarr;
           </button>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-stone-700 text-stone-400 hover:text-white transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
       </div>
 
-      {/* 본문: 왼쪽 폼 + 오른쪽 갤러리 */}
+      {/* ── 본문: 왼쪽 폼 + 오른쪽 갤러리 ── */}
       <div className="flex flex-1 min-h-0">
-        {/* 왼쪽: 수정 폼 */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
 
-          {/* 기본 정보 */}
-          <Section title="기본 정보">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+        {/* 왼쪽: 수정 폼 */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-stone-50">
+
+          {/* 1. 기본 정보 */}
+          <Section title="기본 정보" accent="bg-stone-500">
+            <div className="grid grid-cols-2 gap-x-5 gap-y-3">
               <Field label="화원명" className="col-span-2 sm:col-span-1">
                 <input value={name} onChange={(e) => setName(e.target.value)}
                   className="field-input" />
@@ -251,67 +251,27 @@ function FloristEditPanel({
             </div>
           </Section>
 
-          {/* 영업 정보 */}
-          <Section title="영업 정보">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-              <Field label="등급">
-                <select value={grade} onChange={(e) => setGrade(Number(e.target.value))}
-                  className="field-input">
-                  {GRADE_OPTIONS.map((g) => (
-                    <option key={g.value} value={g.value}>{g.label}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="배정 우선순위">
-                <input type="number" min={0} max={99} value={priority || ''}
-                  onChange={(e) => setPriority(Number(e.target.value) || 0)}
-                  className="field-input" />
-              </Field>
-              <Field label="특이사항" className="col-span-2">
-                <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)}
-                  rows={2} className="field-input resize-none" />
-              </Field>
-            </div>
+          {/* 2. 특이사항 */}
+          <Section title="특이사항" accent="bg-amber-700">
+            <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)}
+              rows={3} placeholder="화원 관련 특이사항을 입력하세요"
+              className="field-input resize-none" />
           </Section>
 
-          {/* 역량 */}
-          <Section title="역량">
-            <div className="flex flex-wrap gap-1.5">
-              {CAPABILITY_OPTIONS.map((opt) => {
-                const active = capabilities.includes(opt.code);
-                return (
-                  <button
-                    key={opt.code}
-                    onClick={() => toggleCap(opt.code)}
-                    className={cn(
-                      'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all',
-                      active
-                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                        : 'bg-white text-slate-400 border-slate-200 hover:border-blue-200 hover:text-slate-600'
-                    )}
-                  >
-                    {active && <svg className="inline w-3 h-3 mr-0.5 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
-
-          {/* 서비스 지역 */}
-          <Section title="서비스 지역">
-            <div className="flex flex-wrap gap-1.5 mb-2">
+          {/* 3. 서비스 지역 */}
+          <Section title="서비스 지역" accent="bg-teal-700">
+            <div className="flex flex-wrap gap-2 mb-3">
               {florist.serviceAreas && florist.serviceAreas.length > 0 ? (
                 florist.serviceAreas.map((area) => (
-                  <span key={area} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                  <span key={area} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-teal-800/10 text-teal-800 border border-teal-700/20">
                     {area}
-                    <button className="text-teal-400 hover:text-red-500 transition-colors" onClick={() => { if (confirm(`"${area}" 삭제?`)) removeAreaMutation.mutate(area); }}>
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    <button className="text-teal-600/50 hover:text-red-600 transition-colors" onClick={() => { if (confirm(`"${area}" 삭제?`)) removeAreaMutation.mutate(area); }}>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-slate-400">설정된 지역 없음</span>
+                <span className="text-sm text-stone-400 italic">설정된 지역 없음</span>
               )}
             </div>
             <div className="flex gap-2">
@@ -325,47 +285,90 @@ function FloristEditPanel({
               <button
                 onClick={handleAddArea}
                 disabled={addAreaMutation.isPending}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-600 text-white hover:bg-teal-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-700 text-white hover:bg-teal-800 transition-colors disabled:opacity-50"
               >
                 추가
               </button>
             </div>
           </Section>
 
+          {/* 4. 역량 */}
+          <Section title="역량" accent="bg-indigo-700">
+            <div className="flex flex-wrap gap-2">
+              {CAPABILITY_OPTIONS.map((opt) => {
+                const active = capabilities.includes(opt.code);
+                return (
+                  <button
+                    key={opt.code}
+                    onClick={() => toggleCap(opt.code)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
+                      active
+                        ? 'bg-indigo-800/10 text-indigo-800 border-indigo-700/25 shadow-sm'
+                        : 'bg-white text-stone-400 border-stone-200 hover:border-stone-300 hover:text-stone-500'
+                    )}
+                  >
+                    {active && <svg className="inline w-3.5 h-3.5 mr-0.5 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          {/* 5. 영업 정보 */}
+          <Section title="영업 정보" accent="bg-stone-500">
+            <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+              <Field label="등급">
+                <select value={grade} onChange={(e) => setGrade(Number(e.target.value))}
+                  className="field-input">
+                  {GRADE_OPTIONS.map((g) => (
+                    <option key={g.value} value={g.value}>{g.label}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="배정 우선순위">
+                <input type="number" min={0} max={99} value={priority || ''}
+                  onChange={(e) => setPriority(Number(e.target.value) || 0)}
+                  className="field-input" />
+              </Field>
+            </div>
+          </Section>
+
           {/* 저장 버튼 */}
-          <div className="flex justify-end gap-2 pt-2 pb-1">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 transition-colors">
+          <div className="flex justify-end gap-3 pt-3 pb-1">
+            <button onClick={onClose} className="px-5 py-2.5 rounded-lg text-base font-medium text-stone-500 hover:bg-stone-200/60 transition-colors">
               닫기
             </button>
             <button
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+              className="px-6 py-2.5 rounded-lg text-base font-medium bg-stone-700 text-white hover:bg-stone-800 transition-colors shadow-sm disabled:opacity-50"
             >
               {updateMutation.isPending ? '저장 중...' : '저장'}
             </button>
           </div>
         </div>
 
-        {/* 오른쪽: 갤러리 미리보기 */}
-        <div className="hidden md:flex flex-col w-[200px] border-l border-slate-100 bg-slate-50/30">
-          <div className="px-3 py-2.5 border-b border-slate-100 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">갤러리 ({photos.length})</span>
+        {/* ── 오른쪽: 갤러리 미리보기 ── */}
+        <div className="hidden md:flex flex-col w-[280px] border-l border-stone-200 bg-stone-100/60">
+          <div className="px-4 py-3 border-b border-stone-200 flex items-center justify-between">
+            <span className="text-sm font-semibold text-stone-500">갤러리 ({photos.length})</span>
             <button
               onClick={onNavigateDetail}
-              className="text-[11px] text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              className="text-xs text-stone-500 hover:text-stone-800 font-medium transition-colors"
             >
               전체보기
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+          <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5">
             {photos.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-8">사진 없음</p>
+              <p className="text-sm text-stone-400 text-center py-8 italic">사진 없음</p>
             ) : (
               photos.map((photo) => (
                 <div
                   key={photo.id}
-                  className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-blue-400/50 transition-all group"
+                  className="rounded-lg overflow-hidden border border-stone-200/80 cursor-pointer hover:ring-2 hover:ring-stone-400/40 transition-all"
                   onClick={onNavigateDetail}
                 >
                   <div className="relative aspect-square">
@@ -374,21 +377,21 @@ function FloristEditPanel({
                       alt={photo.memo || ''}
                       fill
                       className="object-cover"
-                      sizes="180px"
+                      sizes="260px"
                       unoptimized
                     />
-                    <span className="absolute top-1 left-1 bg-black/50 text-white text-[9px] px-1 py-px rounded">
+                    <span className="absolute top-1 left-1 bg-black/55 text-white/90 text-[11px] px-1.5 py-0.5 rounded">
                       {CATEGORIES[photo.category] || photo.category}
                     </span>
                     {photo.isHidden && (
-                      <span className="absolute bottom-1 right-1 bg-orange-500/80 text-white text-[8px] px-1 py-px rounded">숨김</span>
+                      <span className="absolute bottom-1 right-1 bg-amber-700/80 text-white text-[10px] px-1.5 py-0.5 rounded">숨김</span>
                     )}
                     {photo.isRecommended && (
-                      <span className="absolute top-1 right-1 bg-amber-500/90 text-white text-[8px] px-1 py-px rounded font-bold">추천</span>
+                      <span className="absolute top-1 right-1 bg-amber-600/85 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">추천</span>
                     )}
                   </div>
                   {photo.memo && (
-                    <p className="text-[10px] text-slate-600 px-1.5 py-1 truncate">{photo.memo}</p>
+                    <p className="text-xs text-stone-500 px-2 py-1 truncate bg-stone-50">{photo.memo}</p>
                   )}
                 </div>
               ))
@@ -400,21 +403,21 @@ function FloristEditPanel({
       <style jsx>{`
         .field-input {
           width: 100%;
-          padding: 6px 10px;
+          padding: 8px 12px;
           border-radius: 8px;
-          border: 1px solid #e2e8f0;
-          background: white;
-          font-size: 14px;
-          color: #1e293b;
+          border: 1px solid #c8c3bc;
+          background: #fffffe;
+          font-size: 16px;
+          color: #292524;
           outline: none;
           transition: border-color 0.15s, box-shadow 0.15s;
         }
         .field-input:focus {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+          border-color: #78716c;
+          box-shadow: 0 0 0 2px rgba(120, 113, 108, 0.12);
         }
         .field-input::placeholder {
-          color: #94a3b8;
+          color: #a8a29e;
         }
       `}</style>
     </div>
@@ -422,14 +425,14 @@ function FloristEditPanel({
 }
 
 /* ── 헬퍼 컴포넌트 ── */
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, accent = 'bg-stone-500', children }: { title: string; accent?: string; children: React.ReactNode }) {
   return (
-    <div>
-      <h3 className="text-[13px] font-bold text-slate-600 mb-2 flex items-center gap-2">
-        <span className="w-1 h-4 rounded-full bg-blue-500" />
-        {title}
-      </h3>
-      <div className="pl-3">
+    <div className="bg-white rounded-xl border border-stone-200/80 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-stone-100/50 border-b border-stone-200/60">
+        <span className={cn('w-1 h-5 rounded-full', accent)} />
+        <h3 className="text-[15px] font-bold text-stone-700">{title}</h3>
+      </div>
+      <div className="px-4 py-3.5">
         {children}
       </div>
     </div>
@@ -439,7 +442,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <div className={className}>
-      <label className="block text-[11px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wider">{label}</label>
+      <label className="block text-[13px] font-semibold text-stone-500 mb-1">{label}</label>
       {children}
     </div>
   );
