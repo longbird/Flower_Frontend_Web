@@ -310,7 +310,7 @@ export default function ProductSearch() {
 
       {/* Product detail dialog */}
       <Dialog open={!!selectedItem} onOpenChange={() => { setSelectedItem(null); setEditMode(false); }}>
-        <DialogContent className="w-[95vw] max-w-6xl max-h-[95vh] overflow-y-auto overflow-x-hidden">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-slate-800">{editMode ? '사진 정보 수정' : '상품 상세'}</DialogTitle>
           </DialogHeader>
