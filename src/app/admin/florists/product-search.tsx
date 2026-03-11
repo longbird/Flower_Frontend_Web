@@ -101,6 +101,7 @@ export default function ProductSearch() {
   const [selectedItem, setSelectedItem] = useState<FloristPhotoSearchItem | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const pageSize = 40;
   const queryClient = useQueryClient();
@@ -218,9 +219,30 @@ export default function ProductSearch() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Filter */}
-      <div className="bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl shadow-sm p-3 space-y-2">
-        {/* 1줄: 카테고리, 등급, 추천, 숨김포함, 초기화 */}
+      {/* Filter toggle (모바일) + Filter */}
+      <div className="md:hidden flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-sm relative"
+          onClick={() => setFilterOpen(!filterOpen)}
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+          필터
+          {(category || grade || isRecommended || includeHidden || memo || serviceArea) && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#546E7A] rounded-full" />
+          )}
+        </Button>
+        <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm h-8" onClick={handleSearch}>검색</Button>
+        {data && (
+          <span className="text-sm text-slate-500 font-medium ml-auto">총 <span className="text-[#37474F] font-semibold">{data.total}</span>개</span>
+        )}
+      </div>
+      <div className={cn(
+        'bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl shadow-sm p-3 space-y-2',
+        filterOpen ? 'block' : 'hidden md:block'
+      )}>
+        {/* 1줄: 카테고리, 등급 */}
         <div className="flex items-center gap-2">
           <select
             className="flex-1 min-w-0 rounded-lg border border-[#E0E0E0] px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A] outline-none transition text-[#333333]"
@@ -240,6 +262,9 @@ export default function ProductSearch() {
               <option key={g.code} value={g.code}>{g.label}</option>
             ))}
           </select>
+        </div>
+        {/* 2줄: 추천, 숨김포함, 메모검색 */}
+        <div className="flex items-center gap-2">
           <button
             onClick={() => { setIsRecommended(!isRecommended); setPage(1); }}
             className={cn(
@@ -249,7 +274,6 @@ export default function ProductSearch() {
                 : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-[#546E7A]'
             )}
           >
-            {isRecommended && <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
             추천
           </button>
           <button
@@ -261,15 +285,8 @@ export default function ProductSearch() {
                 : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-orange-300'
             )}
           >
-            {includeHidden && <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
             숨김포함
           </button>
-          <Button variant="ghost" size="sm" className="text-[#666666] hover:text-[#333333] px-2 shrink-0" onClick={handleReset} title="초기화">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          </Button>
-        </div>
-        {/* 2줄: 메모 검색, 서비스 지역, 검색 버튼 */}
-        <div className="flex items-center gap-2">
           <Input
             placeholder="메모 검색"
             value={memo}
@@ -277,6 +294,9 @@ export default function ProductSearch() {
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="flex-1 min-w-0 h-8 text-sm border-[#E0E0E0] focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A]"
           />
+        </div>
+        {/* 3줄: 서비스 지역, 초기화, 검색 */}
+        <div className="flex items-center gap-2">
           <Input
             placeholder="서비스 지역"
             value={serviceArea}
@@ -284,13 +304,16 @@ export default function ProductSearch() {
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="flex-1 min-w-0 h-8 text-sm border-[#E0E0E0] focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A]"
           />
-          <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm shrink-0 h-8" onClick={handleSearch}>검색</Button>
+          <Button variant="ghost" size="sm" className="text-[#666666] hover:text-[#333333] px-2 shrink-0 h-8" onClick={handleReset} title="초기화">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          </Button>
+          <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm shrink-0 h-8 md:inline-flex hidden" onClick={handleSearch}>검색</Button>
         </div>
       </div>
 
-      {/* Result count */}
+      {/* Result count (데스크톱) */}
       {data && (
-        <div className="text-sm text-slate-500 font-medium">총 <span className="text-[#37474F] font-semibold">{data.total}</span>개</div>
+        <div className="hidden md:block text-sm text-slate-500 font-medium">총 <span className="text-[#37474F] font-semibold">{data.total}</span>개</div>
       )}
 
       {isLoading && (
