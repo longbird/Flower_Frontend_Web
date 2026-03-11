@@ -474,14 +474,10 @@ export default function FloristsPage() {
       </Tabs>
 
       {selectedFloristId && (
-        <FloristDetailDialog
+         <FloristDetailDialog
           floristId={selectedFloristId}
           open={!!selectedFloristId}
           onClose={() => setSelectedFloristId(null)}
-          onNavigateDetail={() => {
-            router.push(`/admin/florists/${selectedFloristId}`);
-            setSelectedFloristId(null);
-          }}
         />
       )}
     </div>
