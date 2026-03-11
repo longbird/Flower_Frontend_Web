@@ -814,6 +814,7 @@ function PhotoEditForm({
 }) {
   const [category, setCategory] = useState<string>(photo.category);
   const [grade, setGrade] = useState<string>(photo.grade || '');
+  const [isRecommended, setIsRecommended] = useState(photo.isRecommended || false);
   const [memo, setMemo] = useState(photo.memo || '');
   const [costPrice, setCostPrice] = useState(photo.costPrice ? photo.costPrice.toLocaleString() : '');
   const [sellingPrice, setSellingPrice] = useState(photo.sellingPrice ? photo.sellingPrice.toLocaleString() : '');
@@ -850,10 +851,19 @@ function PhotoEditForm({
         </div>
       </div>
 
-      {/* Grade */}
+      {/* Grade + 추천 */}
       <div className="space-y-1.5">
         <Label className="text-slate-600">상품 등급</Label>
         <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setIsRecommended(!isRecommended)}
+            className={cn(
+              'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
+              isRecommended ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-md' : 'bg-white text-slate-600 border-slate-200'
+            )}
+          >
+            추천
+          </button>
           {PHOTO_GRADES.map((g) => (
             <button
               key={g.code}
@@ -917,6 +927,7 @@ function PhotoEditForm({
               onSave({
                 category,
                 ...(grade ? { grade } : {}),
+                isRecommended,
                 ...(costPrice ? { costPrice: parseCurrency(costPrice) } : { costPrice: null }),
                 ...(sellingPrice ? { sellingPrice: parseCurrency(sellingPrice) } : { sellingPrice: null }),
                 ...(memo ? { memo } : { memo: null }),
