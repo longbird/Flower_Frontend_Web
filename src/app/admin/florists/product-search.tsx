@@ -620,6 +620,7 @@ function ProductDetailEdit({
 }) {
   const [editCategory, setEditCategory] = useState<string>(item.category);
   const [editGrade, setEditGrade] = useState<string>(item.grade || '');
+  const [editIsRecommended, setEditIsRecommended] = useState(item.isRecommended || false);
   const [editMemo, setEditMemo] = useState(item.memo || '');
   const [editCostPrice, setEditCostPrice] = useState(item.costPrice ? item.costPrice.toLocaleString() : '');
   const [editSellingPrice, setEditSellingPrice] = useState(item.sellingPrice ? item.sellingPrice.toLocaleString() : '');
@@ -628,6 +629,8 @@ function ProductDetailEdit({
     onSave({
       category: editCategory,
       ...(editGrade ? { grade: editGrade } : {}),
+      isRecommended: editIsRecommended,
+      ...(editIsRecommended ? { isHidden: false } : {}),
       ...(editCostPrice ? { costPrice: parseCurrency(editCostPrice) } : { costPrice: null }),
       ...(editSellingPrice ? { sellingPrice: parseCurrency(editSellingPrice) } : { sellingPrice: null }),
       ...(editMemo ? { memo: editMemo } : { memo: null }),
@@ -680,7 +683,7 @@ function ProductDetailEdit({
         {/* Grade + Recommended */}
         <div className="space-y-1.5">
           <Label className="text-slate-600">상품 등급</Label>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 items-center">
             {PHOTO_GRADES.map((g) => (
               <button
                 key={g.code}
@@ -693,6 +696,18 @@ function ProductDetailEdit({
                 {g.label}
               </button>
             ))}
+            <span className="w-px h-4 bg-slate-200 mx-1" />
+            <button
+              onClick={() => setEditIsRecommended(!editIsRecommended)}
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
+                editIsRecommended
+                  ? 'bg-amber-500 text-white border-transparent shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200'
+              )}
+            >
+              추천
+            </button>
           </div>
         </div>
 
