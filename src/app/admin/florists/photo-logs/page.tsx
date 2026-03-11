@@ -13,11 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  searchPhotoLogs,
-  clearOldLogs,
-  clearAllLogs,
-  exportPhotoLogs,
-  getRestorationData,
+  fetchPhotoLogs,
   type PhotoLogEntry,
   type PhotoLogAction,
 } from '@/lib/photo-log';
@@ -59,59 +55,37 @@ function photoUrl(url: string) {
 export default function PhotoLogsPage() {
   const router = useRouter();
   const [logs, setLogs] = useState<PhotoLogEntry[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [filterAction, setFilterAction] = useState<PhotoLogAction | ''>('');
   const [filterKeyword, setFilterKeyword] = useState('');
   const [selectedLog, setSelectedLog] = useState<PhotoLogEntry | null>(null);
+  const [loading, setLoading] = useState(false);
+  const pageSize = 50;
 
-  const loadLogs = useCallback(() => {
-    const results = searchPhotoLogs({
-      action: filterAction || undefined,
-      keyword: filterKeyword || undefined,
-    });
-    setLogs(results);
-  }, [filterAction, filterKeyword]);
+  const loadLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetchPhotoLogs({
+        action: filterAction || undefined,
+        keyword: filterKeyword || undefined,
+        page,
+        size: pageSize,
+      });
+      setLogs(result.data);
+      setTotal(result.total);
+    } catch {
+      toast.error('로그 조회 실패');
+    } finally {
+      setLoading(false);
+    }
+  }, [filterAction, filterKeyword, page]);
 
   useEffect(() => {
     loadLogs();
   }, [loadLogs]);
 
-  const handleExport = () => {
-    const json = exportPhotoLogs();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `photo-logs-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('로그가 다운로드되었습니다.');
-  };
-
-  const handleClearOld = () => {
-    if (confirm('90일 이전 로그를 삭제하시겠습니까?')) {
-      const removed = clearOldLogs(90);
-      toast.success(`${removed}건의 오래된 로그가 삭제되었습니다.`);
-      loadLogs();
-    }
-  };
-
-  const handleClearAll = () => {
-    if (confirm('모든 로그를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-      clearAllLogs();
-      toast.success('모든 로그가 삭제되었습니다.');
-      loadLogs();
-    }
-  };
-
-  const handleCopyRestoreData = (logId: string) => {
-    const data = getRestorationData(logId);
-    if (!data) {
-      toast.error('복원 데이터를 찾을 수 없습니다.');
-      return;
-    }
-    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-    toast.success('복원 데이터가 클립보드에 복사되었습니다.');
-  };
+  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="space-y-4">
@@ -128,19 +102,8 @@ export default function PhotoLogsPage() {
             </svg>
             화원 목록
           </Button>
-          <h1 className="text-2xl font-bold text-slate-900">사진 변경 로그</h1>
-          <Badge variant="outline" className="text-xs">{logs.length}건</Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            JSON 내보내기
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleClearOld}>
-            90일 이전 삭제
-          </Button>
-          <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50" onClick={handleClearAll}>
-            전체 삭제
-          </Button>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">사진 변경 로그</h1>
+          <Badge variant="outline" className="text-xs">{total}건</Badge>
         </div>
       </div>
 
@@ -150,7 +113,7 @@ export default function PhotoLogsPage() {
           <select
             className="border rounded-lg px-3 py-1.5 text-sm"
             value={filterAction}
-            onChange={(e) => setFilterAction(e.target.value as PhotoLogAction | '')}
+            onChange={(e) => { setFilterAction(e.target.value as PhotoLogAction | ''); setPage(1); }}
           >
             <option value="">전체 작업</option>
             <option value="UPLOAD">등록</option>
@@ -161,15 +124,18 @@ export default function PhotoLogsPage() {
           <input
             type="text"
             className="border rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[200px]"
-            placeholder="화원명, 사용자, 사진ID 검색..."
+            placeholder="사용자, 사진ID 검색..."
             value={filterKeyword}
-            onChange={(e) => setFilterKeyword(e.target.value)}
+            onChange={(e) => { setFilterKeyword(e.target.value); setPage(1); }}
           />
+          <Button size="sm" variant="outline" onClick={loadLogs} disabled={loading}>
+            {loading ? '조회 중...' : '새로고침'}
+          </Button>
         </CardContent>
       </Card>
 
       {/* 로그 목록 */}
-      {logs.length === 0 && (
+      {!loading && logs.length === 0 && (
         <div className="text-center py-12 text-slate-400">
           기록된 사진 변경 로그가 없습니다.
           <br />
@@ -191,7 +157,12 @@ export default function PhotoLogsPage() {
                     <Badge className={`text-[11px] ${ACTION_COLORS[log.action]}`}>
                       {ACTION_LABELS[log.action]}
                     </Badge>
-                    <span className="font-medium text-sm text-slate-800">{log.floristName}</span>
+                    {log.floristName && (
+                      <span className="font-medium text-sm text-slate-800">{log.floristName}</span>
+                    )}
+                    {log.floristId && !log.floristName && (
+                      <span className="font-medium text-sm text-slate-800">{log.floristId}</span>
+                    )}
                     {log.photoId && (
                       <span className="text-xs text-slate-400">사진#{log.photoId}</span>
                     )}
@@ -204,33 +175,20 @@ export default function PhotoLogsPage() {
                     <span>{log.userName}</span>
                   </div>
                 </div>
-
-                {/* 삭제 로그: 썸네일 미리보기 */}
-                {log.action === 'DELETE' && log.before?.fileUrl && (
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0">
-                    <img
-                      src={photoUrl(log.before.fileUrl)}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                )}
-                {log.action === 'UPLOAD' && log.after?.fileUrl && (
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0">
-                    <img
-                      src={photoUrl(log.after.fileUrl)}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>이전</Button>
+          <span className="text-sm text-slate-500">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>다음</Button>
+        </div>
+      )}
 
       {/* 상세 다이얼로그 */}
       <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
@@ -246,7 +204,6 @@ export default function PhotoLogsPage() {
 
           {selectedLog && (
             <div className="space-y-4">
-              {/* 기본 정보 */}
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <span className="text-slate-500">시간:</span>{' '}
@@ -262,7 +219,7 @@ export default function PhotoLogsPage() {
                     className="font-medium text-[#546E7A] hover:underline"
                     onClick={() => { setSelectedLog(null); router.push(`/admin/florists/${selectedLog.floristId}`); }}
                   >
-                    {selectedLog.floristName} ({selectedLog.floristId})
+                    {selectedLog.floristName || selectedLog.floristId}
                   </button>
                 </div>
                 <div>
@@ -275,7 +232,6 @@ export default function PhotoLogsPage() {
                 <div className="text-sm bg-slate-50 rounded-lg px-3 py-2 text-slate-600">{selectedLog.note}</div>
               )}
 
-              {/* Before / After 비교 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {selectedLog.before && (
                   <Card>
@@ -299,27 +255,7 @@ export default function PhotoLogsPage() {
                 )}
               </div>
 
-              {/* 복원 버튼 */}
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <Button variant="outline" size="sm" onClick={() => handleCopyRestoreData(selectedLog.id)}>
-                  복원 데이터 복사
-                </Button>
-                {selectedLog.before?.fileUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(
-                        selectedLog.before?.fileUrl?.startsWith('http')
-                          ? selectedLog.before.fileUrl
-                          : `${window.location.origin}${photoUrl(selectedLog.before!.fileUrl!)}`
-                      );
-                      toast.success('이미지 URL이 복사되었습니다.');
-                    }}
-                  >
-                    이미지 URL 복사
-                  </Button>
-                )}
+              <div className="flex justify-end pt-2 border-t">
                 <Button variant="outline" size="sm" onClick={() => setSelectedLog(null)}>닫기</Button>
               </div>
             </div>
@@ -341,7 +277,6 @@ function PhotoSnapshot({ photo }: { photo: Partial<FloristPhoto> }) {
             className="w-full h-full object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
-              (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="flex items-center justify-center h-full text-slate-400 text-xs">이미지 로드 실패</div>';
             }}
           />
         </div>
@@ -355,7 +290,6 @@ function PhotoSnapshot({ photo }: { photo: Partial<FloristPhoto> }) {
         {photo.costPrice != null && <Row label="원가" value={`${photo.costPrice.toLocaleString()}원`} />}
         {photo.sellingPrice != null && <Row label="판매가" value={`${photo.sellingPrice.toLocaleString()}원`} />}
         {photo.memo && <Row label="메모" value={photo.memo} />}
-        {photo.fileUrl && <Row label="URL" value={photo.fileUrl} mono />}
       </dl>
     </div>
   );

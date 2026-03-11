@@ -1,7 +1,7 @@
 /**
  * 화원 사진 변경 로그 모듈
  *
- * 사진 등록/수정/삭제 시 복원 가능한 스냅샷을 localStorage에 기록합니다.
+ * 서버 API(/api/photo-logs)에 기록합니다.
  * - UPLOAD: 새 사진 등록 후 반환된 데이터 기록
  * - UPDATE: 수정 전(before) / 수정 후(after) 스냅샷 기록
  * - DELETE: 삭제 전 전체 사진 데이터 기록
@@ -25,40 +25,11 @@ export interface PhotoLogEntry {
   note?: string;
 }
 
-const STORAGE_KEY = 'photo_change_logs';
-const MAX_ENTRIES = 500;
-
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** 모든 로그 조회 (최신순) */
-export function getPhotoLogs(): PhotoLogEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as PhotoLogEntry[];
-  } catch {
-    return [];
-  }
-}
-
-/** 로그 저장 (내부용) */
-function saveLogs(logs: PhotoLogEntry[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-  } catch {
-    // localStorage 용량 초과 시 오래된 로그 절반 삭제 후 재시도
-    try {
-      const trimmed = logs.slice(0, Math.floor(logs.length / 2));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-    } catch {
-      // 포기
-    }
-  }
-}
-
-/** 새 로그 기록 */
+/** 새 로그 기록 (서버에 저장) */
 export function addPhotoLog(entry: Omit<PhotoLogEntry, 'id' | 'timestamp'>): PhotoLogEntry {
   const newEntry: PhotoLogEntry = {
     ...entry,
@@ -66,29 +37,57 @@ export function addPhotoLog(entry: Omit<PhotoLogEntry, 'id' | 'timestamp'>): Pho
     timestamp: new Date().toISOString(),
   };
 
-  const logs = getPhotoLogs();
-  logs.unshift(newEntry);
+  // fire-and-forget: 서버에 비동기 저장
+  fetch('/api/photo-logs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newEntry),
+  }).catch(() => {
+    // 실패 시 무시 (로그 손실은 허용)
+  });
 
-  // 최대 개수 제한
-  if (logs.length > MAX_ENTRIES) {
-    logs.length = MAX_ENTRIES;
-  }
-
-  saveLogs(logs);
   return newEntry;
 }
 
-/** 특정 화원의 로그만 조회 */
-export function getPhotoLogsByFlorist(floristId: string): PhotoLogEntry[] {
-  return getPhotoLogs().filter((log) => log.floristId === floristId);
+/** 서버에서 로그 조회 */
+export async function fetchPhotoLogs(filters?: {
+  action?: PhotoLogAction;
+  floristId?: string;
+  keyword?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}): Promise<{ data: PhotoLogEntry[]; total: number }> {
+  const sp = new URLSearchParams();
+  if (filters?.action) sp.set('action', filters.action);
+  if (filters?.floristId) sp.set('floristId', filters.floristId);
+  if (filters?.keyword) sp.set('keyword', filters.keyword);
+  if (filters?.from) sp.set('from', filters.from);
+  if (filters?.to) sp.set('to', filters.to);
+  if (filters?.page) sp.set('page', String(filters.page));
+  if (filters?.size) sp.set('size', String(filters.size));
+  const qs = sp.toString();
+
+  try {
+    const res = await fetch(`/api/photo-logs${qs ? `?${qs}` : ''}`);
+    if (!res.ok) return { data: [], total: 0 };
+    const json = await res.json();
+    return { data: json.data ?? [], total: json.total ?? 0 };
+  } catch {
+    return { data: [], total: 0 };
+  }
 }
 
-/** 특정 사진의 로그만 조회 */
-export function getPhotoLogsByPhotoId(photoId: number): PhotoLogEntry[] {
-  return getPhotoLogs().filter((log) => log.photoId === photoId);
+// ─── 하위호환: 기존 코드에서 호출하는 함수들 ───
+
+/** @deprecated fetchPhotoLogs 사용 권장 */
+export function getPhotoLogs(): PhotoLogEntry[] {
+  // 동기 함수 유지 (빈 배열 반환, 실제 데이터는 fetchPhotoLogs 사용)
+  return [];
 }
 
-/** 필터 조건으로 로그 조회 */
+/** @deprecated fetchPhotoLogs 사용 권장 */
 export function searchPhotoLogs(filters: {
   action?: PhotoLogAction;
   floristId?: string;
@@ -96,80 +95,39 @@ export function searchPhotoLogs(filters: {
   from?: string;
   to?: string;
 }): PhotoLogEntry[] {
-  let logs = getPhotoLogs();
-
-  if (filters.action) {
-    logs = logs.filter((l) => l.action === filters.action);
-  }
-  if (filters.floristId) {
-    logs = logs.filter((l) => l.floristId === filters.floristId);
-  }
-  if (filters.keyword) {
-    const kw = filters.keyword.toLowerCase();
-    logs = logs.filter(
-      (l) =>
-        l.floristName.toLowerCase().includes(kw) ||
-        l.userName.toLowerCase().includes(kw) ||
-        l.note?.toLowerCase().includes(kw) ||
-        String(l.photoId).includes(kw)
-    );
-  }
-  if (filters.from) {
-    logs = logs.filter((l) => l.timestamp >= filters.from!);
-  }
-  if (filters.to) {
-    const toEnd = filters.to + 'T23:59:59.999Z';
-    logs = logs.filter((l) => l.timestamp <= toEnd);
-  }
-
-  return logs;
+  // 동기 함수 — 빈 배열 반환
+  void filters;
+  return [];
 }
 
-/** 로그 전체 내보내기 (JSON) */
+/** @deprecated 서버 저장으로 불필요 */
 export function exportPhotoLogs(): string {
-  return JSON.stringify(getPhotoLogs(), null, 2);
+  return '[]';
 }
 
-/** 오래된 로그 삭제 (기본 90일) */
-export function clearOldLogs(days = 90): number {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = cutoff.toISOString();
-
-  const logs = getPhotoLogs();
-  const filtered = logs.filter((l) => l.timestamp >= cutoffStr);
-  const removed = logs.length - filtered.length;
-
-  if (removed > 0) {
-    saveLogs(filtered);
-  }
-  return removed;
+/** @deprecated 서버 저장으로 불필요 */
+export function clearOldLogs(_days = 90): number {
+  return 0;
 }
 
-/** 전체 로그 삭제 */
-export function clearAllLogs(): void {
-  localStorage.removeItem(STORAGE_KEY);
+/** @deprecated 서버 저장으로 불필요 */
+export function clearAllLogs(): void {}
+
+/** @deprecated */
+export function getPhotoLogsByFlorist(_floristId: string): PhotoLogEntry[] {
+  return [];
 }
 
-/** 삭제된 사진의 로그에서 복원 데이터 추출 */
-export function getRestorationData(logId: string): {
+/** @deprecated */
+export function getPhotoLogsByPhotoId(_photoId: number): PhotoLogEntry[] {
+  return [];
+}
+
+/** @deprecated */
+export function getRestorationData(_logId: string): {
   floristId: string;
   floristName: string;
   photo: Partial<FloristPhoto>;
 } | null {
-  const logs = getPhotoLogs();
-  const log = logs.find((l) => l.id === logId);
-  if (!log) return null;
-
-  // DELETE 로그: before에 원본 데이터
-  // UPDATE 로그: before에 수정 전 데이터
-  // UPLOAD 로그: after에 등록된 데이터
-  const photo = log.action === 'UPLOAD' ? log.after : log.before;
-  if (!photo) return null;
-
-  return {
-    floristId: log.floristId,
-    floristName: log.floristName,
-    photo,
-  };
+  return null;
 }
