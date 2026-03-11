@@ -286,7 +286,7 @@ export default function FloristsPage() {
       {data && (
         <>
           {/* 데스크톱 테이블 */}
-          <div className="hidden md:block rounded-xl border-0 bg-white shadow-sm overflow-hidden">
+          <div className="hidden md:block rounded-xl border border-[#E0E0E0] bg-[#F7F8FA] shadow-sm overflow-hidden">
             <Table>
               <TableHeader>
                  <TableRow className="bg-[#F5F6F8] border-b border-[#E0E0E0] hover:bg-[#F5F6F8]">
@@ -303,7 +303,7 @@ export default function FloristsPage() {
                 {filteredData.map((f) => (
                    <TableRow
                     key={f.id}
-                    className="bg-white cursor-pointer border-b border-[#E0E0E0] hover:bg-[#ECEFF1] transition-colors duration-150"
+                    className="bg-[#F7F8FA] cursor-pointer border-b border-[#E0E0E0] hover:bg-[#ECEFF1] transition-colors duration-150 even:bg-white"
                     onClick={() => setSelectedFloristId(f.id)}
                   >
                     <TableCell className="text-center">
