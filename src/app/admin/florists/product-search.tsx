@@ -271,23 +271,25 @@ export default function ProductSearch() {
       )}
 
       {/* Product grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {items.map((item) => (
-          <ProductCard
-            key={item.id}
-            item={item}
-            onClick={() => setSelectedItem(item)}
-            onFloristClick={() => router.push(`/admin/florists/${item.floristId}`)}
-          />
-        ))}
-      </div>
-
-      {items.length === 0 && !isLoading && (
-        <div className="text-center py-16 text-slate-300">
-          <svg className="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <p className="text-sm text-slate-400">검색 결과가 없습니다.</p>
+      <div className="bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {items.map((item) => (
+            <ProductCard
+              key={item.id}
+              item={item}
+              onClick={() => setSelectedItem(item)}
+              onFloristClick={() => router.push(`/admin/florists/${item.floristId}`)}
+            />
+          ))}
         </div>
-      )}
+
+        {items.length === 0 && !isLoading && (
+          <div className="text-center py-16 text-slate-300">
+            <svg className="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <p className="text-sm text-slate-400">검색 결과가 없습니다.</p>
+          </div>
+        )}
+      </div>
 
       {/* Pagination */}
       {data && totalPages > 1 && (
