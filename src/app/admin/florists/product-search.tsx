@@ -310,10 +310,16 @@ export default function ProductSearch() {
 
       {/* Product detail dialog */}
       <Dialog open={!!selectedItem} onOpenChange={() => { setSelectedItem(null); setEditMode(false); }}>
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto overflow-x-hidden">
-          <DialogHeader>
+        <DialogContent showCloseButton={false} className="w-[95vw] max-w-2xl h-[100dvh] md:h-auto md:max-h-[92vh] rounded-none md:rounded-lg overflow-y-auto overflow-x-hidden">
+          <div className="flex items-center justify-between sticky top-0 z-10 bg-white pt-1 pb-2">
             <DialogTitle className="text-slate-800">{editMode ? '사진 정보 수정' : '상품 상세'}</DialogTitle>
-          </DialogHeader>
+            <button
+              onClick={() => { setSelectedItem(null); setEditMode(false); }}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
           {selectedItem && !editMode && (
             <ProductDetail
               item={selectedItem}
