@@ -684,6 +684,18 @@ function ProductDetailEdit({
         <div className="space-y-1.5">
           <Label className="text-slate-600">상품 등급</Label>
           <div className="flex flex-wrap gap-1.5 items-center">
+            <button
+              onClick={() => setEditIsRecommended(!editIsRecommended)}
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
+                editIsRecommended
+                  ? 'bg-amber-500 text-white border-transparent shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200'
+              )}
+            >
+              추천
+            </button>
+            <span className="w-px h-4 bg-slate-200 mx-1" />
             {PHOTO_GRADES.map((g) => (
               <button
                 key={g.code}
@@ -696,18 +708,6 @@ function ProductDetailEdit({
                 {g.label}
               </button>
             ))}
-            <span className="w-px h-4 bg-slate-200 mx-1" />
-            <button
-              onClick={() => setEditIsRecommended(!editIsRecommended)}
-              className={cn(
-                'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                editIsRecommended
-                  ? 'bg-amber-500 text-white border-transparent shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200'
-              )}
-            >
-              추천
-            </button>
           </div>
         </div>
 
