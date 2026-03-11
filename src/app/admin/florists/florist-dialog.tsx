@@ -121,8 +121,8 @@ export default function FloristDetailDialog({
     <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="w-[95vw] max-w-7xl h-[92vh] max-h-[92vh] overflow-hidden p-0 gap-0 border-stone-300/60 shadow-2xl flex flex-col">
         {isLoading || !florist ? (
-          <div className="flex items-center justify-center flex-1 bg-stone-50">
-            <div className="w-7 h-7 border-[2.5px] border-stone-200 border-t-stone-500 rounded-full animate-spin" />
+          <div className="flex items-center justify-center flex-1 bg-[#F5F5F5]">
+            <div className="w-7 h-7 border-[2.5px] border-[#C8E6C9] border-t-[#4CAF50] rounded-full animate-spin" />
           </div>
         ) : (
           <FloristEditPanel
@@ -342,28 +342,29 @@ function FloristEditPanel({
   const filteredPhotos = photos.filter(p => categoryFilter === 'ALL' || p.category === categoryFilter);
 
   return (
-    <div className="flex flex-col h-full bg-stone-50">
+    <div className="flex flex-col h-full bg-[#F5F5F5]">
       {/* 헤더 */}
-      <div className="flex flex-col bg-stone-800 text-stone-100 flex-shrink-0">
-        <div className="flex items-center justify-between px-6 py-3.5 border-b border-stone-700">
+      <div className="flex flex-col bg-[#4CAF50] text-white flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#388E3C]">
           <div className="flex items-center gap-3">
+            <span className="text-xl">🌸</span>
             <h2 className="text-xl font-bold tracking-tight">{florist.name}</h2>
-            <span className={cn('w-2 h-2 rounded-full ring-2 ring-stone-600', statusColor)} />
-            <span className="text-sm text-stone-400">{statusLabel}</span>
+            <span className={cn('w-2 h-2 rounded-full ring-2 ring-[#388E3C]', statusColor)} />
+            <span className="text-sm text-white/70">{statusLabel}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-stone-700 text-stone-400 hover:text-white transition-colors">
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#388E3C] text-white/70 hover:text-white transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
         </div>
         <div className="flex px-6 gap-6 pt-2">
-          <button onClick={() => setActiveTab('info')} className={cn("pb-2 text-[15px] font-medium transition-colors border-b-2", activeTab === 'info' ? "text-stone-50 border-stone-300" : "text-stone-400 border-transparent hover:text-stone-200")}>
+          <button onClick={() => setActiveTab('info')} className={cn("pb-2 text-[15px] font-medium transition-colors border-b-2", activeTab === 'info' ? "text-white border-white" : "text-white/60 border-transparent hover:text-white/80")}>
             기본 정보
           </button>
-          <button onClick={() => setActiveTab('photos')} className={cn("pb-2 text-[15px] font-medium transition-colors border-b-2 flex items-center gap-2", activeTab === 'photos' ? "text-stone-50 border-stone-300" : "text-stone-400 border-transparent hover:text-stone-200")}>
+          <button onClick={() => setActiveTab('photos')} className={cn("pb-2 text-[15px] font-medium transition-colors border-b-2 flex items-center gap-2", activeTab === 'photos' ? "text-white border-white" : "text-white/60 border-transparent hover:text-white/80")}>
             사진 관리
-            <span className="bg-stone-700 text-stone-200 text-[10px] px-1.5 py-0.5 rounded-full">{photos.length}</span>
+            <span className="bg-white/20 text-white text-[10px] px-1.5 py-0.5 rounded-full">{photos.length}</span>
           </button>
         </div>
       </div>
@@ -372,8 +373,8 @@ function FloristEditPanel({
         {activeTab === 'info' ? (
           <div className="flex h-full min-h-0">
             {/* 왼쪽: 수정 폼 */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-stone-50">
-              <Section title="기본 정보" accent="bg-stone-500">
+            <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-[#F5F5F5]">
+              <Section title="기본 정보" accent="bg-[#4CAF50]">
                 <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                   <Field label="화원명" className="col-span-2 sm:col-span-1">
                     <input value={name} onChange={(e) => setName(e.target.value)} className="field-input" />
@@ -385,7 +386,12 @@ function FloristEditPanel({
                     <input value={sido} onChange={(e) => setSido(e.target.value)} className="field-input" />
                   </Field>
                   <Field label="구/군">
-                    <input value={gugun} onChange={(e) => setGugun(e.target.value)} className="field-input" />
+                    <div className="flex gap-2">
+                      <input value={gugun} onChange={(e) => setGugun(e.target.value)} className="field-input flex-1" />
+                      <button type="button" onClick={() => toast.info('주소 검색 기능은 준비 중입니다')} className="px-3 py-2 bg-[#2E7D32] text-white hover:bg-[#1B5E20] transition-colors rounded-lg flex items-center justify-center shrink-0">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      </button>
+                    </div>
                   </Field>
                   <Field label="주소" className="col-span-2">
                     <input value={address} onChange={(e) => setAddress(e.target.value)} className="field-input" />
@@ -393,17 +399,17 @@ function FloristEditPanel({
                 </div>
               </Section>
 
-              <Section title="특이사항" accent="bg-amber-700">
+              <Section title="특이사항" accent="bg-[#4CAF50]">
                 <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={3} placeholder="화원 관련 특이사항을 입력하세요" className="field-input resize-none" />
               </Section>
 
-              <Section title="서비스 지역" accent="bg-teal-700">
+              <Section title="서비스 지역" accent="bg-[#4CAF50]">
                 <div className="flex flex-wrap gap-2 mb-3">
                   {florist.serviceAreas && florist.serviceAreas.length > 0 ? (
                     florist.serviceAreas.map((area) => (
-                      <span key={area} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-teal-800/10 text-teal-800 border border-teal-700/20">
+                      <span key={area} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]">
                         {area}
-                        <button className="text-teal-600/50 hover:text-red-600 transition-colors" onClick={() => { if (confirm(`"${area}" 삭제?`)) removeAreaMutation.mutate(area); }}>
+                        <button className="text-[#4CAF50]/60 hover:text-red-600 transition-colors" onClick={() => { if (confirm(`"${area}" 삭제?`)) removeAreaMutation.mutate(area); }}>
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </span>
@@ -414,19 +420,19 @@ function FloristEditPanel({
                 </div>
                 <div className="flex gap-2">
                   <input placeholder="지역명 입력" value={newArea} onChange={(e) => setNewArea(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddArea()} className="field-input flex-1" />
-                  <button onClick={handleAddArea} disabled={addAreaMutation.isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-700 text-white hover:bg-teal-800 transition-colors disabled:opacity-50">
+                  <button onClick={handleAddArea} disabled={addAreaMutation.isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-[#4CAF50] text-white hover:bg-[#388E3C] transition-colors disabled:opacity-50">
                     추가
                   </button>
                 </div>
               </Section>
 
-              <Section title="역량" accent="bg-indigo-700">
+              <Section title="역량" accent="bg-[#4CAF50]">
                 <div className="flex flex-wrap gap-2">
                   {CAPABILITY_OPTIONS.map((opt) => {
                     const active = capabilities.includes(opt.code);
                     return (
-                      <button key={opt.code} onClick={() => toggleCap(opt.code)} className={cn('px-3 py-1.5 rounded-lg text-sm font-medium border transition-all', active ? 'bg-indigo-800/10 text-indigo-800 border-indigo-700/25 shadow-sm' : 'bg-white text-stone-400 border-stone-200 hover:border-stone-300 hover:text-stone-500')}>
-                        {active && <svg className="inline w-3.5 h-3.5 mr-0.5 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+                      <button key={opt.code} onClick={() => toggleCap(opt.code)} className={cn('px-3 py-1.5 rounded-lg text-sm font-medium border transition-all', active ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#4CAF50]/30 shadow-sm' : 'bg-white text-stone-500 border-stone-200 hover:border-[#4CAF50]/50 hover:text-[#2E7D32]')}>
+                        {active && <svg className="inline w-3.5 h-3.5 mr-0.5 -mt-px text-[#4CAF50]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
                         {opt.label}
                       </button>
                     );
@@ -434,7 +440,7 @@ function FloristEditPanel({
                 </div>
               </Section>
 
-              <Section title="영업 정보" accent="bg-stone-500">
+              <Section title="영업 정보" accent="bg-[#4CAF50]">
                 <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                   <Field label="등급">
                     <select value={grade} onChange={(e) => setGrade(Number(e.target.value))} className="field-input">
@@ -448,27 +454,23 @@ function FloristEditPanel({
                   </Field>
                 </div>
               </Section>
-
-              <div className="flex justify-end gap-3 pt-3 pb-1">
-                <button onClick={onClose} className="px-5 py-2.5 rounded-lg text-base font-medium text-stone-500 hover:bg-stone-200/60 transition-colors">닫기</button>
-                <button onClick={handleSave} disabled={updateMutation.isPending} className="px-6 py-2.5 rounded-lg text-base font-medium bg-stone-700 text-white hover:bg-stone-800 transition-colors shadow-sm disabled:opacity-50">
-                  {updateMutation.isPending ? '저장 중...' : '저장'}
-                </button>
-              </div>
             </div>
 
             {/* 오른쪽: 갤러리 미리보기 */}
-            <div className="hidden md:flex flex-col w-[280px] border-l border-stone-200 bg-stone-100/60">
-              <div className="px-4 py-3 border-b border-stone-200 flex items-center justify-between">
-                <span className="text-sm font-semibold text-stone-500">갤러리 ({photos.length})</span>
-                <button onClick={() => setActiveTab('photos')} className="text-xs text-stone-500 hover:text-stone-800 font-medium transition-colors">전체보기</button>
+            <div className="hidden md:flex flex-col w-[280px] border-l border-[#E0E0E0] bg-[#FAFAFA]">
+              <div className="px-4 py-3 border-b border-[#E0E0E0] flex items-center justify-between">
+                <span className="text-sm font-semibold text-[#2E7D32] flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  갤러리 ({photos.length})
+                </span>
+                <button onClick={() => setActiveTab('photos')} className="text-xs text-[#4CAF50] hover:text-[#388E3C] font-medium transition-colors">전체보기</button>
               </div>
               <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5">
                 {photos.length === 0 ? (
                   <p className="text-sm text-stone-400 text-center py-8 italic">사진 없음</p>
                 ) : (
                   photos.map((photo) => (
-                    <div key={photo.id} className="rounded-lg overflow-hidden border border-stone-200/80 cursor-pointer hover:ring-2 hover:ring-stone-400/40 transition-all" onClick={() => setActiveTab('photos')}>
+                    <div key={photo.id} className="rounded-lg overflow-hidden border border-stone-200/80 cursor-pointer hover:ring-2 hover:ring-[#4CAF50]/40 transition-all" onClick={() => setActiveTab('photos')}>
                       <div className="relative aspect-square">
                         <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || ''} fill className="object-cover" sizes="260px" unoptimized />
                         <span className="absolute top-1 left-1 bg-black/55 text-white/90 text-[11px] px-1.5 py-0.5 rounded">
@@ -477,7 +479,10 @@ function FloristEditPanel({
                         {photo.isHidden && <span className="absolute bottom-1 right-1 bg-amber-700/80 text-white text-[10px] px-1.5 py-0.5 rounded">숨김</span>}
                         {photo.isRecommended && <span className="absolute top-1 right-1 bg-amber-600/85 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">추천</span>}
                       </div>
-                      {photo.memo && <p className="text-xs text-stone-500 px-2 py-1 truncate bg-stone-50">{photo.memo}</p>}
+                      <div className="flex flex-col gap-0.5 px-2 py-1.5 bg-white border-t border-stone-100">
+                        {photo.sellingPrice != null && <p className="text-[12px] text-[#4CAF50] font-semibold truncate">판매 {photo.sellingPrice.toLocaleString()}원</p>}
+                        {photo.memo && <p className="text-xs text-stone-500 truncate">{photo.memo}</p>}
+                      </div>
                     </div>
                   ))
                 )}
@@ -490,7 +495,7 @@ function FloristEditPanel({
               <h3 className="text-lg font-bold text-stone-800">사진 갤러리 ({photos.length}장)</h3>
               <div className="flex items-center gap-2">
                 <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileSelect} />
-                <button onClick={() => fileInputRef.current?.click()} disabled={uploadMutation.isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-stone-700 text-white hover:bg-stone-800 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5">
+                <button onClick={() => fileInputRef.current?.click()} disabled={uploadMutation.isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-[#4CAF50] text-white hover:bg-[#388E3C] transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   {uploadMutation.isPending ? '업로드 중...' : '사진 업로드'}
                 </button>
@@ -498,11 +503,11 @@ function FloristEditPanel({
             </div>
             
             <div className="flex flex-wrap gap-1.5 mb-6">
-              <button onClick={() => setCategoryFilter('ALL')} className={cn("px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors border", categoryFilter === 'ALL' ? "bg-stone-700 text-white border-stone-700" : "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200")}>
+              <button onClick={() => setCategoryFilter('ALL')} className={cn("px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors border", categoryFilter === 'ALL' ? "bg-[#4CAF50] text-white border-[#4CAF50]" : "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200")}>
                 전체
               </button>
               {CATEGORIES.map(c => (
-                <button key={c.code} onClick={() => setCategoryFilter(c.code as string)} className={cn("px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors border", categoryFilter === c.code ? "bg-stone-700 text-white border-stone-700" : "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200")}>
+                <button key={c.code} onClick={() => setCategoryFilter(c.code as string)} className={cn("px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors border", categoryFilter === c.code ? "bg-[#4CAF50] text-white border-[#4CAF50]" : "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200")}>
                   {c.name}
                 </button>
               ))}
@@ -555,6 +560,20 @@ function FloristEditPanel({
             {filteredPhotos.length === 0 && <div className="text-center text-stone-400 py-12">사진이 없습니다.</div>}
           </div>
         )}
+      </div>
+
+      <div className="flex items-center justify-between px-6 py-3 border-t border-[#E0E0E0] bg-white flex-shrink-0">
+        <button onClick={() => toast.error('화원 삭제 기능은 준비 중입니다')} className="px-4 py-2.5 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center gap-1.5 shadow-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          화원 삭제
+        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-lg text-[15px] font-medium text-stone-500 hover:bg-stone-100 transition-colors">닫기</button>
+          <button onClick={handleSave} disabled={updateMutation.isPending} className="px-6 py-2.5 rounded-lg text-[15px] font-medium bg-[#4CAF50] text-white hover:bg-[#388E3C] transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            {updateMutation.isPending ? '저장 중...' : '저장'}
+          </button>
+        </div>
       </div>
 
       <Dialog open={!!uploadDialogFile} onOpenChange={() => setUploadDialogFile(null)}>
@@ -616,8 +635,8 @@ function FloristEditPanel({
           transition: border-color 0.15s, box-shadow 0.15s;
         }
         .field-input:focus {
-          border-color: #78716c;
-          box-shadow: 0 0 0 2px rgba(120, 113, 108, 0.12);
+          border-color: #4CAF50;
+          box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.15);
         }
         .field-input::placeholder {
           color: #a8a29e;
@@ -627,12 +646,12 @@ function FloristEditPanel({
   );
 }
 
-function Section({ title, accent = 'bg-stone-500', children }: { title: string; accent?: string; children: React.ReactNode }) {
+function Section({ title, accent = 'bg-[#4CAF50]', children }: { title: string; accent?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-stone-200/80 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-stone-100/50 border-b border-stone-200/60">
+    <div className="bg-white rounded-xl border border-[#C8E6C9] shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#E8F5E9] border-b border-[#C8E6C9]">
         <span className={cn('w-1 h-5 rounded-full', accent)} />
-        <h3 className="text-[15px] font-bold text-stone-700">{title}</h3>
+        <h3 className="text-[15px] font-bold text-[#2E7D32]">{title}</h3>
       </div>
       <div className="px-4 py-3.5">
         {children}
@@ -689,7 +708,7 @@ function PhotoUploadForm({
               className={cn(
                 'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
                 category === c.code
-                  ? 'bg-[#546E7A] text-white border-transparent shadow-md shadow-slate-600/20'
+                  ? 'bg-[#4CAF50] text-white border-transparent shadow-md shadow-slate-600/20'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
               )}
             >
@@ -767,7 +786,7 @@ function PhotoUploadForm({
         <Button
           onClick={() => onUpload({ category, grade, isRecommended, costPrice: parseCurrency(costPrice), sellingPrice: parseCurrency(sellingPrice), memo })}
           disabled={!category || uploading}
-          className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
+          className="bg-[#4CAF50] hover:bg-[#388E3C] shadow-sm"
         >
           {uploading ? '업로드 중...' : '업로드'}
         </Button>
@@ -857,7 +876,7 @@ function PhotoEditForm({
               className={cn(
                 'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
                 category === c.code
-                  ? 'bg-[#546E7A] text-white border-transparent shadow-md shadow-slate-600/20'
+                  ? 'bg-[#4CAF50] text-white border-transparent shadow-md shadow-slate-600/20'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
               )}
             >
@@ -951,7 +970,7 @@ function PhotoEditForm({
               })
             }
             disabled={!category || saving}
-            className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
+            className="bg-[#4CAF50] hover:bg-[#388E3C] shadow-sm"
           >
             {saving ? '저장 중...' : '저장'}
           </Button>
