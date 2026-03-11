@@ -203,30 +203,30 @@ export default function FloristsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="rounded-xl shadow-sm overflow-hidden">
         <Tabs defaultValue="list" className="w-full">
-          <div className="border-b border-[#E0E0E0]">
-            <TabsList className="bg-transparent h-14 p-0 space-x-6 justify-start px-6 rounded-none w-full">
+          <div className="bg-white border-b border-[#E0E0E0] rounded-t-xl">
+            <TabsList className="bg-transparent h-12 p-0 space-x-0 justify-start px-0 rounded-none w-full">
               <TabsTrigger 
                 value="list" 
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#37474F] data-[state=active]:border-b-2 data-[state=active]:border-[#546E7A] rounded-none px-1 py-4 text-[#666666] font-medium transition-none"
+                className="relative h-12 px-6 rounded-none font-medium transition-none text-[#999999] data-[state=active]:text-[#37474F] data-[state=active]:font-semibold data-[state=active]:bg-[#F5F6F8] data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#546E7A] data-[state=active]:border-x data-[state=active]:border-x-[#E0E0E0] data-[state=active]:border-b-0 data-[state=inactive]:border-b data-[state=inactive]:border-b-transparent"
               >
                 화원 목록
               </TabsTrigger>
               <TabsTrigger 
                 value="search" 
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#37474F] data-[state=active]:border-b-2 data-[state=active]:border-[#546E7A] rounded-none px-1 py-4 text-[#666666] font-medium transition-none"
+                className="relative h-12 px-6 rounded-none font-medium transition-none text-[#999999] data-[state=active]:text-[#37474F] data-[state=active]:font-semibold data-[state=active]:bg-[#F5F6F8] data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#546E7A] data-[state=active]:border-x data-[state=active]:border-x-[#E0E0E0] data-[state=active]:border-b-0 data-[state=inactive]:border-b data-[state=inactive]:border-b-transparent"
               >
                 상품 검색
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="search" className="p-6 m-0 outline-none">
+          <TabsContent value="search" className="bg-[#F5F6F8] p-6 m-0 outline-none rounded-b-xl">
             <ProductSearch />
           </TabsContent>
 
-          <TabsContent value="list" className="p-6 m-0 outline-none">
+          <TabsContent value="list" className="bg-[#F5F6F8] p-6 m-0 outline-none rounded-b-xl">
             <div className="space-y-6">
 
       {/* 필터 영역 */}
