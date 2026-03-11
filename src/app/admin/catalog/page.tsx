@@ -2,9 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api/client';
+import { searchAllPhotos } from '@/lib/api/admin';
+import type { FloristPhotoSearchItem } from '@/lib/types/florist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -607,6 +610,7 @@ function ProductsTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -647,6 +651,85 @@ function ProductsTab() {
     setEditProduct(null);
     setShowCreate(false);
     loadProducts();
+  };
+
+  const handleImportRecommended = async () => {
+    setImporting(true);
+    try {
+      // 1) 추천 상품 전체 조회 (최대 500개)
+      const photosRes = await searchAllPhotos({ isRecommended: true, size: 500, includeHidden: false });
+      const photos: FloristPhotoSearchItem[] = photosRes.data ?? [];
+
+      if (photos.length === 0) {
+        toast.info('추천 체크된 상품이 없습니다.');
+        setImporting(false);
+        return;
+      }
+
+      // 2) 기존 카탈로그에 이미 등록된 SKU 확인
+      const existingSkus = new Set(products.map(p => p.sku));
+
+      // 3) 중복 제외하고 등록 대상 필터링
+      const toImport = photos.filter(p => !existingSkus.has(`FP-${p.id}`));
+
+      if (toImport.length === 0) {
+        toast.info(`추천 상품 ${photos.length}개가 모두 이미 등록되어 있습니다.`);
+        setImporting(false);
+        return;
+      }
+
+      const gradeLabel: Record<string, string> = {
+        PREMIUM: '프리미엄', HIGH: '고급형', STANDARD: '실속형',
+      };
+      const catLabel: Record<string, string> = {
+        CELEBRATION: '축하', CONDOLENCE: '근조', OBJET: '오브제',
+        ORIENTAL: '동양란', WESTERN: '서양란', FLOWER: '꽃',
+        FOLIAGE: '관엽', RICE: '쌀', FRUIT: '과일', OTHER: '기타',
+      };
+
+      if (!confirm(`추천 상품 ${toImport.length}개를 카탈로그에 등록하시겠습니까?\n(이미 등록된 ${photos.length - toImport.length}개는 건너뜁니다)`)) {
+        setImporting(false);
+        return;
+      }
+
+      // 4) 순차 등록
+      let success = 0;
+      let fail = 0;
+      for (const photo of toImport) {
+        const name = [
+          catLabel[photo.category] || photo.category,
+          photo.grade ? gradeLabel[photo.grade] || photo.grade : null,
+          photo.floristName,
+        ].filter(Boolean).join(' - ');
+
+        try {
+          await api('/admin/catalog/products', {
+            method: 'POST',
+            body: JSON.stringify({
+              sku: `FP-${photo.id}`,
+              name,
+              description: photo.memo || undefined,
+              imageUrl: photo.fileUrl || null,
+              category: photo.category || null,
+              basePrice: photo.sellingPrice ?? 0,
+              sortOrder: 1000,
+              isBranchDefault: true,
+            }),
+          });
+          success++;
+        } catch {
+          fail++;
+        }
+      }
+
+      toast.success(`추천 상품 등록 완료: ${success}개 성공${fail > 0 ? `, ${fail}개 실패` : ''}`);
+      loadProducts();
+    } catch (err) {
+      toast.error('추천 상품 가져오기에 실패했습니다.');
+      console.error(err);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleDeactivate = async (product: CatalogProduct, e: React.MouseEvent) => {
@@ -691,19 +774,41 @@ function ProductsTab() {
   return (
     <>
       {/* Header with Create Button */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <p className="text-sm text-slate-500">
           전체 {products.length}개 (활성 {products.filter(p => Boolean(p.isActive)).length}개)
         </p>
-        <Button
-          onClick={() => setShowCreate(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-        >
-          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          상품 등록
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleImportRecommended}
+            disabled={importing}
+            className="text-amber-700 border-amber-300 hover:bg-amber-50"
+          >
+            {importing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-600 mr-1.5" />
+                가져오는 중...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                추천 상품 가져오기
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => setShowCreate(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            상품 등록
+          </Button>
+        </div>
       </div>
 
       {products.length === 0 ? (
