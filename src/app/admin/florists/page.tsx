@@ -135,6 +135,7 @@ export default function FloristsPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [selectedCaps, setSelectedCaps] = useState<string[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFloristId, setSelectedFloristId] = useState<string | null>(null);
   const pageSize = 30;
 
@@ -229,7 +230,21 @@ export default function FloristsPage() {
           <TabsContent value="list" className="bg-[#F5F6F8] p-3 md:p-6 m-0 outline-none rounded-b-xl">
             <div className="space-y-6">
 
+      {/* 필터 토글 버튼 */}
+      <button
+        type="button"
+        onClick={() => setFilterOpen(!filterOpen)}
+        className="flex items-center gap-1.5 text-sm text-[#546E7A] hover:text-[#37474F] font-medium transition-colors"
+      >
+        <svg className={cn('w-4 h-4 transition-transform', filterOpen && 'rotate-180')} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        필터 {filterOpen ? '접기' : '펼치기'}
+        {(query || statusFilter !== 'ACTIVE' || selectedCaps.length > 0) && (
+          <span className="ml-1 w-2 h-2 rounded-full bg-[#546E7A] inline-block" />
+        )}
+      </button>
+
       {/* 필터 영역 */}
+      {filterOpen && (
       <div className="bg-[#F5F6F8] rounded-lg border border-[#E0E0E0] p-3 md:p-4 flex flex-col gap-3 md:gap-4">
         <div className="flex items-center gap-2">
           <form onSubmit={handleSearch} className="flex flex-wrap md:flex-nowrap gap-2 flex-1 min-w-0">
@@ -255,8 +270,8 @@ export default function FloristsPage() {
             <Button type="button" variant="outline" className="h-10 px-3 md:px-4 border-[#E0E0E0] text-[#666666] hover:bg-gray-50 shrink-0" onClick={handleReset}>초기화</Button>
           </form>
         </div>
-        
-        {/* 역량 필터 (항상 보임) */}
+
+        {/* 역량 필터 */}
         <div className="flex flex-wrap gap-2">
           {CAPABILITY_CHIPS.map((cap) => (
             <button
@@ -275,6 +290,7 @@ export default function FloristsPage() {
           ))}
         </div>
       </div>
+      )}
 
       {isLoading && <div className="text-center py-8 text-[#666666]">로딩 중...</div>}
       {error && (
