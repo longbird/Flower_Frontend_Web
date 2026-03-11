@@ -191,10 +191,16 @@ export default function FloristsPage() {
     <div className="min-h-screen bg-[#F7F8FA] p-4 md:p-6 space-y-6">
       <div className="flex items-center justify-between bg-transparent">
         <h1 className="text-2xl font-bold text-[#333333]">화원 관리</h1>
-        <Button className="bg-[#E14C94] hover:bg-[#C93B7D] text-white rounded-full px-6 shadow-sm" onClick={() => router.push('/admin/florists/photo-logs')}>
-          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-          사진 변경 로그
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="rounded-full px-4 border-[#E0E0E0] text-[#666666] hover:bg-gray-50" onClick={() => router.push('/admin/florists/photo-logs')}>
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+            사진 변경 로그
+          </Button>
+          <Button className="bg-[#D81B60] hover:bg-[#C2185B] text-white rounded-full px-5 shadow-sm" onClick={() => toast.info('화원 등록 기능은 준비 중입니다.')}>
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            화원 등록
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -203,13 +209,13 @@ export default function FloristsPage() {
             <TabsList className="bg-transparent h-14 p-0 space-x-6 justify-start px-6 rounded-none w-full">
               <TabsTrigger 
                 value="list" 
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#E14C94] data-[state=active]:border-b-2 data-[state=active]:border-[#E14C94] rounded-none px-1 py-4 text-[#666666] font-medium transition-none"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#D81B60] data-[state=active]:border-b-2 data-[state=active]:border-[#D81B60] rounded-none px-1 py-4 text-[#666666] font-medium transition-none"
               >
                 화원 목록
               </TabsTrigger>
               <TabsTrigger 
                 value="search" 
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#E14C94] data-[state=active]:border-b-2 data-[state=active]:border-[#E14C94] rounded-none px-1 py-4 text-[#666666] font-medium transition-none"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#D81B60] data-[state=active]:border-b-2 data-[state=active]:border-[#D81B60] rounded-none px-1 py-4 text-[#666666] font-medium transition-none"
               >
                 상품 검색
               </TabsTrigger>
@@ -224,11 +230,11 @@ export default function FloristsPage() {
             <div className="space-y-6">
 
       {/* 필터 영역 */}
-      <div className="bg-white rounded-lg border border-[#E0E0E0] p-4 flex flex-col gap-4">
+      <div className="bg-[#F5F6F8] rounded-lg border border-[#E0E0E0] p-4 flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-0">
             <select
-              className="h-10 rounded-lg border border-[#E0E0E0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#E14C94]/20 focus:border-[#E14C94] outline-none text-[#333333]"
+              className="h-10 rounded-lg border border-[#E0E0E0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#D81B60]/20 focus:border-[#D81B60] outline-none text-[#333333]"
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             >
@@ -242,10 +248,10 @@ export default function FloristsPage() {
                 placeholder="검색 (화원명, 지역, 전화번호)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-10 pl-9 border-[#E0E0E0] focus:border-[#E14C94] focus-visible:ring-[#E14C94] focus-visible:ring-1"
+                className="h-10 pl-9 border-[#E0E0E0] focus:border-[#D81B60] focus-visible:ring-[#D81B60] focus-visible:ring-1"
               />
             </div>
-            <Button type="submit" className="h-10 px-6 bg-[#E14C94] hover:bg-[#C93B7D] text-white shadow-none shrink-0">검색</Button>
+            <Button type="submit" className="h-10 px-6 bg-[#D81B60] hover:bg-[#C2185B] text-white shadow-none shrink-0">검색</Button>
             <Button type="button" variant="outline" className="h-10 px-4 border-[#E0E0E0] text-[#666666] hover:bg-gray-50 shrink-0" onClick={handleReset}>초기화</Button>
           </form>
         </div>
@@ -260,8 +266,8 @@ export default function FloristsPage() {
               className={cn(
                 'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
                 selectedCaps.includes(cap.code)
-                  ? 'bg-[#E14C94] text-white border-[#E14C94]'
-                  : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-[#E14C94] hover:text-[#E14C94]'
+                  ? 'bg-[#D81B60] text-white border-[#D81B60]'
+                  : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-[#D81B60] hover:text-[#D81B60]'
               )}
             >
               {cap.label}
@@ -283,21 +289,21 @@ export default function FloristsPage() {
           <div className="hidden md:block rounded-xl border-0 bg-white shadow-sm overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-[#E0E0E0] hover:bg-transparent">
-                  <TableHead className="w-12 text-center text-[#666666]">순위</TableHead>
-                  <TableHead className="w-16 text-center text-[#666666]">상태</TableHead>
-                  <TableHead className="w-16 text-[#666666]">사진</TableHead>
-                  <TableHead className="min-w-[200px] text-[#666666]">화원 정보</TableHead>
-                  <TableHead className="min-w-[150px] text-[#666666]">역량 / 특이사항</TableHead>
-                  <TableHead className="w-20 text-center text-[#666666]">등급</TableHead>
-                  <TableHead className="w-20 text-center text-[#666666]">관리</TableHead>
-                </TableRow>
+                 <TableRow className="bg-[#F5F6F8] border-b border-[#E0E0E0] hover:bg-[#F5F6F8]">
+                   <TableHead className="w-12 text-center text-[#666666] font-semibold">순위</TableHead>
+                   <TableHead className="w-16 text-center text-[#666666] font-semibold">상태</TableHead>
+                   <TableHead className="w-16 text-[#666666] font-semibold">사진</TableHead>
+                   <TableHead className="min-w-[200px] text-[#666666] font-semibold">화원 정보</TableHead>
+                   <TableHead className="min-w-[150px] text-[#666666] font-semibold">역량 / 특이사항</TableHead>
+                   <TableHead className="w-20 text-center text-[#666666] font-semibold">등급</TableHead>
+                   <TableHead className="w-20 text-center text-[#666666] font-semibold">관리</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredData.map((f) => (
                   <TableRow
                     key={f.id}
-                    className="cursor-pointer border-b border-[#E0E0E0] hover:bg-[#FDF2F7] transition-colors duration-150"
+                    className="cursor-pointer border-b border-[#E0E0E0] hover:bg-[#FCE4EC] transition-colors duration-150"
                     onClick={() => setSelectedFloristId(f.id)}
                   >
                     <TableCell className="text-center">
@@ -318,13 +324,13 @@ export default function FloristsPage() {
                               'text-[10px] px-1.5 py-0.5 rounded',
                               f.source === 'flower_shop'
                                 ? 'bg-[#E3F2FD] text-[#1565C0]'
-                                : 'bg-[#FCEEF5] text-[#E14C94]'
+                                : 'bg-[#FCE4EC] text-[#D81B60]'
                             )}>
                               {f.source === 'flower_shop' ? '외부' : '파트너'}
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-[#E14C94]">
+                        <div className="text-xs text-[#D81B60]">
                           {f.sido} {f.gugun}
                         </div>
                         <div className="text-xs text-[#666666] truncate">
@@ -399,7 +405,7 @@ export default function FloristsPage() {
             {filteredData.map((f) => (
               <div
                 key={f.id}
-                className="bg-white border border-[#E0E0E0] rounded-xl p-4 flex gap-3 active:bg-[#FDF2F7] shadow-sm hover:shadow-md transition-all cursor-pointer"
+                className="bg-white border border-[#E0E0E0] rounded-xl p-4 flex gap-3 active:bg-[#FCE4EC] shadow-sm hover:shadow-md transition-all cursor-pointer"
                 onClick={() => setSelectedFloristId(f.id)}
               >
                 <div className="flex-shrink-0">
@@ -412,7 +418,7 @@ export default function FloristsPage() {
                     <StatusBadge status={f.status} />
                     <GradeBadge grade={f.grade} />
                   </div>
-                  <div className="text-xs text-[#E14C94]">
+                  <div className="text-xs text-[#D81B60]">
                     {f.sido} {f.gugun}
                   </div>
                   <div className="text-xs text-[#666666] break-words">
@@ -447,7 +453,7 @@ export default function FloristsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-[#E14C94] text-[#E14C94] hover:bg-[#FDF2F7]"
+                className="border-[#D81B60] text-[#D81B60] hover:bg-[#FCE4EC]"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >

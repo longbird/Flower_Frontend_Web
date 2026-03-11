@@ -1,6 +1,14 @@
 import type { Metadata } from 'next';
+import { Noto_Sans_KR } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import './globals.css';
+
+const notoSansKR = Noto_Sans_KR({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-noto-sans-kr',
+});
 
 export const metadata: Metadata = {
   title: '달려라 꽃배달 관리자',
@@ -13,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
-      <body className="antialiased">
+    <html lang="ko" className={notoSansKR.variable}>
+      <body className={`${notoSansKR.className} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>
