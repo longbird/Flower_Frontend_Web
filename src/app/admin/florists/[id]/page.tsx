@@ -1451,9 +1451,6 @@ function ImageViewer({
             <ToolbarButton title="오른쪽 회전" onClick={handleRotateRight}>
               <RotateRightIcon />
             </ToolbarButton>
-            <ToolbarButton title="문구 삭제" onClick={() => setBrushMode(true)}>
-              <EraserIcon />
-            </ToolbarButton>
             <ToolbarButton title="클립보드에 복사" onClick={handleCopy} disabled={copying}>
               {copying ? <span className="animate-spin text-sm">...</span> : <CopyIcon />}
             </ToolbarButton>

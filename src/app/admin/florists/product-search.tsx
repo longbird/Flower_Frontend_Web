@@ -477,6 +477,11 @@ function ProductDetail({
             숨김
           </span>
         )}
+        {item.isRecommended && (
+          <span className="absolute top-2 right-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm">
+            추천
+          </span>
+        )}
         <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
           크게 보기
@@ -485,52 +490,11 @@ function ProductDetail({
 
       {/* Info */}
       <div className="flex-1 min-w-0 space-y-4">
-        {/* Toggle controls */}
-        <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer select-none flex-1">
-              <input
-                type="checkbox"
-                checked={!item.isHidden}
-                onChange={onToggleVisibility}
-                disabled={isToggling}
-                className="w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-slate-400/30 cursor-pointer disabled:opacity-50"
-              />
-              <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
-            </label>
-            <span className={cn(
-              'text-[11px] font-semibold px-2 py-0.5 rounded-md',
-              item.isHidden
-                ? 'bg-orange-100 text-orange-700'
-                : 'bg-slate-100 text-slate-700'
-            )}>
-              {item.isHidden ? '숨김' : '공개'}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer select-none flex-1">
-              <input
-                type="checkbox"
-                checked={item.isRecommended}
-                onChange={onToggleRecommended}
-                disabled={isToggling}
-                className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500/30 cursor-pointer disabled:opacity-50"
-              />
-              <span className="text-sm font-medium text-slate-700">전 지사 기본 노출</span>
-            </label>
-            {item.isRecommended && (
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">
-                추천
-              </span>
-            )}
-          </div>
-        </div>
-
         <div>
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">상품 정보</h3>
           <dl className="text-sm space-y-2.5">
             <div className="flex gap-2">
-              <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">상품구분</dt>
+              <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">상품구분</dt>
               <dd>
                 <span className={cn(
                   'px-2 py-0.5 rounded-md text-[11px] font-semibold',
@@ -540,34 +504,41 @@ function ProductDetail({
                 </span>
               </dd>
             </div>
-            {item.grade && (
-              <div className="flex gap-2">
-                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">등급</dt>
-                <dd>
+            <div className="flex gap-2">
+              <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">등급</dt>
+              <dd>
+                {item.grade ? (
                   <span className={cn(
                     'px-2 py-0.5 rounded-md text-[11px] font-semibold',
                     GRADE_COLORS[item.grade] || 'bg-slate-500/90 text-white'
                   )}>
                     {GRADES.find((g) => g.code === item.grade)?.label || item.grade}
                   </span>
-                </dd>
-              </div>
-            )}
+                ) : (
+                  <span className="text-slate-300 text-xs">미설정</span>
+                )}
+                {item.isRecommended && (
+                  <span className="ml-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900">
+                    추천
+                  </span>
+                )}
+              </dd>
+            </div>
             {item.memo && (
               <div className="flex gap-2">
-                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">메모</dt>
+                <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">메모</dt>
                 <dd className="text-slate-700">{item.memo}</dd>
               </div>
             )}
             {item.sellingPrice != null && (
               <div className="flex gap-2">
-                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">판매가</dt>
+                <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">판매가</dt>
                 <dd className="text-[#37474F] font-bold">{item.sellingPrice.toLocaleString()}원</dd>
               </div>
             )}
             {item.costPrice != null && (
               <div className="flex gap-2">
-                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">입금가</dt>
+                <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">입금가</dt>
                 <dd className="text-slate-600">{item.costPrice.toLocaleString()}원</dd>
               </div>
             )}
@@ -578,7 +549,7 @@ function ProductDetail({
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">화원 정보</h3>
           <dl className="text-sm space-y-2.5">
             <div className="flex gap-2">
-              <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">화원명</dt>
+              <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">화원명</dt>
               <dd>
                 <span
                   className="text-[#546E7A] hover:text-[#37474F] cursor-pointer font-medium transition-colors"
@@ -590,19 +561,19 @@ function ProductDetail({
             </div>
             {item.floristPhone && (
               <div className="flex gap-2">
-                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">전화번호</dt>
+                <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">전화번호</dt>
                 <dd className="text-slate-700">{item.floristPhone}</dd>
               </div>
             )}
             {item.floristAddress && (
               <div className="flex gap-2">
-                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">주소</dt>
+                <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">주소</dt>
                 <dd className="text-slate-700 break-all min-w-0">{item.floristAddress}</dd>
               </div>
             )}
             {item.floristServiceAreas.length > 0 && (
               <div className="flex gap-2">
-                <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">서비스지역</dt>
+                <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">서비스지역</dt>
                 <dd className="text-[#546E7A] font-medium break-all min-w-0">{item.floristServiceAreas.join(', ')}</dd>
               </div>
             )}
@@ -641,8 +612,6 @@ function ProductDetailEdit({
 }) {
   const [editCategory, setEditCategory] = useState<string>(item.category);
   const [editGrade, setEditGrade] = useState<string>(item.grade || '');
-  const [editIsRecommended, setEditIsRecommended] = useState(item.isRecommended || false);
-  const [editIsHidden, setEditIsHidden] = useState(item.isHidden || false);
   const [editMemo, setEditMemo] = useState(item.memo || '');
   const [editCostPrice, setEditCostPrice] = useState(item.costPrice ? item.costPrice.toLocaleString() : '');
   const [editSellingPrice, setEditSellingPrice] = useState(item.sellingPrice ? item.sellingPrice.toLocaleString() : '');
@@ -651,8 +620,6 @@ function ProductDetailEdit({
     onSave({
       category: editCategory,
       ...(editGrade ? { grade: editGrade } : {}),
-      isRecommended: editIsRecommended,
-      isHidden: editIsHidden,
       ...(editCostPrice ? { costPrice: parseCurrency(editCostPrice) } : { costPrice: null }),
       ...(editSellingPrice ? { sellingPrice: parseCurrency(editSellingPrice) } : { sellingPrice: null }),
       ...(editMemo ? { memo: editMemo } : { memo: null }),
@@ -681,37 +648,6 @@ function ProductDetailEdit({
 
       {/* Edit Form */}
       <div className="flex-1 min-w-0 space-y-4">
-        {/* Visibility & Recommended toggles */}
-        <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={!editIsHidden}
-              onChange={() => setEditIsHidden(!editIsHidden)}
-              className="w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-slate-400/30 cursor-pointer"
-            />
-            <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
-            <span className={cn(
-              'text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto',
-              editIsHidden ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'
-            )}>
-              {editIsHidden ? '숨김' : '공개'}
-            </span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={editIsRecommended}
-              onChange={() => setEditIsRecommended(!editIsRecommended)}
-              className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500/30 cursor-pointer"
-            />
-            <span className="text-sm font-medium text-slate-700">전 지사 기본 노출</span>
-            {editIsRecommended && (
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto bg-amber-100 text-amber-700">추천</span>
-            )}
-          </label>
-        </div>
-
         {/* Category */}
         <div className="space-y-1.5">
           <Label className="text-slate-600">상품 구분 *</Label>
