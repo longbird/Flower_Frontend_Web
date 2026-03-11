@@ -246,10 +246,22 @@ export default function FloristsPage() {
       {/* 필터 영역 */}
       {filterOpen && (
       <div className="bg-[#F5F6F8] rounded-lg border border-[#E0E0E0] p-3 md:p-4 flex flex-col gap-3 md:gap-4">
-        <div className="flex items-center gap-2">
-          <form onSubmit={handleSearch} className="flex flex-wrap md:flex-nowrap gap-2 flex-1 min-w-0">
+        <form onSubmit={handleSearch} className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1 min-w-0">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <Input
+                placeholder="화원명, 지역, 전화번호"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 pl-9 border-[#E0E0E0] focus:border-[#546E7A] focus-visible:ring-[#546E7A] focus-visible:ring-1"
+              />
+            </div>
+            <Button type="submit" className="h-10 px-4 md:px-6 bg-[#546E7A] hover:bg-[#455A64] text-white shadow-none shrink-0">검색</Button>
+          </div>
+          <div className="flex items-center gap-2">
             <select
-              className="h-10 rounded-lg border border-[#E0E0E0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A] outline-none text-[#333333]"
+              className="h-9 rounded-lg border border-[#E0E0E0] bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A] outline-none text-[#333333]"
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             >
@@ -257,19 +269,9 @@ export default function FloristsPage() {
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
-            <div className="relative flex-1 min-w-0">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <Input
-                placeholder="검색 (화원명, 지역, 전화번호)"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-10 pl-9 border-[#E0E0E0] focus:border-[#546E7A] focus-visible:ring-[#546E7A] focus-visible:ring-1"
-              />
-            </div>
-            <Button type="submit" className="h-10 px-4 md:px-6 bg-[#546E7A] hover:bg-[#455A64] text-white shadow-none shrink-0">검색</Button>
-            <Button type="button" variant="outline" className="h-10 px-3 md:px-4 border-[#E0E0E0] text-[#666666] hover:bg-gray-50 shrink-0" onClick={handleReset}>초기화</Button>
-          </form>
-        </div>
+            <Button type="button" variant="outline" size="sm" className="h-9 px-3 border-[#E0E0E0] text-[#666666] hover:bg-gray-50" onClick={handleReset}>초기화</Button>
+          </div>
+        </form>
 
         {/* 역량 필터 */}
         <div className="flex flex-wrap gap-2">
