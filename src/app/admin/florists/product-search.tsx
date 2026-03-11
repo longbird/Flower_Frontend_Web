@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 import { searchAllPhotos, updateFloristPhoto } from '@/lib/api/admin';
 import type { FloristPhotoSearchItem, PhotoCategory } from '@/lib/types/florist';
+import { addPhotoLog } from '@/lib/photo-log';
+import { useAuthStore } from '@/lib/auth/store';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -123,8 +125,17 @@ export default function ProductSearch() {
       updateFloristPhoto(item.floristId, item.id, { isHidden: !item.isHidden }),
     onSuccess: (_data, item) => {
       const newHidden = !item.isHidden;
+      addPhotoLog({
+        action: 'TOGGLE_VISIBILITY',
+        floristId: item.floristId,
+        floristName: item.floristName || item.floristId,
+        photoId: item.id,
+        before: { isHidden: item.isHidden } as never,
+        after: { isHidden: newHidden } as never,
+        userName: useAuthStore.getState().user?.name || '-',
+        note: `표시상태: ${newHidden ? '숨김' : '표시'}`,
+      });
       toast.success(newHidden ? '숨김 처리되었습니다' : '공개 처리되었습니다');
-      // Update the selected item in-place
       setSelectedItem((prev) =>
         prev && prev.id === item.id ? { ...prev, isHidden: newHidden } : prev
       );
@@ -137,8 +148,17 @@ export default function ProductSearch() {
 
   const updatePhotoDetailMutation = useMutation({
     mutationFn: ({ item, data }: { item: FloristPhotoSearchItem; data: Record<string, unknown> }) =>
-      updateFloristPhoto(item.floristId, item.id, data),
-    onSuccess: () => {
+      updateFloristPhoto(item.floristId, item.id, data).then(() => ({ item, data })),
+    onSuccess: ({ item, data }) => {
+      addPhotoLog({
+        action: 'UPDATE',
+        floristId: item.floristId,
+        floristName: item.floristName || item.floristId,
+        photoId: item.id,
+        before: item as never,
+        after: { ...item, ...data } as never,
+        userName: useAuthStore.getState().user?.name || '-',
+      });
       toast.success('사진 정보가 수정되었습니다');
       queryClient.invalidateQueries({ queryKey: ['allPhotos'] });
       setSelectedItem(null);
@@ -154,6 +174,16 @@ export default function ProductSearch() {
       updateFloristPhoto(item.floristId, item.id, { isRecommended: !item.isRecommended }),
     onSuccess: (_data, item) => {
       const newRecommended = !item.isRecommended;
+      addPhotoLog({
+        action: 'UPDATE',
+        floristId: item.floristId,
+        floristName: item.floristName || item.floristId,
+        photoId: item.id,
+        before: { isRecommended: item.isRecommended } as never,
+        after: { isRecommended: newRecommended } as never,
+        userName: useAuthStore.getState().user?.name || '-',
+        note: `추천: ${newRecommended ? '설정' : '해제'}`,
+      });
       toast.success(newRecommended ? '전 지사 기본 노출로 설정되었습니다' : '전 지사 기본 노출이 해제되었습니다');
       setSelectedItem((prev) =>
         prev && prev.id === item.id ? { ...prev, isRecommended: newRecommended } : prev
