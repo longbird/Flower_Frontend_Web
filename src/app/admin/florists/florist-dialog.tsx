@@ -470,7 +470,7 @@ function FloristEditPanel({
                   <p className="text-sm text-stone-400 text-center py-8 italic">사진 없음</p>
                 ) : (
                   photos.map((photo) => (
-                    <div key={photo.id} className="rounded-lg overflow-hidden border border-stone-200/80 cursor-pointer hover:ring-2 hover:ring-[#4CAF50]/40 transition-all" onClick={() => setActiveTab('photos')}>
+                    <div key={photo.id} className="rounded-lg overflow-hidden border border-stone-200/80 cursor-pointer hover:ring-2 hover:ring-[#4CAF50]/40 transition-all" onClick={() => setSelectedPhoto(photo)}>
                       <div className="relative aspect-square">
                         <Image src={photoUrl(photo.fileUrl)} alt={photo.memo || ''} fill className="object-cover" sizes="260px" unoptimized />
                         <span className="absolute top-1 left-1 bg-black/55 text-white/90 text-[11px] px-1.5 py-0.5 rounded">
@@ -512,26 +512,6 @@ function FloristEditPanel({
                 </button>
               ))}
             </div>
-
-            {/* 사진 정보 수정 다이얼로그 — 사진 관리 탭 내에서 사용 */}
-            <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
-              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-stone-800">사진 정보 수정</DialogTitle>
-                </DialogHeader>
-                {selectedPhoto && (
-                  <PhotoEditForm
-                    photo={selectedPhoto}
-                    onSave={(data) => updatePhotoMutation.mutate({ photoId: selectedPhoto.id, data, beforeSnapshot: selectedPhoto })}
-                    onDelete={() => { if(confirm('이 사진을 정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: selectedPhoto.id, beforeSnapshot: selectedPhoto }) }}
-                    onViewFull={() => setViewerPhoto(selectedPhoto)}
-                    onToggleVisibility={() => handleToggleVisibility(selectedPhoto)}
-                    onCancel={() => setSelectedPhoto(null)}
-                    saving={updatePhotoMutation.isPending}
-                  />
-                )}
-              </DialogContent>
-            </Dialog>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-12">
               {filteredPhotos.map((photo) => (
@@ -575,6 +555,25 @@ function FloristEditPanel({
           </button>
         </div>
       </div>
+
+      {/* 사진 정보 수정 다이얼로그 — 탭 독립 */}
+      <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-stone-800">사진 정보 수정</DialogTitle>
+          </DialogHeader>
+          {selectedPhoto && (
+            <PhotoEditForm
+              photo={selectedPhoto}
+              onSave={(data) => updatePhotoMutation.mutate({ photoId: selectedPhoto.id, data, beforeSnapshot: selectedPhoto })}
+              onDelete={() => { if(confirm('이 사진을 정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: selectedPhoto.id, beforeSnapshot: selectedPhoto }) }}
+              onViewFull={() => { const p = selectedPhoto; setSelectedPhoto(null); setTimeout(() => setViewerPhoto(p), 100); }}
+              onCancel={() => setSelectedPhoto(null)}
+              saving={updatePhotoMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!uploadDialogFile} onOpenChange={() => setUploadDialogFile(null)}>
         <DialogContent className="max-w-sm border-stone-200">
@@ -802,7 +801,6 @@ function PhotoEditForm({
   photo,
   onSave,
   onDelete,
-  onToggleVisibility,
   onViewFull,
   onCancel,
   saving,
@@ -810,15 +808,12 @@ function PhotoEditForm({
   photo: FloristPhoto;
   onSave: (data: Record<string, unknown>) => void;
   onDelete: () => void;
-  onToggleVisibility: () => void;
   onViewFull: () => void;
   onCancel: () => void;
   saving: boolean;
 }) {
   const [category, setCategory] = useState<string>(photo.category);
   const [grade, setGrade] = useState<string>(photo.grade || '');
-  const [isRecommended, setIsRecommended] = useState(photo.isRecommended || false);
-  const [isHidden, setIsHidden] = useState(photo.isHidden || false);
   const [memo, setMemo] = useState(photo.memo || '');
   const [costPrice, setCostPrice] = useState(photo.costPrice ? photo.costPrice.toLocaleString() : '');
   const [sellingPrice, setSellingPrice] = useState(photo.sellingPrice ? photo.sellingPrice.toLocaleString() : '');
@@ -832,37 +827,6 @@ function PhotoEditForm({
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
           크게 보기
         </span>
-      </div>
-
-      {/* Visibility & Recommended checkboxes */}
-      <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={!isHidden}
-            onChange={() => setIsHidden(!isHidden)}
-            className="w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-slate-400/30 cursor-pointer"
-          />
-          <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
-          <span className={cn(
-            'text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto',
-            isHidden ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'
-          )}>
-            {isHidden ? '숨김' : '공개'}
-          </span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={isRecommended}
-            onChange={() => setIsRecommended(!isRecommended)}
-            className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500/30 cursor-pointer"
-          />
-          <span className="text-sm font-medium text-slate-700">전 지사 기본 노출</span>
-          {isRecommended && (
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto bg-amber-100 text-amber-700">추천</span>
-          )}
-        </label>
       </div>
 
       {/* Category */}
@@ -886,19 +850,10 @@ function PhotoEditForm({
         </div>
       </div>
 
-      {/* Grade + Recommended */}
+      {/* Grade */}
       <div className="space-y-1.5">
         <Label className="text-slate-600">상품 등급</Label>
         <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setIsRecommended(!isRecommended)}
-            className={cn(
-              'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-              isRecommended ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-md' : 'bg-white text-slate-600 border-slate-200'
-            )}
-          >
-            추천
-          </button>
           {PHOTO_GRADES.map((g) => (
             <button
               key={g.code}
@@ -962,8 +917,6 @@ function PhotoEditForm({
               onSave({
                 category,
                 ...(grade ? { grade } : {}),
-                isRecommended,
-                isHidden,
                 ...(costPrice ? { costPrice: parseCurrency(costPrice) } : { costPrice: null }),
                 ...(sellingPrice ? { sellingPrice: parseCurrency(sellingPrice) } : { sellingPrice: null }),
                 ...(memo ? { memo } : { memo: null }),
