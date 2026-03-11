@@ -313,7 +313,7 @@ export default function FloristDetailPage({
   if (isLoading) {
     return (
       <div className="text-center py-12 text-slate-400">
-        <div className="inline-block w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2" />
+        <div className="inline-block w-6 h-6 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin mb-2" />
         <p className="text-sm">로딩 중...</p>
       </div>
     );
@@ -344,7 +344,7 @@ export default function FloristDetailPage({
             <h1 className="text-lg font-bold text-slate-900">{florist.name}</h1>
             <Badge
               variant={florist.status === 'ACTIVE' ? 'default' : 'secondary'}
-              className={cn('text-[11px]', florist.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : '')}
+              className={cn('text-[11px]', florist.status === 'ACTIVE' ? 'bg-slate-100 text-slate-800 border-slate-200' : '')}
             >
               {florist.status === 'ACTIVE' ? '활성' : florist.status === 'SUSPENDED' ? '중지' : '비활성'}
             </Badge>
@@ -362,7 +362,7 @@ export default function FloristDetailPage({
           {!editing && (
             <Button
               size="sm"
-              className="h-8 bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+              className="h-8 bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
               onClick={() => startEditing(florist)}
             >
               <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -376,8 +376,8 @@ export default function FloristDetailPage({
 
       <Tabs defaultValue="info">
         <TabsList className="bg-slate-100 rounded-lg p-0.5 h-9">
-          <TabsTrigger value="info" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700">기본 정보</TabsTrigger>
-          <TabsTrigger value="photos" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700">사진 관리 ({photos.length})</TabsTrigger>
+          <TabsTrigger value="info" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#37474F]">기본 정보</TabsTrigger>
+          <TabsTrigger value="photos" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#37474F]">사진 관리 ({photos.length})</TabsTrigger>
         </TabsList>
 
         {/* === Info Tab === */}
@@ -407,7 +407,7 @@ export default function FloristDetailPage({
                     </div>
                     <div className="space-y-0.5">
                       <dt className="text-xs font-semibold text-slate-500">지역</dt>
-                      <dd className="text-emerald-700 font-medium">{florist.sido} {florist.gugun}</dd>
+                      <dd className="text-[#546E7A] font-medium">{florist.sido} {florist.gugun}</dd>
                     </div>
                     <div className="space-y-0.5">
                       <dt className="text-xs font-semibold text-slate-500">등급</dt>
@@ -446,7 +446,7 @@ export default function FloristDetailPage({
                             className={cn(
                               'px-2 py-1 rounded-md text-[11px] font-medium border',
                               isSelected
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                ? 'bg-slate-50 text-slate-700 border-slate-200'
                                 : 'bg-slate-50 text-slate-300 border-transparent'
                             )}
                           >
@@ -472,9 +472,9 @@ export default function FloristDetailPage({
                           value={newServiceArea}
                           onChange={(e) => setNewServiceArea(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleAddServiceArea()}
-                          className="h-7 w-24 text-xs border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="h-7 w-24 text-xs border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
                         />
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300" onClick={handleAddServiceArea} disabled={addAreaMutation.isPending}>+</Button>
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-slate-200 hover:bg-slate-50 hover:text-[#546E7A] hover:border-slate-400" onClick={handleAddServiceArea} disabled={addAreaMutation.isPending}>+</Button>
                       </div>
                     </div>
                     {florist.serviceAreas && florist.serviceAreas.length > 0 ? (
@@ -502,7 +502,7 @@ export default function FloristDetailPage({
                   {photos.length > 0 ? (
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                       {photos.slice(0, 12).map((photo) => (
-                        <div key={photo.id} className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition" onClick={() => setViewerPhoto(photo)}>
+                        <div key={photo.id} className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-slate-400/50 transition" onClick={() => setViewerPhoto(photo)}>
                           <div className="relative aspect-square">
                             <Image src={photoUrl(photo.fileUrl) + (photoCacheBuster ? `?t=${photoCacheBuster}` : '')} alt={photo.memo || ''} fill className="object-cover" sizes="160px" unoptimized />
                             {/* 카테고리 (좌상단) */}
@@ -572,7 +572,7 @@ export default function FloristDetailPage({
                 <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileSelect} />
                 <Button
                   size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+                  className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadMutation.isPending}
                 >
@@ -597,7 +597,7 @@ export default function FloristDetailPage({
                         .map((photo) => (
                           <div
                             key={photo.id}
-                            className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition-all"
+                            className="rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:ring-2 hover:ring-slate-400/50 transition-all"
                             onClick={() => setSelectedPhoto(photo)}
                           >
                             {/* 이미지 영역 (3:4 비율) */}
@@ -770,8 +770,8 @@ function PhotoUploadForm({
               className={cn(
                 'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
                 category === c.code
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-600/20'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                  ? 'bg-[#546E7A] text-white border-transparent shadow-md shadow-slate-600/20'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
               )}
             >
               {c.name}
@@ -811,7 +811,7 @@ function PhotoUploadForm({
       {/* Memo */}
       <div className="space-y-1">
         <Label className="text-slate-600">메모 (제품명 등)</Label>
-        <Input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+        <Input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
       </div>
 
       {/* Prices */}
@@ -823,7 +823,7 @@ function PhotoUploadForm({
               value={costPrice}
               onChange={(e) => setCostPrice(formatCurrency(e.target.value))}
               placeholder="예: 50,000"
-              className="pr-8 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
           </div>
@@ -835,7 +835,7 @@ function PhotoUploadForm({
               value={sellingPrice}
               onChange={(e) => setSellingPrice(formatCurrency(e.target.value))}
               placeholder="예: 70,000"
-              className="pr-8 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
           </div>
@@ -848,7 +848,7 @@ function PhotoUploadForm({
         <Button
           onClick={() => onUpload({ category, grade, isRecommended, costPrice: parseCurrency(costPrice), sellingPrice: parseCurrency(sellingPrice), memo })}
           disabled={!category || uploading}
-          className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+          className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
         >
           {uploading ? '업로드 중...' : '업로드'}
         </Button>
@@ -901,12 +901,12 @@ function PhotoEditForm({
             type="checkbox"
             checked={!isHidden}
             onChange={() => setIsHidden(!isHidden)}
-            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer"
+            className="w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-slate-400/30 cursor-pointer"
           />
           <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
           <span className={cn(
             'text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto',
-            isHidden ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'
+            isHidden ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'
           )}>
             {isHidden ? '숨김' : '공개'}
           </span>
@@ -936,8 +936,8 @@ function PhotoEditForm({
               className={cn(
                 'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
                 category === c.code
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-600/20'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                  ? 'bg-[#546E7A] text-white border-transparent shadow-md shadow-slate-600/20'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
               )}
             >
               {c.name}
@@ -977,7 +977,7 @@ function PhotoEditForm({
       {/* Memo */}
       <div className="space-y-1">
         <Label className="text-slate-600">메모 (제품명 등)</Label>
-        <Input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+        <Input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
       </div>
 
       {/* Prices */}
@@ -989,7 +989,7 @@ function PhotoEditForm({
               value={costPrice}
               onChange={(e) => setCostPrice(formatCurrency(e.target.value))}
               placeholder="예: 50,000"
-              className="pr-8 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
           </div>
@@ -1001,7 +1001,7 @@ function PhotoEditForm({
               value={sellingPrice}
               onChange={(e) => setSellingPrice(formatCurrency(e.target.value))}
               placeholder="예: 70,000"
-              className="pr-8 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
           </div>
@@ -1030,7 +1030,7 @@ function PhotoEditForm({
               })
             }
             disabled={!category || saving}
-            className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+            className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
           >
             {saving ? '저장 중...' : '저장'}
           </Button>
@@ -1067,11 +1067,11 @@ function FloristEditForm({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-1">
               <Label className="text-slate-600 text-xs">화원명 *</Label>
-              <Input value={(editForm.name as string) || ''} onChange={(e) => setField('name', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+              <Input value={(editForm.name as string) || ''} onChange={(e) => setField('name', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
             </div>
             <div className="space-y-1">
               <Label className="text-slate-600 text-xs">전화번호</Label>
-              <Input value={(editForm.phone as string) || ''} onChange={(e) => setField('phone', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+              <Input value={(editForm.phone as string) || ''} onChange={(e) => setField('phone', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
             </div>
             <div className="space-y-1">
               <Label className="text-slate-600 text-xs">시/도</Label>
@@ -1083,18 +1083,18 @@ function FloristEditForm({
             </div>
             <div className="col-span-2 space-y-1">
               <Label className="text-slate-600 text-xs">주소</Label>
-              <Input value={(editForm.address as string) || ''} onChange={(e) => setField('address', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+              <Input value={(editForm.address as string) || ''} onChange={(e) => setField('address', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
             </div>
             <div className="space-y-1">
               <Label className="text-slate-600 text-xs">등급</Label>
-              <select className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition" value={(editForm.grade as string) || ''} onChange={(e) => setField('grade', e.target.value)}>
+              <select className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition" value={(editForm.grade as string) || ''} onChange={(e) => setField('grade', e.target.value)}>
                 <option value="">미지정</option>
                 {[1, 2, 3, 4, 5].map((g) => <option key={g} value={g}>{GRADE_MAP[g]}</option>)}
               </select>
             </div>
             <div className="space-y-1">
               <Label className="text-slate-600 text-xs">배정 우선순위</Label>
-              <select className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition" value={(editForm.priority as string) || ''} onChange={(e) => setField('priority', e.target.value)}>
+              <select className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition" value={(editForm.priority as string) || ''} onChange={(e) => setField('priority', e.target.value)}>
                 <option value="">미지정</option>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -1102,7 +1102,7 @@ function FloristEditForm({
             <div className="col-span-full space-y-1">
               <Label className="text-slate-600 text-xs">특이사항/메모</Label>
               <textarea
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm min-h-[60px] resize-y focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm min-h-[60px] resize-y focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition"
                 value={(editForm.remarks as string) || ''}
                 onChange={(e) => setField('remarks', e.target.value)}
                 placeholder="특이사항이나 메모를 입력하세요"
@@ -1125,8 +1125,8 @@ function FloristEditForm({
                   className={cn(
                     'px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all',
                     selected
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                      ? 'bg-slate-100 text-slate-800 border-slate-300'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                   )}
                 >
                   {selected && (
@@ -1142,7 +1142,7 @@ function FloristEditForm({
 
       <div className="flex gap-2 justify-end">
         <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm" onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
+        <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm" onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
       </div>
     </div>
   );
@@ -1428,7 +1428,7 @@ function ImageViewer({
             다시 칠하기
           </button>
           <button
-            className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition text-sm font-medium shadow-lg disabled:opacity-50"
+            className="bg-[#546E7A] text-white px-5 py-2.5 rounded-xl hover:bg-[#455A64] transition text-sm font-medium shadow-lg disabled:opacity-50"
             onClick={handleInpaintApply}
             disabled={inpaintLoading}
           >
@@ -1550,7 +1550,7 @@ function ImageViewer({
           <div className="bg-black/80 backdrop-blur-md rounded-xl px-5 py-3 flex flex-col items-center gap-2 min-w-[200px] border border-white/10">
             <div className="flex items-center gap-2 flex-wrap justify-center">
               {categoryName && (
-                <span className="bg-emerald-600 text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
+                <span className="bg-[#546E7A] text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
               )}
               {photo.memo && <span className="text-white text-sm">{photo.memo}</span>}
               {photo.isHidden && (
@@ -1563,7 +1563,7 @@ function ImageViewer({
             <div className="flex gap-4">
               {rotation !== 0 && onRotateSave && (
                 <button
-                  className="text-emerald-400 hover:text-emerald-300 text-sm font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                  className="text-sky-400 hover:text-sky-300 text-sm font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
                   onClick={handleRotateSave}
                   disabled={isRotating}
                 >

@@ -31,7 +31,7 @@ const ACTION_LABELS: Record<PhotoLogAction, string> = {
 };
 
 const ACTION_COLORS: Record<PhotoLogAction, string> = {
-  UPLOAD: 'bg-emerald-100 text-emerald-700',
+  UPLOAD: 'bg-slate-100 text-slate-700',
   UPDATE: 'bg-blue-100 text-blue-700',
   DELETE: 'bg-red-100 text-red-700',
   TOGGLE_VISIBILITY: 'bg-amber-100 text-amber-700',
@@ -259,7 +259,7 @@ export default function PhotoLogsPage() {
                 <div>
                   <span className="text-slate-500">화원:</span>{' '}
                   <button
-                    className="font-medium text-emerald-700 hover:underline"
+                    className="font-medium text-[#546E7A] hover:underline"
                     onClick={() => { setSelectedLog(null); router.push(`/admin/florists/${selectedLog.floristId}`); }}
                   >
                     {selectedLog.floristName} ({selectedLog.floristId})
@@ -290,7 +290,7 @@ export default function PhotoLogsPage() {
                 {selectedLog.after && (
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-emerald-600">변경 후 (After)</CardTitle>
+                      <CardTitle className="text-sm text-[#546E7A]">변경 후 (After)</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <PhotoSnapshot photo={selectedLog.after} />
