@@ -119,7 +119,7 @@ export default function FloristDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent showCloseButton={false} className="w-[95vw] max-w-7xl h-[92vh] max-h-[92vh] overflow-hidden p-0 gap-0 border-stone-300/60 shadow-2xl flex flex-col">
+      <DialogContent showCloseButton={false} className="w-[95vw] max-w-7xl h-[100dvh] md:h-[92vh] max-h-[100dvh] md:max-h-[92vh] md:rounded-lg rounded-none overflow-hidden p-0 gap-0 border-stone-300/60 shadow-2xl flex flex-col">
         {isLoading || !florist ? (
           <div className="flex items-center justify-center flex-1 bg-[#F5F5F5]">
             <div className="w-7 h-7 border-[2.5px] border-[#C8E6C9] border-t-[#4CAF50] rounded-full animate-spin" />
@@ -345,12 +345,12 @@ function FloristEditPanel({
     <div className="flex flex-col h-full bg-[#F5F5F5]">
       {/* 헤더 */}
       <div className="flex flex-col bg-[#4CAF50] text-white flex-shrink-0">
-        <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#388E3C]">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">🌸</span>
-            <h2 className="text-xl font-bold tracking-tight">{florist.name}</h2>
-            <span className={cn('w-2 h-2 rounded-full ring-2 ring-[#388E3C]', statusColor)} />
-            <span className="text-sm text-white/70">{statusLabel}</span>
+        <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-3.5 border-b border-[#388E3C]">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            <span className="text-lg md:text-xl shrink-0">🌸</span>
+            <h2 className="text-base md:text-xl font-bold tracking-tight truncate">{florist.name}</h2>
+            <span className={cn('w-2 h-2 rounded-full ring-2 ring-[#388E3C] shrink-0', statusColor)} />
+            <span className="text-xs md:text-sm text-white/70 shrink-0">{statusLabel}</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#388E3C] text-white/70 hover:text-white transition-colors">
@@ -542,14 +542,14 @@ function FloristEditPanel({
         )}
       </div>
 
-      <div className="flex items-center justify-between px-6 py-3 border-t border-[#E0E0E0] bg-white flex-shrink-0">
-        <button onClick={() => toast.error('화원 삭제 기능은 준비 중입니다')} className="px-4 py-2.5 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center gap-1.5 shadow-sm">
+      <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-3 border-t border-[#E0E0E0] bg-white flex-shrink-0">
+        <button onClick={() => toast.error('화원 삭제 기능은 준비 중입니다')} className="hidden md:flex px-4 py-2.5 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors items-center gap-1.5 shadow-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
           화원 삭제
         </button>
-        <div className="flex items-center gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-lg text-[15px] font-medium text-stone-500 hover:bg-stone-100 transition-colors">닫기</button>
-          <button onClick={handleSave} disabled={updateMutation.isPending} className="px-6 py-2.5 rounded-lg text-[15px] font-medium bg-[#4CAF50] text-white hover:bg-[#388E3C] transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5">
+        <div className="flex items-center gap-3 ml-auto">
+          <button onClick={onClose} className="px-4 md:px-5 py-2 md:py-2.5 rounded-lg text-sm md:text-[15px] font-medium text-stone-500 hover:bg-stone-100 transition-colors">닫기</button>
+          <button onClick={handleSave} disabled={updateMutation.isPending} className="px-5 md:px-6 py-2 md:py-2.5 rounded-lg text-sm md:text-[15px] font-medium bg-[#4CAF50] text-white hover:bg-[#388E3C] transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             {updateMutation.isPending ? '저장 중...' : '저장'}
           </button>
