@@ -344,7 +344,7 @@ export default function ProductSearch() {
 
       {/* Full-screen image viewer */}
       <Dialog open={!!viewerUrl} onOpenChange={() => setViewerUrl(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black border-none">
+        <DialogContent showCloseButton={false} className="max-w-[95vw] max-h-[95vh] p-0 bg-black border-none">
           {viewerUrl && (
             <div className="relative w-full h-[90vh]">
               <Image
@@ -354,6 +354,12 @@ export default function ProductSearch() {
                 className="object-contain"
                 unoptimized
               />
+              <button
+                onClick={() => setViewerUrl(null)}
+                className="absolute top-3 right-3 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
           )}
         </DialogContent>
