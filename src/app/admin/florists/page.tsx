@@ -7,7 +7,6 @@ import Image from 'next/image';
 import { listFlorists, updateFloristStatus, getFloristPhotos } from '@/lib/api/admin';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -32,22 +31,19 @@ const STATUS_OPTIONS = [
 ];
 
 const CAPABILITY_CHIPS = [
-  { code: 'CELEBRATION', label: '축하' },
-  { code: 'CONDOLENCE', label: '근조' },
-  { code: 'BASKET', label: '바구니' },
-  { code: 'LARGE', label: '대형' },
-  { code: 'MULTI_TIER', label: '다단' },
-  { code: 'ROUND', label: '원형' },
-  { code: 'BLACK_RIBBON', label: '검정리본' },
+  { code: 'CELEBRATION', label: '축하기본' },
+  { code: 'CELEBRATION_LARGE', label: '축하(대)' },
+  { code: 'CONDOLENCE', label: '근조기본' },
+  { code: 'CONDOLENCE_LARGE', label: '근조(대)' },
+  { code: 'LARGE', label: '근조(특대)' },
+  { code: 'MULTI_TIER', label: '근조4단이상' },
   { code: 'OBJET', label: '오브제' },
+  { code: 'RICE', label: '쌀' },
   { code: 'ORIENTAL_ORCHID', label: '동양란' },
   { code: 'WESTERN_ORCHID', label: '서양란' },
   { code: 'FLOWER', label: '꽃' },
   { code: 'FOLIAGE', label: '관엽' },
-  { code: 'BONSAI', label: '분재' },
-  { code: 'FRUITS', label: '과일' },
-  { code: 'HOLIDAY', label: '휴일가능' },
-  { code: 'NIGHT', label: '야간가능' },
+  { code: 'HOLIDAY_UNAVAILABLE', label: '휴일불가' },
 ];
 
 const GRADE_MAP: Record<number, { label: string; color: string }> = {
@@ -96,34 +92,36 @@ function FloristThumb({ floristId }: { floristId: string }) {
 }
 
 function PriorityBadge({ priority }: { priority?: number }) {
-  if (!priority) return <span className="text-gray-400">-</span>;
-  const color =
-    priority <= 3 ? 'bg-red-500 text-white' :
-    priority <= 6 ? 'bg-orange-500 text-white' :
-    'bg-gray-400 text-white';
+  if (!priority) return <span className="text-[#666666]">-</span>;
   return (
-    <span className={cn('inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold', color)}>
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-red-500 border-2 border-red-500 bg-transparent">
       {priority}
     </span>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
-    ACTIVE: { label: '활성', variant: 'default' },
-    SUSPENDED: { label: '중지', variant: 'destructive' },
-    INACTIVE: { label: '비활성', variant: 'secondary' },
-  };
-  const info = map[status] || { label: status, variant: 'secondary' as const };
-  return <Badge variant={info.variant}>{info.label}</Badge>;
+  if (status === 'ACTIVE') return <span className="font-semibold text-[#4CAF50]">활성</span>;
+  if (status === 'SUSPENDED') return <span className="font-semibold text-[#FF9800]">중지</span>;
+  return <span className="font-semibold text-[#666666]">비활성</span>;
 }
 
 function GradeBadge({ grade }: { grade?: number }) {
-  if (!grade) return <span className="text-gray-400">-</span>;
+  if (!grade) return <span className="text-[#666666]">-</span>;
   const info = GRADE_MAP[grade];
   if (!info) return <span>{grade}</span>;
+  
+  const lightColors: Record<number, string> = {
+    1: 'bg-[#F0E6D2] text-[#8C6D46]',
+    2: 'bg-[#F0F0F0] text-[#666666]',
+    3: 'bg-[#FFF5D1] text-[#B8860B]',
+    4: 'bg-[#E0F7FA] text-[#00838F]',
+    5: 'bg-[#F3E5F5] text-[#4A148C]',
+  };
+  const colorClass = lightColors[grade] || 'bg-gray-100 text-gray-700';
+
   return (
-    <span className={cn('inline-block px-2 py-0.5 rounded text-xs font-medium', info.color)}>
+    <span className={cn('inline-block px-2.5 py-1 rounded-md text-xs font-medium', colorClass)}>
       {info.label}
     </span>
   );
@@ -137,7 +135,6 @@ export default function FloristsPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [selectedCaps, setSelectedCaps] = useState<string[]>([]);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFloristId, setSelectedFloristId] = useState<string | null>(null);
   const pageSize = 30;
 
@@ -191,35 +188,47 @@ export default function FloristsPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">화원 관리</h1>
-        <Button variant="outline" size="sm" onClick={() => router.push('/admin/florists/photo-logs')}>
+    <div className="min-h-screen bg-[#F7F8FA] p-4 md:p-6 space-y-6">
+      <div className="flex items-center justify-between bg-transparent">
+        <h1 className="text-2xl font-bold text-[#333333]">화원 관리</h1>
+        <Button className="bg-[#E14C94] hover:bg-[#C93B7D] text-white rounded-full px-6 shadow-sm" onClick={() => router.push('/admin/florists/photo-logs')}>
           <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
           사진 변경 로그
         </Button>
       </div>
 
-      <Tabs defaultValue="list">
-        <TabsList>
-          <TabsTrigger value="list">화원 목록</TabsTrigger>
-          <TabsTrigger value="search">상품 검색</TabsTrigger>
-        </TabsList>
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <Tabs defaultValue="list" className="w-full">
+          <div className="border-b border-[#E0E0E0]">
+            <TabsList className="bg-transparent h-14 p-0 space-x-6 justify-start px-6 rounded-none w-full">
+              <TabsTrigger 
+                value="list" 
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#E14C94] data-[state=active]:border-b-2 data-[state=active]:border-[#E14C94] rounded-none px-1 py-4 text-[#666666] font-medium transition-none"
+              >
+                화원 목록
+              </TabsTrigger>
+              <TabsTrigger 
+                value="search" 
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#E14C94] data-[state=active]:border-b-2 data-[state=active]:border-[#E14C94] rounded-none px-1 py-4 text-[#666666] font-medium transition-none"
+              >
+                상품 검색
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        <TabsContent value="search">
-          <ProductSearch />
-        </TabsContent>
+          <TabsContent value="search" className="p-6 m-0 outline-none">
+            <ProductSearch />
+          </TabsContent>
 
-        <TabsContent value="list">
-        <div className="space-y-4">
+          <TabsContent value="list" className="p-6 m-0 outline-none">
+            <div className="space-y-6">
 
       {/* 필터 영역 */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        {/* 필터 헤더 (항상 보임) */}
-        <div className="flex items-center gap-2 px-4 py-2.5">
+      <div className="bg-white rounded-lg border border-[#E0E0E0] p-4 flex flex-col gap-4">
+        <div className="flex items-center gap-2">
           <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-0">
             <select
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm hover:border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+              className="h-10 rounded-lg border border-[#E0E0E0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#E14C94]/20 focus:border-[#E14C94] outline-none text-[#333333]"
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             >
@@ -227,61 +236,41 @@ export default function FloristsPage() {
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
-            <Input
-              placeholder="검색 (화원명, 지역, 전화번호)"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-            />
-            <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0">검색</Button>
-          </form>
-          <button
-            onClick={() => setFilterOpen(!filterOpen)}
-            className={cn(
-              'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all',
-              filterOpen || selectedCaps.length > 0
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'text-slate-500 border-slate-200 hover:bg-slate-50'
-            )}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-            필터
-            {selectedCaps.length > 0 && (
-              <span className="bg-emerald-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{selectedCaps.length}</span>
-            )}
-            <svg className={cn('w-3 h-3 transition-transform', filterOpen && 'rotate-180')} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </button>
-          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600 px-2 shrink-0" onClick={handleReset} title="초기화">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          </Button>
-        </div>
-        {/* 역량 필터 (접힘 가능) */}
-        {filterOpen && (
-          <div className="px-4 pb-3 pt-1 border-t border-slate-100">
-            <div className="flex flex-wrap gap-1.5">
-              {CAPABILITY_CHIPS.map((cap) => (
-                <button
-                  key={cap.code}
-                  onClick={() => toggleCap(cap.code)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                    selectedCaps.includes(cap.code)
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
-                  )}
-                >
-                  {selectedCaps.includes(cap.code) && (
-                    <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                  )}
-                  {cap.label}
-                </button>
-              ))}
+            <div className="relative flex-1 min-w-0">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <Input
+                placeholder="검색 (화원명, 지역, 전화번호)"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 pl-9 border-[#E0E0E0] focus:border-[#E14C94] focus-visible:ring-[#E14C94] focus-visible:ring-1"
+              />
             </div>
-          </div>
-        )}
+            <Button type="submit" className="h-10 px-6 bg-[#E14C94] hover:bg-[#C93B7D] text-white shadow-none shrink-0">검색</Button>
+            <Button type="button" variant="outline" className="h-10 px-4 border-[#E0E0E0] text-[#666666] hover:bg-gray-50 shrink-0" onClick={handleReset}>초기화</Button>
+          </form>
+        </div>
+        
+        {/* 역량 필터 (항상 보임) */}
+        <div className="flex flex-wrap gap-2">
+          {CAPABILITY_CHIPS.map((cap) => (
+            <button
+              key={cap.code}
+              type="button"
+              onClick={() => toggleCap(cap.code)}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                selectedCaps.includes(cap.code)
+                  ? 'bg-[#E14C94] text-white border-[#E14C94]'
+                  : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-[#E14C94] hover:text-[#E14C94]'
+              )}
+            >
+              {cap.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {isLoading && <div className="text-center py-8 text-gray-500">로딩 중...</div>}
+      {isLoading && <div className="text-center py-8 text-[#666666]">로딩 중...</div>}
       {error && (
         <div className="text-center py-8 text-red-500">
           오류: {error instanceof Error ? error.message : '알 수 없는 오류'}
@@ -291,24 +280,24 @@ export default function FloristsPage() {
       {data && (
         <>
           {/* 데스크톱 테이블 */}
-          <div className="hidden md:block rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="hidden md:block rounded-xl border-0 bg-white shadow-sm overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12 text-center">순위</TableHead>
-                  <TableHead className="w-16 text-center">상태</TableHead>
-                  <TableHead className="w-16">사진</TableHead>
-                  <TableHead className="min-w-[200px]">화원 정보</TableHead>
-                  <TableHead className="min-w-[150px]">역량 / 특이사항</TableHead>
-                  <TableHead className="w-20 text-center">등급</TableHead>
-                  <TableHead className="w-20 text-center">관리</TableHead>
+                <TableRow className="border-b border-[#E0E0E0] hover:bg-transparent">
+                  <TableHead className="w-12 text-center text-[#666666]">순위</TableHead>
+                  <TableHead className="w-16 text-center text-[#666666]">상태</TableHead>
+                  <TableHead className="w-16 text-[#666666]">사진</TableHead>
+                  <TableHead className="min-w-[200px] text-[#666666]">화원 정보</TableHead>
+                  <TableHead className="min-w-[150px] text-[#666666]">역량 / 특이사항</TableHead>
+                  <TableHead className="w-20 text-center text-[#666666]">등급</TableHead>
+                  <TableHead className="w-20 text-center text-[#666666]">관리</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredData.map((f) => (
                   <TableRow
                     key={f.id}
-                    className="cursor-pointer hover:bg-emerald-50/40 transition-colors duration-150"
+                    className="cursor-pointer border-b border-[#E0E0E0] hover:bg-[#FDF2F7] transition-colors duration-150"
                     onClick={() => setSelectedFloristId(f.id)}
                   >
                     <TableCell className="text-center">
@@ -323,26 +312,26 @@ export default function FloristsPage() {
                     <TableCell>
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">{f.name}</span>
+                          <span className="font-medium text-[#333333] truncate">{f.name}</span>
                           {f.source && (
                             <span className={cn(
                               'text-[10px] px-1.5 py-0.5 rounded',
                               f.source === 'flower_shop'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-green-100 text-green-700'
+                                ? 'bg-[#E3F2FD] text-[#1565C0]'
+                                : 'bg-[#FCEEF5] text-[#E14C94]'
                             )}>
                               {f.source === 'flower_shop' ? '외부' : '파트너'}
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-teal-600">
+                        <div className="text-xs text-[#E14C94]">
                           {f.sido} {f.gugun}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">
+                        <div className="text-xs text-[#666666] truncate">
                           {f.address || ''} {f.phone ? `/ ${f.phone}` : ''}
                         </div>
                         {f.serviceAreas && f.serviceAreas.length > 0 && (
-                          <div className="text-xs text-blue-600 truncate">
+                          <div className="text-xs text-[#2196F3] truncate">
                             {f.serviceAreas.join(', ')}
                           </div>
                         )}
@@ -351,19 +340,19 @@ export default function FloristsPage() {
                     <TableCell>
                       <div className="space-y-1">
                         {f.capabilities && f.capabilities.length > 0 ? (
-                          <div className="text-xs text-gray-600 leading-relaxed">
+                          <div className="text-xs text-[#666666] leading-relaxed">
                             {f.capabilities.map((c) =>
                               CAPABILITY_CHIPS.find((ch) => ch.code === c)?.label || c
                             ).join(', ')}
                           </div>
                         ) : null}
                         {f.remarks ? (
-                          <div className="text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded px-1.5 py-0.5 line-clamp-2">
+                          <div className="text-xs bg-[#FFF3E0] text-[#FF9800] border border-[#FFE0B2] rounded px-1.5 py-0.5 line-clamp-2">
                             {f.remarks}
                           </div>
                         ) : null}
                         {!f.capabilities?.length && !f.remarks && (
-                          <span className="text-gray-400 text-xs">-</span>
+                          <span className="text-[#666666] text-xs">-</span>
                         )}
                       </div>
                     </TableCell>
@@ -373,24 +362,21 @@ export default function FloristsPage() {
                     <TableCell className="text-center">
                       <div className="flex gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
                         <button
-                          className="p-2 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                          className="p-1.5 rounded-lg text-[#666666] hover:bg-gray-100 transition-colors"
                           title="수정"
                           onClick={() => setSelectedFloristId(f.id)}
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         </button>
                         <button
-                          className={cn(
-                            'p-2 rounded-lg transition-colors',
-                            f.status === 'ACTIVE' ? 'hover:bg-orange-50 text-slate-400 hover:text-orange-600' : 'hover:bg-green-50 text-slate-400 hover:text-green-600'
-                          )}
+                          className="p-1.5 rounded-lg text-[#FF9800] hover:bg-[#FFF3E0] transition-colors"
                           title={f.status === 'ACTIVE' ? '중지' : '활성화'}
                           onClick={() => handleToggleStatus(f)}
                         >
                           {f.status === 'ACTIVE' ? (
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                           ) : (
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            <svg className="w-4 h-4 text-[#4CAF50]" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                           )}
                         </button>
                       </div>
@@ -399,7 +385,7 @@ export default function FloristsPage() {
                 ))}
                 {filteredData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={7} className="text-center py-8 text-[#666666]">
                       검색 결과가 없습니다.
                     </TableCell>
                   </TableRow>
@@ -409,49 +395,50 @@ export default function FloristsPage() {
           </div>
 
           {/* 모바일 카드 목록 */}
-          <div className="md:hidden space-y-2">
+          <div className="md:hidden space-y-3">
             {filteredData.map((f) => (
               <div
                 key={f.id}
-                className="bg-white border border-slate-200 rounded-xl p-3.5 flex gap-3 active:bg-slate-50 shadow-sm hover:shadow-md transition-shadow"
+                className="bg-white border border-[#E0E0E0] rounded-xl p-4 flex gap-3 active:bg-[#FDF2F7] shadow-sm hover:shadow-md transition-all cursor-pointer"
                 onClick={() => setSelectedFloristId(f.id)}
               >
                 <div className="flex-shrink-0">
                   <FloristThumb floristId={f.id} />
                 </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <PriorityBadge priority={f.priority} />
-                  <span className="font-medium truncate">{f.name}</span>
-                  <StatusBadge status={f.status} />
-                  <GradeBadge grade={f.grade} />
-                </div>
-                <div className="text-xs text-teal-600">
-                  {f.sido} {f.gugun}
-                </div>
-                <div className="text-xs text-gray-500 break-words">
-                  {f.address || ''} {f.phone ? `/ ${f.phone}` : ''}
-                </div>
-                {f.serviceAreas && f.serviceAreas.length > 0 && (
-                  <div className="text-xs text-blue-600 break-words">{f.serviceAreas.join(', ')}</div>
-                )}
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <PriorityBadge priority={f.priority} />
+                    <span className="font-medium text-[#333333] truncate">{f.name}</span>
+                    <StatusBadge status={f.status} />
+                    <GradeBadge grade={f.grade} />
+                  </div>
+                  <div className="text-xs text-[#E14C94]">
+                    {f.sido} {f.gugun}
+                  </div>
+                  <div className="text-xs text-[#666666] break-words">
+                    {f.address || ''} {f.phone ? `/ ${f.phone}` : ''}
+                  </div>
+                  {f.serviceAreas && f.serviceAreas.length > 0 && (
+                    <div className="text-xs text-[#2196F3] break-words">{f.serviceAreas.join(', ')}</div>
+                  )}
                 </div>
               </div>
             ))}
             {filteredData.length === 0 && (
-              <div className="text-center py-8 text-gray-500">검색 결과가 없습니다.</div>
+              <div className="text-center py-8 text-[#666666]">검색 결과가 없습니다.</div>
             )}
           </div>
 
           {/* 페이지네이션 */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-            <span className="text-sm text-gray-500">
-              총 {data.total}개 · 페이지 {data.page}/{totalPages}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+            <span className="text-sm text-[#666666]">
+              총 <span className="font-semibold text-[#333333]">{data.total}</span>개 · 페이지 {data.page}/{totalPages}
             </span>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
+                className="border-[#E0E0E0] text-[#666666] hover:bg-gray-50"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
               >
@@ -460,6 +447,7 @@ export default function FloristsPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="border-[#E14C94] text-[#E14C94] hover:bg-[#FDF2F7]"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
@@ -472,6 +460,7 @@ export default function FloristsPage() {
       </div>
       </TabsContent>
       </Tabs>
+      </div>
 
       {selectedFloristId && (
          <FloristDetailDialog

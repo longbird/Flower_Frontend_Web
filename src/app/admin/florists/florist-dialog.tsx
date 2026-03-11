@@ -28,22 +28,19 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 
 const CAPABILITY_OPTIONS = [
-  { code: 'CELEBRATION', label: '축하' },
-  { code: 'CONDOLENCE', label: '근조' },
-  { code: 'BASKET', label: '바구니' },
-  { code: 'LARGE', label: '대형' },
-  { code: 'MULTI_TIER', label: '다단' },
-  { code: 'ROUND', label: '원형' },
-  { code: 'BLACK_RIBBON', label: '검정리본' },
+  { code: 'CELEBRATION', label: '축하기본' },
+  { code: 'CELEBRATION_LARGE', label: '축하(대)' },
+  { code: 'CONDOLENCE', label: '근조기본' },
+  { code: 'CONDOLENCE_LARGE', label: '근조(대)' },
+  { code: 'LARGE', label: '근조(특대)' },
+  { code: 'MULTI_TIER', label: '근조4단이상' },
   { code: 'OBJET', label: '오브제' },
+  { code: 'RICE', label: '쌀' },
   { code: 'ORIENTAL_ORCHID', label: '동양란' },
   { code: 'WESTERN_ORCHID', label: '서양란' },
   { code: 'FLOWER', label: '꽃' },
   { code: 'FOLIAGE', label: '관엽' },
-  { code: 'BONSAI', label: '분재' },
-  { code: 'FRUITS', label: '과일' },
-  { code: 'HOLIDAY', label: '휴일가능' },
-  { code: 'NIGHT', label: '야간가능' },
+  { code: 'HOLIDAY_UNAVAILABLE', label: '휴일불가' },
 ];
 
 const GRADE_OPTIONS = [
