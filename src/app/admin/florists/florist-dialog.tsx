@@ -928,6 +928,7 @@ function PhotoEditForm({
                 category,
                 ...(grade ? { grade } : {}),
                 isRecommended,
+                ...(isRecommended ? { isHidden: false } : {}),
                 ...(costPrice ? { costPrice: parseCurrency(costPrice) } : { costPrice: null }),
                 ...(sellingPrice ? { sellingPrice: parseCurrency(sellingPrice) } : { sellingPrice: null }),
                 ...(memo ? { memo } : { memo: null }),
