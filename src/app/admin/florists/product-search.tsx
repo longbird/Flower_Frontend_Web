@@ -189,11 +189,11 @@ export default function ProductSearch() {
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Filter */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-3 space-y-2">
+      <div className="bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl shadow-sm p-3 space-y-2">
         {/* 1줄: 카테고리, 등급, 추천, 숨김포함, 초기화 */}
         <div className="flex items-center gap-2">
           <select
-            className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+            className="flex-1 min-w-0 rounded-lg border border-[#E0E0E0] px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A] outline-none transition text-[#333333]"
             value={category}
             onChange={(e) => { setCategory(e.target.value); setPage(1); }}
           >
@@ -202,7 +202,7 @@ export default function ProductSearch() {
             ))}
           </select>
           <select
-            className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+            className="flex-1 min-w-0 rounded-lg border border-[#E0E0E0] px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A] outline-none transition text-[#333333]"
             value={grade}
             onChange={(e) => { setGrade(e.target.value); setPage(1); }}
           >
@@ -215,8 +215,8 @@ export default function ProductSearch() {
             className={cn(
               'px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0',
               isRecommended
-                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                ? 'bg-[#546E7A] text-white border-[#546E7A]'
+                : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-[#546E7A]'
             )}
           >
             {isRecommended && <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
@@ -228,13 +228,13 @@ export default function ProductSearch() {
               'px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0',
               includeHidden
                 ? 'bg-orange-100 text-orange-800 border-orange-300'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300'
+                : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-orange-300'
             )}
           >
             {includeHidden && <svg className="inline w-3 h-3 mr-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
             숨김포함
           </button>
-          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600 px-2 shrink-0" onClick={handleReset} title="초기화">
+          <Button variant="ghost" size="sm" className="text-[#666666] hover:text-[#333333] px-2 shrink-0" onClick={handleReset} title="초기화">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           </Button>
         </div>
@@ -245,27 +245,27 @@ export default function ProductSearch() {
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="flex-1 min-w-0 h-8 text-sm border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            className="flex-1 min-w-0 h-8 text-sm border-[#E0E0E0] focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A]"
           />
           <Input
             placeholder="서비스 지역"
             value={serviceArea}
             onChange={(e) => setServiceArea(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="flex-1 min-w-0 h-8 text-sm border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            className="flex-1 min-w-0 h-8 text-sm border-[#E0E0E0] focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A]"
           />
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0 h-8" onClick={handleSearch}>검색</Button>
+          <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm shrink-0 h-8" onClick={handleSearch}>검색</Button>
         </div>
       </div>
 
       {/* Result count */}
       {data && (
-        <div className="text-sm text-slate-500 font-medium">총 <span className="text-emerald-700">{data.total}</span>개</div>
+        <div className="text-sm text-slate-500 font-medium">총 <span className="text-[#37474F] font-semibold">{data.total}</span>개</div>
       )}
 
       {isLoading && (
         <div className="text-center py-12 text-slate-400">
-          <div className="inline-block w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2" />
+          <div className="inline-block w-6 h-6 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin mb-2" />
           <p className="text-sm">로딩 중...</p>
         </div>
       )}
@@ -416,7 +416,7 @@ function ProductCard({
           <div className="text-xs truncate text-slate-700 font-medium">{item.memo}</div>
         )}
         {item.sellingPrice != null && (
-          <div className="text-sm font-bold text-emerald-700">
+          <div className="text-sm font-bold text-[#37474F]">
             {item.sellingPrice.toLocaleString()}원
           </div>
         )}
@@ -426,7 +426,7 @@ function ProductCard({
           </div>
         )}
         <div
-          className="text-xs text-emerald-600 hover:text-emerald-800 cursor-pointer truncate transition-colors font-medium"
+          className="text-xs text-[#546E7A] hover:text-[#37474F] cursor-pointer truncate transition-colors font-medium"
           onClick={(e) => { e.stopPropagation(); onFloristClick(); }}
         >
           {item.floristName}
@@ -492,7 +492,7 @@ function ProductDetail({
                 checked={!item.isHidden}
                 onChange={onToggleVisibility}
                 disabled={isToggling}
-                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer disabled:opacity-50"
+                className="w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-slate-400/30 cursor-pointer disabled:opacity-50"
               />
               <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
             </label>
@@ -500,7 +500,7 @@ function ProductDetail({
               'text-[11px] font-semibold px-2 py-0.5 rounded-md',
               item.isHidden
                 ? 'bg-orange-100 text-orange-700'
-                : 'bg-emerald-100 text-emerald-700'
+                : 'bg-slate-100 text-slate-700'
             )}>
               {item.isHidden ? '숨김' : '공개'}
             </span>
@@ -560,7 +560,7 @@ function ProductDetail({
             {item.sellingPrice != null && (
               <div className="flex gap-2">
                 <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">판매가</dt>
-                <dd className="text-emerald-700 font-bold">{item.sellingPrice.toLocaleString()}원</dd>
+                <dd className="text-[#37474F] font-bold">{item.sellingPrice.toLocaleString()}원</dd>
               </div>
             )}
             {item.costPrice != null && (
@@ -579,7 +579,7 @@ function ProductDetail({
               <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">화원명</dt>
               <dd>
                 <span
-                  className="text-emerald-600 hover:text-emerald-800 cursor-pointer font-medium transition-colors"
+                  className="text-[#546E7A] hover:text-[#37474F] cursor-pointer font-medium transition-colors"
                   onClick={onFloristClick}
                 >
                   {item.floristName}
@@ -601,7 +601,7 @@ function ProductDetail({
             {item.floristServiceAreas.length > 0 && (
               <div className="flex gap-2">
                 <dt className="text-slate-400 w-14 sm:w-16 flex-shrink-0">서비스지역</dt>
-                <dd className="text-emerald-600 font-medium break-all min-w-0">{item.floristServiceAreas.join(', ')}</dd>
+                <dd className="text-[#546E7A] font-medium break-all min-w-0">{item.floristServiceAreas.join(', ')}</dd>
               </div>
             )}
           </dl>
@@ -611,7 +611,7 @@ function ProductDetail({
         <div className="pt-2 border-t border-slate-100">
           <Button
             size="sm"
-            className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+            className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
             onClick={onEdit}
           >
             <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -686,12 +686,12 @@ function ProductDetailEdit({
               type="checkbox"
               checked={!editIsHidden}
               onChange={() => setEditIsHidden(!editIsHidden)}
-              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer"
+              className="w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-slate-400/30 cursor-pointer"
             />
             <span className="text-sm font-medium text-slate-700">카탈로그 표시</span>
             <span className={cn(
               'text-[11px] font-semibold px-2 py-0.5 rounded-md ml-auto',
-              editIsHidden ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'
+              editIsHidden ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'
             )}>
               {editIsHidden ? '숨김' : '공개'}
             </span>
@@ -721,8 +721,8 @@ function ProductDetailEdit({
                 className={cn(
                   'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
                   editCategory === c.code
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-600/20'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                    ? 'bg-[#546E7A] text-white border-transparent shadow-md shadow-slate-600/20'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                 )}
               >
                 {c.label}
@@ -753,7 +753,7 @@ function ProductDetailEdit({
         {/* Memo */}
         <div className="space-y-1">
           <Label className="text-slate-600">메모 (제품명 등)</Label>
-          <Input value={editMemo} onChange={(e) => setEditMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+          <Input value={editMemo} onChange={(e) => setEditMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
         </div>
 
         {/* Prices */}
@@ -765,7 +765,7 @@ function ProductDetailEdit({
                 value={editCostPrice}
                 onChange={(e) => setEditCostPrice(formatCurrency(e.target.value))}
                 placeholder="예: 50,000"
-                className="pr-8 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
               />
               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
             </div>
@@ -777,7 +777,7 @@ function ProductDetailEdit({
                 value={editSellingPrice}
                 onChange={(e) => setEditSellingPrice(formatCurrency(e.target.value))}
                 placeholder="예: 70,000"
-                className="pr-8 border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
               />
               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
             </div>
@@ -791,7 +791,7 @@ function ProductDetailEdit({
             size="sm"
             onClick={handleSave}
             disabled={!editCategory || saving}
-            className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+            className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
           >
             {saving ? '저장 중...' : '저장'}
           </Button>
