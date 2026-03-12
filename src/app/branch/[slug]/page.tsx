@@ -463,12 +463,9 @@ function ProductsSection({
                 >
                   {categoryList.map((cat) => {
                     const label = cat === '전체' ? '전체 상품' : categoryLabel(cat);
-                    const count = cat === '전체'
-                      ? products.length
-                      : products.filter((p) => p.category === cat).length;
                     return (
                       <option key={cat} value={cat}>
-                        {label} ({count})
+                        {label}
                       </option>
                     );
                   })}
@@ -478,9 +475,6 @@ function ProductsSection({
                   {categoryList.map((cat) => {
                     const isActive = cat === selectedCategory;
                     const label = cat === '전체' ? '전체' : categoryLabel(cat);
-                    const count = cat === '전체'
-                      ? products.length
-                      : products.filter((p) => p.category === cat).length;
                     return (
                       <button
                         key={cat}
@@ -491,7 +485,7 @@ function ProductsSection({
                             : 'bg-white/70 text-[var(--branch-text-light)] hover:bg-white border border-[var(--branch-rose-light)]'
                         }`}
                       >
-                        {label} ({count})
+                        {label}
                       </button>
                     );
                   })}
