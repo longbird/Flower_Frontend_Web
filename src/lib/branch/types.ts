@@ -22,6 +22,7 @@ export interface BranchProduct {
   grade?: string;
   basePrice: number;
   price: number;
+  surcharge: number;
   sortOrder: number;
   serviceAreas?: string | null;
 }

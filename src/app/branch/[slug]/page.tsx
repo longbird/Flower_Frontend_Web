@@ -127,7 +127,7 @@ function ProductCard({
           </p>
         )}
         <span className="text-xl font-semibold text-[var(--branch-accent)]">
-          {formatPrice(product.price)}
+          {formatPrice(product.price + (product.surcharge || 0))}
         </span>
       </div>
     </div>
@@ -233,7 +233,7 @@ function ProductDetailModal({
               )}
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-semibold text-[var(--branch-text)] truncate">{product.name}</h3>
-                <p className="text-sm font-bold text-[var(--branch-accent)]">{formatPrice(product.price)}</p>
+                <p className="text-sm font-bold text-[var(--branch-accent)]">{formatPrice(product.price + (product.surcharge || 0))}</p>
               </div>
             </div>
 
@@ -356,7 +356,7 @@ function ProductDetailModal({
 
               <div className="mb-4">
                 <span className="text-2xl font-bold text-[var(--branch-accent)]">
-                  {formatPrice(product.price)}
+                  {formatPrice(product.price + (product.surcharge || 0))}
                 </span>
               </div>
 

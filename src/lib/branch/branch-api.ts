@@ -77,6 +77,7 @@ export interface MyBranchInfo {
   serviceAreas?: string;
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
+  defaultSurcharge?: number;
   allowFloristSearch?: boolean;
 }
 
@@ -94,6 +95,7 @@ export async function updateMyBranchInfo(body: {
   description?: string;
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
+  defaultSurcharge?: number;
 }) {
   return branchApi<{ ok: boolean; data: MyBranchInfo }>('/branch/me', {
     method: 'PATCH',
@@ -143,6 +145,7 @@ export interface BranchProductSetting {
   basePrice: number;
   isVisible: boolean;
   sellingPrice: number | null;
+  surcharge: number;
 }
 
 export async function fetchBranchProducts() {
@@ -152,11 +155,19 @@ export async function fetchBranchProducts() {
 /** 지사 상품 설정 변경 (관리자) */
 export async function updateBranchProduct(
   productId: number,
-  body: { isVisible?: boolean; sellingPrice?: number | null }
+  body: { isVisible?: boolean; sellingPrice?: number | null; surcharge?: number }
 ) {
   return branchApi<{ ok: boolean }>(`/branch/products/${productId}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
+  });
+}
+
+/** 지사 상품 추가금 일괄 설정 */
+export async function bulkUpdateBranchSurcharge(surcharge: number) {
+  return branchApi<{ ok: boolean; updated: number }>('/branch/products/bulk-surcharge', {
+    method: 'PATCH',
+    body: JSON.stringify({ surcharge }),
   });
 }
 
