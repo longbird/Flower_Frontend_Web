@@ -19,9 +19,11 @@ export interface BranchProduct {
   description?: string;
   imageUrl?: string;
   category?: string;
+  grade?: string;
   basePrice: number;
   price: number;
   sortOrder: number;
+  serviceAreas?: string | null;
 }
 
 /** 상담 요청 */

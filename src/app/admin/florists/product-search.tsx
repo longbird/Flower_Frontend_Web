@@ -226,6 +226,8 @@ export default function ProductSearch() {
           size="sm"
           className="h-8 text-sm relative"
           onClick={() => setFilterOpen(!filterOpen)}
+          aria-expanded={filterOpen}
+          aria-controls="product-search-filter"
         >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
           필터
@@ -238,10 +240,13 @@ export default function ProductSearch() {
           <span className="text-sm text-slate-500 font-medium ml-auto">총 <span className="text-[#37474F] font-semibold">{data.total}</span>개</span>
         )}
       </div>
-      <div className={cn(
-        'bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl shadow-sm p-3 space-y-2',
-        filterOpen ? 'block' : 'hidden md:block'
-      )}>
+      <div
+        id="product-search-filter"
+        className={cn(
+          'bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl shadow-sm p-3 space-y-2',
+          filterOpen ? 'block' : 'hidden md:block'
+        )}
+      >
         {/* 1줄: 카테고리, 등급 */}
         <div className="flex items-center gap-2">
           <select
@@ -267,6 +272,7 @@ export default function ProductSearch() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setIsRecommended(!isRecommended); setPage(1); }}
+            aria-pressed={isRecommended}
             className={cn(
               'px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0',
               isRecommended
@@ -278,6 +284,7 @@ export default function ProductSearch() {
           </button>
           <button
             onClick={() => { setIncludeHidden(!includeHidden); setPage(1); }}
+            aria-pressed={includeHidden}
             className={cn(
               'px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0',
               includeHidden

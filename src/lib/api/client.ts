@@ -5,36 +5,44 @@ const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 // 개발환경: Next.js rewrites 프록시를 통해 CORS 우회
 const API_BASE_URL = RAW_API_BASE ? '/api/proxy' : '';
 
-let isRefreshing = false;
 let refreshPromise: Promise<string> | null = null;
 
-async function refreshAccessToken(): Promise<string> {
-  const { refreshToken, setTokens, logout } = useAuthStore.getState();
+function refreshAccessToken(): Promise<string> {
+  // 이미 진행 중인 refresh가 있으면 동일한 Promise를 반환 (race condition 방지)
+  if (refreshPromise) return refreshPromise;
 
-  if (!refreshToken) {
-    logout();
-    throw new Error('No refresh token');
-  }
+  refreshPromise = (async () => {
+    const { refreshToken, setTokens, logout } = useAuthStore.getState();
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/admin/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!res.ok) {
+    if (!refreshToken) {
       logout();
-      throw new Error('Token refresh failed');
+      throw new Error('No refresh token');
     }
 
-    const data: TokenRefreshResponse = await res.json();
-    setTokens(data.accessToken, data.refreshToken);
-    return data.accessToken;
-  } catch (e) {
-    logout();
-    throw e;
-  }
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!res.ok) {
+        logout();
+        throw new Error('Token refresh failed');
+      }
+
+      const data: TokenRefreshResponse = await res.json();
+      setTokens(data.accessToken, data.refreshToken);
+      return data.accessToken;
+    } catch (e) {
+      logout();
+      throw e;
+    }
+  })().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
 }
 
 export class ApiError extends Error {
@@ -76,18 +84,10 @@ export async function api<T = unknown>(
     headers,
   });
 
-  // 401 -> try refresh
+  // 401 -> try refresh (동시 요청은 동일한 refreshPromise를 공유)
   if (res.status === 401 && !path.includes('/auth/')) {
-    if (!isRefreshing) {
-      isRefreshing = true;
-      refreshPromise = refreshAccessToken().finally(() => {
-        isRefreshing = false;
-        refreshPromise = null;
-      });
-    }
-
     try {
-      const newToken = await refreshPromise!;
+      const newToken = await refreshAccessToken();
       headers['Authorization'] = `Bearer ${newToken}`;
       res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
     } catch {

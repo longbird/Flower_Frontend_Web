@@ -84,8 +84,6 @@ describe('Admin Login Page', () => {
     const mockLogin = adminLogin as ReturnType<typeof vi.fn>;
     mockLogin.mockRejectedValueOnce(new Error('아이디 또는 비밀번호가 일치하지 않습니다.'));
 
-    const { toast } = await import('sonner');
-
     render(
       <Wrapper>
         <AdminLoginPage />
@@ -97,7 +95,7 @@ describe('Admin Login Page', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }));
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('아이디 또는 비밀번호가 일치하지 않습니다.');
+      expect(screen.getByText('아이디 또는 비밀번호가 일치하지 않습니다.')).toBeInTheDocument();
     });
   });
 });

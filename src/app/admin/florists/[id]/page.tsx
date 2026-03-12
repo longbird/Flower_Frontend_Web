@@ -32,6 +32,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
 const CATEGORIES: { code: PhotoCategory; name: string }[] = [
@@ -110,6 +120,8 @@ export default function FloristDetailPage({
   const [photoCacheBuster, setPhotoCacheBuster] = useState(0);
   const [uploadDialogFile, setUploadDialogFile] = useState<File | null>(null);
   const [newServiceArea, setNewServiceArea] = useState('');
+  const [deleteAreaConfirm, setDeleteAreaConfirm] = useState<string | null>(null);
+  const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<{ photoId: number; beforeSnapshot: FloristPhoto } | null>(null);
 
   const { data: floristRes, isLoading } = useQuery({
     queryKey: ['florist', id],
@@ -482,7 +494,7 @@ export default function FloristDetailPage({
                         {florist.serviceAreas.map((area) => (
                           <span key={area} className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
                             {area}
-                            <button className="ml-0.5 text-blue-400 hover:text-red-500 transition-colors" onClick={() => { if (confirm(`"${area}" 서비스 지역을 삭제하시겠습니까?`)) removeAreaMutation.mutate(area); }}>
+                            <button className="ml-0.5 text-blue-400 hover:text-red-500 transition-colors" onClick={() => setDeleteAreaConfirm(area)}>
                               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                           </span>
@@ -696,7 +708,7 @@ export default function FloristDetailPage({
               photo={selectedPhoto}
               onSave={(data) => updatePhotoMutation.mutate({ photoId: selectedPhoto.id, data, beforeSnapshot: selectedPhoto })}
               onDelete={() => {
-                if (confirm('정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: selectedPhoto.id, beforeSnapshot: selectedPhoto });
+                setDeletePhotoConfirm({ photoId: selectedPhoto.id, beforeSnapshot: selectedPhoto });
               }}
               onToggleVisibility={() => handleToggleVisibility(selectedPhoto)}
               onViewFull={() => { setViewerPhoto(selectedPhoto); setSelectedPhoto(null); }}
@@ -715,7 +727,7 @@ export default function FloristDetailPage({
           onClose={() => setViewerPhoto(null)}
           onToggleVisibility={() => handleToggleVisibility(viewerPhoto)}
           onDelete={() => {
-            if (confirm('정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: viewerPhoto.id, beforeSnapshot: viewerPhoto });
+            setDeletePhotoConfirm({ photoId: viewerPhoto.id, beforeSnapshot: viewerPhoto });
           }}
           onRotateSave={async (angle) => {
             await rotatePhotoMutation.mutateAsync({ photoId: viewerPhoto.id, angle });
@@ -727,6 +739,54 @@ export default function FloristDetailPage({
           }}
         />
       )}
+
+      {/* Service Area Delete Confirm */}
+      <AlertDialog open={!!deleteAreaConfirm} onOpenChange={(open) => { if (!open) setDeleteAreaConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>서비스 지역 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              &quot;{deleteAreaConfirm}&quot; 서비스 지역을 삭제하시겠습니까?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (deleteAreaConfirm) removeAreaMutation.mutate(deleteAreaConfirm);
+                setDeleteAreaConfirm(null);
+              }}
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Photo Delete Confirm */}
+      <AlertDialog open={!!deletePhotoConfirm} onOpenChange={(open) => { if (!open) setDeletePhotoConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>사진 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말 삭제하시겠습니까? 삭제된 사진은 복구할 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (deletePhotoConfirm) deletePhotoMutation.mutate(deletePhotoConfirm);
+                setDeletePhotoConfirm(null);
+              }}
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -1286,7 +1346,6 @@ function ImageViewer({
     setInpaintLoading(true);
     try {
       const res = await removeFloristPhotoText(floristId, photo.id, maskBlob, 'preview');
-      console.log('[inpaint preview]', res);
       if (res.ok && res.previewUrl) {
         const previewWithCache = `${photoUrl(res.previewUrl)}${res.previewUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
         setPreviewUrl(previewWithCache);
@@ -1294,7 +1353,6 @@ function ImageViewer({
         toast.error(res.message || '미리보기 생성 실패');
       }
     } catch (err) {
-      console.error('[inpaint preview error]', err);
       toast.error(err instanceof Error ? err.message : '문구 제거 실패');
     } finally {
       setInpaintLoading(false);
@@ -1311,7 +1369,6 @@ function ImageViewer({
     setInpaintLoading(true);
     try {
       const res = await removeFloristPhotoText(floristId, photo.id, maskBlob, 'apply');
-      console.log('[inpaint apply]', res);
       if (res.ok) {
         toast.success('문구가 제거되었습니다');
         setPreviewUrl(null);
@@ -1323,7 +1380,6 @@ function ImageViewer({
         toast.error(res.message || '적용 실패');
       }
     } catch (err) {
-      console.error('[inpaint apply error]', err);
       toast.error(err instanceof Error ? err.message : '적용 실패');
     } finally {
       setInpaintLoading(false);

@@ -8,6 +8,16 @@ import { api } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const SCOPE_LABELS: Record<string, string> = {
   ALL: '전체',
@@ -21,6 +31,7 @@ export default function AnnouncementDetailPage({ params }: { params: Promise<{ i
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', content: '', isPinned: false });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data: announcement, isLoading } = useQuery({
     queryKey: ['admin-announcement', id],
@@ -81,9 +92,12 @@ export default function AnnouncementDetailPage({ params }: { params: Promise<{ i
   };
 
   const handleDelete = () => {
-    if (confirm('이 공지사항을 삭제하시겠습니까?')) {
-      deleteMutation.mutate();
-    }
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    setShowDeleteConfirm(false);
+    deleteMutation.mutate();
   };
 
   if (isLoading) return <div className="text-center py-12 text-slate-400">로딩 중...</div>;
@@ -178,6 +192,27 @@ export default function AnnouncementDetailPage({ params }: { params: Promise<{ i
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirm Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>공지사항 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 공지사항을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -26,6 +26,23 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
   FOLIAGE: '관엽', RICE: '쌀', FRUIT: '과일', OTHER: '기타',
 };
 
+// 카테고리 표시 순서
+const CATEGORY_ORDER = [
+  'CELEBRATION', 'CONDOLENCE', 'OBJET', 'ORIENTAL', 'WESTERN', 'FLOWER',
+  'FOLIAGE', 'RICE', 'FRUIT', 'OTHER',
+  'bouquet', 'basket', 'box', 'wreath', 'plant', 'event', 'etc',
+];
+
+const GRADE_LABEL_MAP: Record<string, string> = {
+  PREMIUM: '프리미엄',
+  HIGH: '고급형',
+  STANDARD: '실속형',
+};
+
+function gradeLabel(code: string) {
+  return GRADE_LABEL_MAP[code] || code;
+}
+
 function categoryLabel(code: string) {
   return CATEGORY_LABEL_MAP[code] || code;
 }
@@ -41,58 +58,20 @@ function photoUrl(url: string) {
 
 function HeroSection({ branch }: { branch: BranchInfo }) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[var(--branch-rose-light)] via-[var(--branch-peach-light)] to-[var(--branch-cream)] py-8 px-4">
-      <div className="absolute top-0 left-0 w-48 h-48 bg-[var(--branch-rose)] opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-64 h-64 bg-[var(--branch-peach)] opacity-10 rounded-full translate-x-1/3 translate-y-1/3" />
-
-      <div className="relative max-w-4xl mx-auto text-center">
-        <p className="text-[var(--branch-accent)] text-xs tracking-[0.3em] uppercase mb-2 font-light">
-          Flower Delivery Service
-        </p>
-        <h1 className="text-3xl md:text-4xl font-semibold text-[var(--branch-text)] mb-3 leading-tight">
-          {branch.name}
-        </h1>
-        {branch.description && (
-          <p className="text-base text-[var(--branch-text-light)] mb-4 max-w-2xl mx-auto leading-relaxed font-light">
-            {branch.description}
-          </p>
-        )}
-
-        {/* Compact info chips */}
-        <div className="flex flex-wrap justify-center gap-3 mb-5 text-sm">
-          {branch.phone && (
-            <a
-              href={`tel:${branch.phone}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 text-[var(--branch-text)] hover:bg-white transition-colors"
-            >
-              <span className="text-base">📞</span> {branch.phone}
-            </a>
-          )}
-          {branch.address && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 text-[var(--branch-text)]">
-              <span className="text-base">📍</span> {branch.address}
-            </span>
-          )}
-          {branch.serviceAreas && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 text-[var(--branch-text)]">
-              <span className="text-base">🚗</span> {branch.serviceAreas}
-            </span>
-          )}
+    <section className="relative overflow-hidden bg-gradient-to-br from-[var(--branch-rose-light)] via-[var(--branch-peach-light)] to-[var(--branch-cream)] py-3 px-4 md:py-6">
+      <div className="relative max-w-4xl mx-auto flex items-center justify-between md:flex-col md:text-center gap-2">
+        <div className="min-w-0">
+          <h1 className="text-lg md:text-3xl font-semibold text-[var(--branch-text)] leading-tight truncate">
+            {branch.name}
+          </h1>
         </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href={`/branch/${branch.code}/consult`}
-            className="inline-flex items-center justify-center px-6 py-3 bg-[var(--branch-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--branch-rose)] transition-colors shadow-lg hover:shadow-xl"
-          >
-            상담 요청하기
-          </Link>
+        <div className="flex items-center gap-2 shrink-0 md:mt-2">
           {branch.phone && (
             <a
               href={`tel:${branch.phone}`}
-              className="inline-flex items-center justify-center px-6 py-3 border-2 border-[var(--branch-accent)] text-[var(--branch-accent)] rounded-full text-sm font-medium hover:bg-[var(--branch-accent)] hover:text-white transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/60 hover:bg-white transition-colors text-xs text-[var(--branch-text-light)]"
             >
-              전화 문의
+              📞 <span className="hidden sm:inline">{branch.phone}</span><span className="sm:hidden">전화</span>
             </a>
           )}
         </div>
@@ -147,16 +126,9 @@ function ProductCard({
             {product.description}
           </p>
         )}
-        <div className="flex items-center justify-between">
-          <span className="text-xl font-semibold text-[var(--branch-accent)]">
-            {formatPrice(product.price)}
-          </span>
-          {product.price !== product.basePrice && (
-            <span className="text-sm text-[var(--branch-text-light)] line-through">
-              {formatPrice(product.basePrice)}
-            </span>
-          )}
-        </div>
+        <span className="text-xl font-semibold text-[var(--branch-accent)]">
+          {formatPrice(product.price)}
+        </span>
       </div>
     </div>
   );
@@ -179,28 +151,23 @@ function ProductDetailModal({
   const [error, setError] = useState('');
   const imgSrc = product.imageUrl ? photoUrl(product.imageUrl) : '';
 
+  // Get today as default/min date
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
   const [form, setForm] = useState<ConsultRequestForm>({
     customerName: '',
     customerPhone: '',
     productCode: product.sku,
     productName: product.name,
-    desiredDate: '',
+    desiredDate: todayStr,
     message: '',
   });
-
-  // Get tomorrow as min date
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!form.customerName.trim()) {
-      setError('이름을 입력해 주세요.');
-      return;
-    }
     if (!form.customerPhone.trim() || form.customerPhone.replace(/\D/g, '').length < 10) {
       setError('올바른 연락처를 입력해 주세요.');
       return;
@@ -275,7 +242,7 @@ function ProductDetailModal({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm text-[var(--branch-text)] mb-1.5 font-medium">
-                  이름 <span className="text-[var(--branch-accent)]">*</span>
+                  이름
                 </label>
                 <input
                   type="text"
@@ -283,7 +250,6 @@ function ProductDetailModal({
                   onChange={(e) => setForm((prev) => ({ ...prev, customerName: e.target.value }))}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-[var(--branch-text)] placeholder-[var(--branch-text-light)]/50 focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors"
                   placeholder="홍길동"
-                  required
                 />
               </div>
 
@@ -314,7 +280,7 @@ function ProductDetailModal({
                   type="date"
                   value={form.desiredDate}
                   onChange={(e) => setForm((prev) => ({ ...prev, desiredDate: e.target.value }))}
-                  min={minDate}
+                  min={todayStr}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-[var(--branch-text)] focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors"
                 />
               </div>
@@ -388,15 +354,10 @@ function ProductDetailModal({
                 {product.name}
               </h2>
 
-              <div className="flex items-center gap-3 mb-4">
+              <div className="mb-4">
                 <span className="text-2xl font-bold text-[var(--branch-accent)]">
                   {formatPrice(product.price)}
                 </span>
-                {product.price !== product.basePrice && (
-                  <span className="text-base text-[var(--branch-text-light)] line-through">
-                    {formatPrice(product.basePrice)}
-                  </span>
-                )}
               </div>
 
               {product.description && (
@@ -434,86 +395,151 @@ function ProductsSection({
   onProductClick: (product: BranchProduct) => void;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
+  const [selectedGrade, setSelectedGrade] = useState<string>('전체');
   const [deliveryArea, setDeliveryArea] = useState('');
 
-  // Build category list
+  // Build category list (sorted by CATEGORY_ORDER)
   const categoryList = useMemo(() => {
     const cats = new Set<string>();
     for (const p of products) {
       if (p.category) cats.add(p.category);
     }
-    return ['전체', ...Array.from(cats)];
+    const sorted = CATEGORY_ORDER.filter((c) => cats.has(c));
+    const rest = Array.from(cats).filter((c) => !CATEGORY_ORDER.includes(c));
+    return ['전체', ...sorted, ...rest];
   }, [products]);
 
-  // Parse service areas from branch for area suggestions
-  const serviceAreaList = useMemo(() => {
-    if (!branch.serviceAreas) return [];
-    return branch.serviceAreas.split(',').map((a) => a.trim()).filter(Boolean);
-  }, [branch.serviceAreas]);
+  // Build grade list
+  const gradeList = useMemo(() => {
+    const grades = new Set<string>();
+    for (const p of products) {
+      if (p.grade) grades.add(p.grade);
+    }
+    return grades.size > 0 ? ['전체', ...Array.from(grades)] : [];
+  }, [products]);
 
-  // Filter products
+  // Check if any product has service area info
+  const hasServiceAreas = useMemo(() => {
+    return products.some((p) => p.serviceAreas);
+  }, [products]);
+
+  // Filter products (category + grade + delivery area)
   const filteredProducts = useMemo(() => {
     let result = products;
     if (selectedCategory !== '전체') {
       result = result.filter((p) => p.category === selectedCategory);
     }
+    if (selectedGrade !== '전체') {
+      result = result.filter((p) => p.grade === selectedGrade);
+    }
+    if (deliveryArea.trim()) {
+      const input = deliveryArea.trim();
+      result = result.filter((p) => {
+        if (!p.serviceAreas) return false;
+        const areas = p.serviceAreas.split(',').map((a) => a.trim());
+        return areas.some((area) => area.includes(input) || input.includes(area));
+      });
+    }
     return result;
-  }, [products, selectedCategory]);
-
-  // Check if entered delivery area matches service areas
-  const areaMatchResult = useMemo(() => {
-    if (!deliveryArea.trim() || serviceAreaList.length === 0) return null;
-    const input = deliveryArea.trim();
-    const matched = serviceAreaList.some(
-      (area) => input.includes(area) || area.includes(input)
-    );
-    return matched;
-  }, [deliveryArea, serviceAreaList]);
+  }, [products, selectedCategory, selectedGrade, deliveryArea]);
 
   if (products.length === 0) return null;
 
   return (
-    <section className="py-10 px-4">
+    <section className="py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8">
-          <p className="text-[var(--branch-accent)] text-xs tracking-[0.3em] uppercase mb-2 font-light">
-            Our Products
-          </p>
-          <h2 className="text-2xl md:text-3xl text-[var(--branch-text)]">
-            상품 안내
-          </h2>
-        </div>
+        {/* Filters */}
+        <div className="mb-6 space-y-3">
+          {/* Mobile: select dropdowns / Desktop: pill buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+            {/* Category filter */}
+            {categoryList.length > 2 && (
+              <>
+                {/* Mobile: select */}
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="sm:hidden w-full max-w-xs px-4 py-2.5 rounded-full border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%237a6365%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_12px_center]"
+                >
+                  {categoryList.map((cat) => {
+                    const label = cat === '전체' ? '전체 상품' : categoryLabel(cat);
+                    const count = cat === '전체'
+                      ? products.length
+                      : products.filter((p) => p.category === cat).length;
+                    return (
+                      <option key={cat} value={cat}>
+                        {label} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+                {/* Desktop: pill buttons */}
+                <div className="hidden sm:flex flex-wrap justify-center gap-2">
+                  {categoryList.map((cat) => {
+                    const isActive = cat === selectedCategory;
+                    const label = cat === '전체' ? '전체' : categoryLabel(cat);
+                    const count = cat === '전체'
+                      ? products.length
+                      : products.filter((p) => p.category === cat).length;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-[var(--branch-accent)] text-white shadow-md'
+                            : 'bg-white/70 text-[var(--branch-text-light)] hover:bg-white border border-[var(--branch-rose-light)]'
+                        }`}
+                      >
+                        {label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
-        {/* Filters row */}
-        <div className="mb-8 space-y-4">
-          {/* Category filter tabs */}
-          {categoryList.length > 2 && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {categoryList.map((cat) => {
-                const isActive = cat === selectedCategory;
-                const label = cat === '전체' ? '전체' : categoryLabel(cat);
-                const count = cat === '전체'
-                  ? products.length
-                  : products.filter((p) => p.category === cat).length;
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[var(--branch-accent)] text-white shadow-md'
-                        : 'bg-white/70 text-[var(--branch-text-light)] hover:bg-white border border-[var(--branch-rose-light)]'
-                    }`}
-                  >
-                    {label} ({count})
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            {/* Grade filter */}
+            {gradeList.length > 1 && (
+              <>
+                {/* Mobile: select */}
+                <select
+                  value={selectedGrade}
+                  onChange={(e) => setSelectedGrade(e.target.value)}
+                  className="sm:hidden w-full max-w-xs px-4 py-2.5 rounded-full border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%237a6365%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_12px_center]"
+                >
+                  {gradeList.map((g) => (
+                    <option key={g} value={g}>
+                      {g === '전체' ? '전체 등급' : gradeLabel(g)}
+                    </option>
+                  ))}
+                </select>
+                {/* Desktop: pill buttons */}
+                <div className="hidden sm:flex flex-wrap justify-center gap-2">
+                  {gradeList.map((g) => {
+                    const isActive = g === selectedGrade;
+                    const label = g === '전체' ? '전체 등급' : gradeLabel(g);
+                    return (
+                      <button
+                        key={g}
+                        onClick={() => setSelectedGrade(g)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-[var(--branch-accent)] text-white shadow-md'
+                            : 'bg-white/70 text-[var(--branch-text-light)] hover:bg-white border border-[var(--branch-rose-light)]'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Delivery area filter */}
-          {serviceAreaList.length > 0 && (
+          {hasServiceAreas && (
             <div className="max-w-md mx-auto">
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base">🚗</span>
@@ -525,24 +551,13 @@ function ProductsSection({
                   className="w-full pl-10 pr-4 py-2.5 rounded-full border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] placeholder-[var(--branch-text-light)]/50 focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors text-sm"
                 />
               </div>
-              {areaMatchResult !== null && (
-                <p className={`text-center text-sm mt-2 ${areaMatchResult ? 'text-emerald-600' : 'text-amber-600'}`}>
-                  {areaMatchResult
-                    ? '배달 가능 지역입니다!'
-                    : '서비스 가능 지역이 아닐 수 있습니다. 전화로 문의해 주세요.'}
+              {deliveryArea.trim() && (
+                <p className={`text-center text-sm mt-2 ${filteredProducts.length > 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {filteredProducts.length > 0
+                    ? `배달 가능 상품 ${filteredProducts.length}건`
+                    : '해당 지역에 배달 가능한 상품이 없습니다. 전화로 문의해 주세요.'}
                 </p>
               )}
-              <div className="flex flex-wrap justify-center gap-1.5 mt-2">
-                {serviceAreaList.map((area) => (
-                  <button
-                    key={area}
-                    onClick={() => setDeliveryArea(area)}
-                    className="px-2.5 py-1 rounded-full bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]/50 text-xs text-[var(--branch-text-light)] hover:bg-white hover:text-[var(--branch-text)] transition-colors"
-                  >
-                    {area}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
         </div>
@@ -551,7 +566,7 @@ function ProductsSection({
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12 text-[var(--branch-text-light)]">
             <div className="text-4xl mb-3 opacity-40">🌷</div>
-            <p className="font-light">해당 카테고리에 상품이 없습니다.</p>
+            <p className="font-light">해당 조건에 맞는 상품이 없습니다.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

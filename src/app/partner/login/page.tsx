@@ -15,8 +15,8 @@ export default function PartnerLoginPage() {
   const router = useRouter();
   const login = usePartnerAuthStore((s) => s.login);
 
-  const [accountId, setAccountId] = useState('demo');
-  const [password, setPassword] = useState('demo1234');
+  const [accountId, setAccountId] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [twoFaRequired, setTwoFaRequired] = useState(false);

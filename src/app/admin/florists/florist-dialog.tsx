@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -14,83 +14,25 @@ import {
   updateFloristPhoto,
   deleteFloristPhoto,
   rotateFloristPhoto,
-  removeFloristPhotoText,
 } from '@/lib/api/admin';
-import type { FloristSummary, FloristPhoto, PhotoCategory, PhotoGrade } from '@/lib/types/florist';
+import type { FloristSummary, FloristPhoto } from '@/lib/types/florist';
 import { addPhotoLog } from '@/lib/photo-log';
 import { useAuthStore } from '@/lib/auth/store';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
-
-const CAPABILITY_OPTIONS = [
-  { code: 'CELEBRATION', label: '축하기본' },
-  { code: 'CELEBRATION_LARGE', label: '축하(대)' },
-  { code: 'CONDOLENCE', label: '근조기본' },
-  { code: 'CONDOLENCE_LARGE', label: '근조(대)' },
-  { code: 'LARGE', label: '근조(특대)' },
-  { code: 'MULTI_TIER', label: '근조4단이상' },
-  { code: 'OBJET', label: '오브제' },
-  { code: 'RICE', label: '쌀' },
-  { code: 'ORIENTAL_ORCHID', label: '동양란' },
-  { code: 'WESTERN_ORCHID', label: '서양란' },
-  { code: 'FLOWER', label: '꽃' },
-  { code: 'FOLIAGE', label: '관엽' },
-  { code: 'HOLIDAY_UNAVAILABLE', label: '휴일불가' },
-];
-
-const GRADE_OPTIONS = [
-  { value: 0, label: '없음' },
-  { value: 1, label: '브론즈' },
-  { value: 2, label: '실버' },
-  { value: 3, label: '골드' },
-  { value: 4, label: '플래티넘' },
-  { value: 5, label: '다이아' },
-];
-
-const CATEGORIES: { code: PhotoCategory | string; name: string }[] = [
-  { code: 'CELEBRATION', name: '축하' },
-  { code: 'CONDOLENCE', name: '근조' },
-  { code: 'OBJET', name: '오브제' },
-  { code: 'ORIENTAL', name: '동양란' },
-  { code: 'WESTERN', name: '서양란' },
-  { code: 'FLOWER', name: '꽃' },
-  { code: 'FOLIAGE', name: '관엽' },
-  { code: 'RICE', name: '쌀' },
-  { code: 'FRUIT', name: '과일' },
-  { code: 'OTHER', name: '기타' },
-];
-
-const PHOTO_GRADES: { code: PhotoGrade; name: string; color: string }[] = [
-  { code: 'PREMIUM', name: '프리미엄', color: 'bg-amber-700 text-white' },
-  { code: 'HIGH', name: '고급형', color: 'bg-blue-600 text-white' },
-  { code: 'STANDARD', name: '실속형', color: 'bg-teal-600 text-white' },
-];
-
-const GRADE_MAP: Record<number, string> = {
-  1: '브론즈', 2: '실버', 3: '골드', 4: '플래티넘', 5: '다이아',
-};
-
-function photoUrl(url: string) {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `/api/proxy${url}`;
-}
-
-function formatCurrency(value: string): string {
-  const num = value.replace(/[^\d]/g, '');
-  if (!num) return '';
-  return Number(num).toLocaleString();
-}
-
-function parseCurrency(value: string): number | null {
-  const num = parseInt(value.replace(/[^\d]/g, ''), 10);
-  return isNaN(num) ? null : num;
-}
+import { CAPABILITY_OPTIONS, GRADE_OPTIONS, CATEGORIES, PHOTO_GRADES, photoUrl, formatCurrency } from './florist-constants';
+import { PhotoUploadForm, PhotoEditForm } from './florist-photo-forms';
+import { ImageViewer } from './florist-image-viewer';
 
 export default function FloristDetailDialog({
   floristId,
@@ -169,6 +111,8 @@ function FloristEditPanel({
   const [priority, setPriority] = useState(florist.priority ?? 0);
   const [capabilities, setCapabilities] = useState<string[]>(florist.capabilities || []);
   const [newArea, setNewArea] = useState('');
+  const [deleteAreaTarget, setDeleteAreaTarget] = useState<string | null>(null);
+  const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<'selected' | 'viewer' | null>(null);
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => updateFlorist(floristId, data),
@@ -409,7 +353,7 @@ function FloristEditPanel({
                     florist.serviceAreas.map((area) => (
                       <span key={area} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]">
                         {area}
-                        <button className="text-[#4CAF50]/60 hover:text-red-600 transition-colors" onClick={() => { if (confirm(`"${area}" 삭제?`)) removeAreaMutation.mutate(area); }}>
+                        <button className="text-[#4CAF50]/60 hover:text-red-600 transition-colors" onClick={() => setDeleteAreaTarget(area)}>
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </span>
@@ -501,7 +445,7 @@ function FloristEditPanel({
                 </button>
               </div>
             </div>
-            
+
             <div className="flex flex-wrap gap-1.5 mb-6">
               <button onClick={() => setCategoryFilter('ALL')} className={cn("px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors border", categoryFilter === 'ALL' ? "bg-[#4CAF50] text-white border-[#4CAF50]" : "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200")}>
                 전체
@@ -566,7 +510,7 @@ function FloristEditPanel({
             <PhotoEditForm
               photo={selectedPhoto}
               onSave={(data) => updatePhotoMutation.mutate({ photoId: selectedPhoto.id, data, beforeSnapshot: selectedPhoto })}
-              onDelete={() => { if(confirm('이 사진을 정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: selectedPhoto.id, beforeSnapshot: selectedPhoto }) }}
+              onDelete={() => setDeletePhotoConfirm('selected')}
               onViewFull={() => { const p = selectedPhoto; setSelectedPhoto(null); setTimeout(() => setViewerPhoto(p), 100); }}
               onCancel={() => setSelectedPhoto(null)}
               saving={updatePhotoMutation.isPending}
@@ -607,9 +551,7 @@ function FloristEditPanel({
           floristId={floristId}
           onClose={() => setViewerPhoto(null)}
           onToggleVisibility={() => handleToggleVisibility(viewerPhoto)}
-          onDelete={() => {
-            if (confirm('정말 삭제하시겠습니까?')) deletePhotoMutation.mutate({ photoId: viewerPhoto.id, beforeSnapshot: viewerPhoto });
-          }}
+          onDelete={() => setDeletePhotoConfirm('viewer')}
           onRotateSave={async (angle) => {
             await rotatePhotoMutation.mutateAsync({ photoId: viewerPhoto.id, angle });
           }}
@@ -620,6 +562,56 @@ function FloristEditPanel({
           }}
         />
       )}
+
+      <AlertDialog open={!!deleteAreaTarget} onOpenChange={(open) => { if (!open) setDeleteAreaTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>서비스 지역 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              &ldquo;{deleteAreaTarget}&rdquo; 지역을 삭제하시겠습니까?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() => {
+                if (deleteAreaTarget) removeAreaMutation.mutate(deleteAreaTarget);
+                setDeleteAreaTarget(null);
+              }}
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deletePhotoConfirm} onOpenChange={(open) => { if (!open) setDeletePhotoConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>사진 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 사진을 정말 삭제하시겠습니까? 삭제된 사진은 복구할 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() => {
+                if (deletePhotoConfirm === 'selected' && selectedPhoto) {
+                  deletePhotoMutation.mutate({ photoId: selectedPhoto.id, beforeSnapshot: selectedPhoto });
+                } else if (deletePhotoConfirm === 'viewer' && viewerPhoto) {
+                  deletePhotoMutation.mutate({ photoId: viewerPhoto.id, beforeSnapshot: viewerPhoto });
+                }
+                setDeletePhotoConfirm(null);
+              }}
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <style jsx>{`
         .field-input {
@@ -665,896 +657,5 @@ function Field({ label, className, children }: { label: string; className?: stri
       <label className="block text-[13px] font-semibold text-stone-500 mb-1">{label}</label>
       {children}
     </div>
-  );
-}
-
-
-function PhotoUploadForm({
-  file,
-  onUpload,
-  onCancel,
-  uploading,
-}: {
-  file: File;
-  onUpload: (info: { category: string; grade?: string; isRecommended: boolean; costPrice: number | null; sellingPrice: number | null; memo: string }) => void;
-  onCancel: () => void;
-  uploading: boolean;
-}) {
-  const [category, setCategory] = useState<string>('');
-  const [grade, setGrade] = useState<string>('');
-  const [isRecommended, setIsRecommended] = useState(false);
-  const [memo, setMemo] = useState('');
-  const [costPrice, setCostPrice] = useState('');
-  const [sellingPrice, setSellingPrice] = useState('');
-  const previewUrl = URL.createObjectURL(file);
-
-  return (
-    <div className="space-y-4">
-      {/* Preview */}
-      <div className="relative w-full h-40 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-        <Image src={previewUrl} alt="미리보기" fill className="object-contain" unoptimized />
-      </div>
-      <div className="text-xs text-slate-400 truncate">{file.name}</div>
-
-      {/* Category */}
-      <div className="space-y-1.5">
-        <Label className="text-slate-600">상품 구분 *</Label>
-        <div className="flex flex-wrap gap-1.5">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => setCategory(c.code)}
-              className={cn(
-                'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                category === c.code
-                  ? 'bg-[#4CAF50] text-white border-transparent shadow-md shadow-slate-600/20'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-              )}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Grade + Recommended */}
-      <div className="space-y-1.5">
-        <Label className="text-slate-600">상품 등급</Label>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setIsRecommended(!isRecommended)}
-            className={cn(
-              'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-              isRecommended ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-md' : 'bg-white text-slate-600 border-slate-200'
-            )}
-          >
-            추천
-          </button>
-          {PHOTO_GRADES.map((g) => (
-            <button
-              key={g.code}
-              onClick={() => setGrade(grade === g.code ? '' : g.code)}
-              className={cn(
-                'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                grade === g.code ? `${g.color} border-transparent shadow-sm` : 'bg-white text-slate-600 border-slate-200'
-              )}
-            >
-              {g.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Memo */}
-      <div className="space-y-1">
-        <Label className="text-slate-600">메모 (제품명 등)</Label>
-        <Input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
-      </div>
-
-      {/* Prices */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-slate-600">입금가 (원가)</Label>
-          <div className="relative">
-            <Input
-              value={costPrice}
-              onChange={(e) => setCostPrice(formatCurrency(e.target.value))}
-              placeholder="예: 50,000"
-              className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
-            />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-slate-600">판매가</Label>
-          <div className="relative">
-            <Input
-              value={sellingPrice}
-              onChange={(e) => setSellingPrice(formatCurrency(e.target.value))}
-              placeholder="예: 70,000"
-              className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
-            />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button variant="outline" className="border-slate-200" onClick={onCancel}>취소</Button>
-        <Button
-          onClick={() => onUpload({ category, grade, isRecommended, costPrice: parseCurrency(costPrice), sellingPrice: parseCurrency(sellingPrice), memo })}
-          disabled={!category || uploading}
-          className="bg-[#4CAF50] hover:bg-[#388E3C] shadow-sm"
-        >
-          {uploading ? '업로드 중...' : '업로드'}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/* --- Edit Form --- */
-
-
-function PhotoEditForm({
-  photo,
-  onSave,
-  onDelete,
-  onViewFull,
-  onCancel,
-  saving,
-}: {
-  photo: FloristPhoto;
-  onSave: (data: Record<string, unknown>) => void;
-  onDelete: () => void;
-  onViewFull: () => void;
-  onCancel: () => void;
-  saving: boolean;
-}) {
-  const [category, setCategory] = useState<string>(photo.category);
-  const [grade, setGrade] = useState<string>(photo.grade || '');
-  const [isRecommended, setIsRecommended] = useState(photo.isRecommended || false);
-  const [memo, setMemo] = useState(photo.memo || '');
-  const [costPrice, setCostPrice] = useState(photo.costPrice ? photo.costPrice.toLocaleString() : '');
-  const [sellingPrice, setSellingPrice] = useState(photo.sellingPrice ? photo.sellingPrice.toLocaleString() : '');
-
-  return (
-    <div className="space-y-4">
-      {/* Image Preview */}
-      <div className="relative w-full h-[300px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer bg-slate-50 group" onClick={onViewFull}>
-        <Image src={photoUrl(photo.fileUrl)} alt="사진" fill className="object-contain group-hover:scale-105 transition-transform duration-300" unoptimized />
-        <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
-          크게 보기
-        </span>
-      </div>
-
-      {/* Category */}
-      <div className="space-y-1.5">
-        <Label className="text-slate-600">상품 구분 *</Label>
-        <div className="flex flex-wrap gap-1.5">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => setCategory(c.code)}
-              className={cn(
-                'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                category === c.code
-                  ? 'bg-[#4CAF50] text-white border-transparent shadow-md shadow-slate-600/20'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-              )}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Grade + 추천 */}
-      <div className="space-y-1.5">
-        <Label className="text-slate-600">상품 등급</Label>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setIsRecommended(!isRecommended)}
-            className={cn(
-              'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-              isRecommended ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-md' : 'bg-white text-slate-600 border-slate-200'
-            )}
-          >
-            추천
-          </button>
-          {PHOTO_GRADES.map((g) => (
-            <button
-              key={g.code}
-              onClick={() => setGrade(grade === g.code ? '' : g.code)}
-              className={cn(
-                'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                grade === g.code ? `${g.color} border-transparent shadow-sm` : 'bg-white text-slate-600 border-slate-200'
-              )}
-            >
-              {g.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Memo */}
-      <div className="space-y-1">
-        <Label className="text-slate-600">메모 (제품명 등)</Label>
-        <Input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
-      </div>
-
-      {/* Prices */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-slate-600">입금가 (원가)</Label>
-          <div className="relative">
-            <Input
-              value={costPrice}
-              onChange={(e) => setCostPrice(formatCurrency(e.target.value))}
-              placeholder="예: 50,000"
-              className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
-            />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-slate-600">판매가</Label>
-          <div className="relative">
-            <Input
-              value={sellingPrice}
-              onChange={(e) => setSellingPrice(formatCurrency(e.target.value))}
-              placeholder="예: 70,000"
-              className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
-            />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-2">
-        <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600" onClick={onDelete}>
-            <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            삭제
-          </Button>
-          <Button
-            size="sm"
-            onClick={() =>
-              onSave({
-                category,
-                ...(grade ? { grade } : {}),
-                isRecommended,
-                ...(isRecommended ? { isHidden: false } : {}),
-                ...(costPrice ? { costPrice: parseCurrency(costPrice) } : { costPrice: null }),
-                ...(sellingPrice ? { sellingPrice: parseCurrency(sellingPrice) } : { sellingPrice: null }),
-                ...(memo ? { memo } : { memo: null }),
-              })
-            }
-            disabled={!category || saving}
-            className="bg-[#4CAF50] hover:bg-[#388E3C] shadow-sm"
-          >
-            {saving ? '저장 중...' : '저장'}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* --- Florist Edit Form --- */
-function FloristEditForm({
-  editForm,
-  setEditForm,
-  toggleCapability,
-  onSave,
-  onCancel,
-  saving,
-}: {
-  editForm: Record<string, unknown>;
-  setEditForm: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
-  toggleCapability: (code: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
-  saving: boolean;
-}) {
-  const setField = (field: string, value: unknown) =>
-    setEditForm((prev) => ({ ...prev, [field]: value }));
-
-  return (
-    <div className="space-y-4">
-      <Card className="shadow-sm border-slate-200">
-        <CardContent className="p-4">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">기본 정보</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="space-y-1">
-              <Label className="text-slate-600 text-xs">화원명 *</Label>
-              <Input value={(editForm.name as string) || ''} onChange={(e) => setField('name', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-slate-600 text-xs">전화번호</Label>
-              <Input value={(editForm.phone as string) || ''} onChange={(e) => setField('phone', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-slate-600 text-xs">시/도</Label>
-              <Input value={(editForm.sido as string) || ''} onChange={(e) => setField('sido', e.target.value)} className="h-9 bg-slate-50 border-slate-200" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-slate-600 text-xs">구/군</Label>
-              <Input value={(editForm.gugun as string) || ''} onChange={(e) => setField('gugun', e.target.value)} className="h-9 bg-slate-50 border-slate-200" />
-            </div>
-            <div className="col-span-2 space-y-1">
-              <Label className="text-slate-600 text-xs">주소</Label>
-              <Input value={(editForm.address as string) || ''} onChange={(e) => setField('address', e.target.value)} className="h-9 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-slate-600 text-xs">등급</Label>
-              <select className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition" value={(editForm.grade as string) || ''} onChange={(e) => setField('grade', e.target.value)}>
-                <option value="">미지정</option>
-                {[1, 2, 3, 4, 5].map((g) => <option key={g} value={g}>{GRADE_MAP[g]}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-slate-600 text-xs">배정 우선순위</Label>
-              <select className="w-full h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition" value={(editForm.priority as string) || ''} onChange={(e) => setField('priority', e.target.value)}>
-                <option value="">미지정</option>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div className="col-span-full space-y-1">
-              <Label className="text-slate-600 text-xs">특이사항/메모</Label>
-              <textarea
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm min-h-[60px] resize-y focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition"
-                value={(editForm.remarks as string) || ''}
-                onChange={(e) => setField('remarks', e.target.value)}
-                placeholder="특이사항이나 메모를 입력하세요"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-sm border-slate-200">
-        <CardContent className="p-4">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">역량</h3>
-          <div className="flex flex-wrap gap-1.5">
-            {CAPABILITY_OPTIONS.map((cap) => {
-              const selected = ((editForm.capabilities as string[]) || []).includes(cap.code);
-              return (
-                <button
-                  key={cap.code}
-                  onClick={() => toggleCapability(cap.code)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all',
-                    selected
-                      ? 'bg-slate-100 text-slate-800 border-slate-300'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                  )}
-                >
-                  {selected && (
-                    <svg className="inline w-2.5 h-2.5 mr-0.5 -mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                  )}
-                  {cap.label}
-                </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex gap-2 justify-end">
-        <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
-        <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm" onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
-      </div>
-    </div>
-  );
-}
-
-/* --- Full-screen Image Viewer --- */
-
-
-function ImageViewer({
-  photo,
-  floristId,
-  onClose,
-  onToggleVisibility,
-  onDelete,
-  onRotateSave,
-  isRotating,
-  onTextRemoved,
-}: {
-  photo: FloristPhoto;
-  floristId: string;
-  onClose: () => void;
-  onToggleVisibility: () => void;
-  onDelete: () => void;
-  onRotateSave?: (angle: number) => Promise<void> | void;
-  isRotating?: boolean;
-  onTextRemoved?: () => void;
-}) {
-  const [rotation, setRotation] = useState(0);
-  const [copying, setCopying] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const [cacheBuster, setCacheBuster] = useState(0);
-  // 문구 삭제 모드
-  const [brushMode, setBrushMode] = useState(false);
-  const [brushSize, setBrushSize] = useState(20);
-  const [isPainting, setIsPainting] = useState(false);
-  const [inpaintLoading, setInpaintLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [savedMaskBlob, setSavedMaskBlob] = useState<Blob | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const baseUrl = photoUrl(photo.fileUrl);
-  const url = cacheBuster ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${cacheBuster}` : baseUrl;
-
-  // 이미지 로드 시 canvas 크기 동기화
-  useEffect(() => {
-    if (brushMode && imgLoaded && canvasRef.current && imgRef.current) {
-      const img = imgRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    }
-  }, [brushMode, imgLoaded]);
-
-  const getCanvasPos = (e: React.MouseEvent | React.TouchEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    return {
-      x: ((clientX - rect.left) / rect.width) * canvas.width,
-      y: ((clientY - rect.top) / rect.height) * canvas.height,
-    };
-  };
-
-  const paintAt = (x: number, y: number) => {
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
-    // 원본 이미지 기준 브러시 크기 계산
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    const scale = canvas.width / rect.width;
-    const r = brushSize * scale;
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-    ctx.beginPath();
-    ctx.arc(x, y, r / 2, 0, Math.PI * 2);
-    ctx.fill();
-  };
-
-  const handlePaintStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!brushMode) return;
-    e.preventDefault();
-    setIsPainting(true);
-    const { x, y } = getCanvasPos(e);
-    paintAt(x, y);
-  };
-
-  const handlePaintMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isPainting || !brushMode) return;
-    e.preventDefault();
-    const { x, y } = getCanvasPos(e);
-    paintAt(x, y);
-  };
-
-  const handlePaintEnd = () => {
-    setIsPainting(false);
-  };
-
-  const handleClearMask = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
-  const getMaskBlob = (): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return resolve(null);
-      // 마스크 생성: 칠한 영역을 흰색, 나머지는 검정
-      const w = canvas.width;
-      const h = canvas.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve(null);
-      const imageData = ctx.getImageData(0, 0, w, h);
-      const maskCanvas = document.createElement('canvas');
-      maskCanvas.width = w;
-      maskCanvas.height = h;
-      const maskCtx = maskCanvas.getContext('2d')!;
-      const maskData = maskCtx.createImageData(w, h);
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        // 빨간색(alpha > 0)이면 흰색, 아니면 검정
-        const painted = imageData.data[i + 3] > 0;
-        maskData.data[i] = painted ? 255 : 0;
-        maskData.data[i + 1] = painted ? 255 : 0;
-        maskData.data[i + 2] = painted ? 255 : 0;
-        maskData.data[i + 3] = 255;
-      }
-      maskCtx.putImageData(maskData, 0, 0);
-      maskCanvas.toBlob((blob) => resolve(blob), 'image/png');
-    });
-  };
-
-  const handleInpaintPreview = async () => {
-    const maskBlob = await getMaskBlob();
-    if (!maskBlob) { toast.error('마스크를 먼저 칠해주세요'); return; }
-    setSavedMaskBlob(maskBlob);
-    setInpaintLoading(true);
-    try {
-      const res = await removeFloristPhotoText(floristId, photo.id, maskBlob, 'preview');
-      console.log('[inpaint preview]', res);
-      if (res.ok && res.previewUrl) {
-        const previewWithCache = `${photoUrl(res.previewUrl)}${res.previewUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-        setPreviewUrl(previewWithCache);
-      } else {
-        toast.error(res.message || '미리보기 생성 실패');
-      }
-    } catch (err) {
-      console.error('[inpaint preview error]', err);
-      toast.error(err instanceof Error ? err.message : '문구 제거 실패');
-    } finally {
-      setInpaintLoading(false);
-    }
-  };
-
-  const handleInpaintApply = async () => {
-    // 미리보기 모드에서는 canvas가 없으므로 저장된 마스크 사용
-    const maskBlob = savedMaskBlob || await getMaskBlob();
-    if (!maskBlob) {
-      toast.error('마스크 데이터가 없습니다. 다시 칠해주세요.');
-      return;
-    }
-    setInpaintLoading(true);
-    try {
-      const res = await removeFloristPhotoText(floristId, photo.id, maskBlob, 'apply');
-      console.log('[inpaint apply]', res);
-      if (res.ok) {
-        toast.success('문구가 제거되었습니다');
-        setPreviewUrl(null);
-        setSavedMaskBlob(null);
-        setBrushMode(false);
-        setCacheBuster(Date.now());
-        onTextRemoved?.();
-      } else {
-        toast.error(res.message || '적용 실패');
-      }
-    } catch (err) {
-      console.error('[inpaint apply error]', err);
-      toast.error(err instanceof Error ? err.message : '적용 실패');
-    } finally {
-      setInpaintLoading(false);
-    }
-  };
-
-  const handleRotateLeft = () => setRotation((r) => r - 90);
-  const handleRotateRight = () => setRotation((r) => r + 90);
-
-  const handleRotateSave = async () => {
-    if (!onRotateSave || rotation === 0) return;
-    const normalized = ((rotation % 360) + 360) % 360;
-    if (normalized === 0) return;
-    try {
-      await onRotateSave(normalized);
-      setRotation(0);
-      setCacheBuster(Date.now());
-    } catch {
-      // error handled by parent mutation
-    }
-  };
-
-  const handleCopy = async () => {
-    setCopying(true);
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success('이미지 URL이 클립보드에 복사되었습니다');
-    } catch {
-      toast.error('복사에 실패했습니다');
-    } finally {
-      setCopying(false);
-    }
-  };
-
-  const handleDownload = async () => {
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = photo.fileUrl.split('/').pop() || 'image.jpg';
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast.success('이미지 다운로드를 시작합니다');
-    } catch {
-      toast.error('다운로드에 실패했습니다');
-    }
-  };
-
-  const handleShare = async () => {
-    setSharing(true);
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('이미지를 가져올 수 없습니다');
-      const blob = await res.blob();
-      const ext = blob.type === 'image/png' ? '.png' : blob.type === 'image/webp' ? '.webp' : '.jpg';
-      const filename = (photo.memo || '상품사진') + ext;
-      const file = new File([blob], filename, { type: blob.type });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: photo.memo || '상품 사진',
-        });
-        toast.success('공유 완료');
-      } else {
-        await navigator.clipboard.writeText(window.location.origin + url);
-        toast.info('이 브라우저에서는 파일 공유가 지원되지 않아 URL을 복사했습니다');
-      }
-    } catch (e: any) {
-      if (e?.name !== 'AbortError') {
-        toast.error('공유에 실패했습니다');
-      }
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const categoryName = CATEGORIES.find((c) => c.code === photo.category)?.name;
-
-  // 미리보기 모드
-  if (previewUrl) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-amber-500/90 text-white text-sm font-medium px-4 py-2 rounded-xl">
-          문구 제거 미리보기
-        </div>
-        <div className="absolute top-4 right-4 z-10">
-          <ToolbarButton title="닫기" onClick={() => { setPreviewUrl(null); setSavedMaskBlob(null); }}>
-            <CloseIcon />
-          </ToolbarButton>
-        </div>
-        <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewUrl} alt="미리보기" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" />
-        </div>
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-3">
-          <button
-            className="bg-white/10 backdrop-blur-md text-white px-5 py-2.5 rounded-xl border border-white/20 hover:bg-white/20 transition text-sm font-medium"
-            onClick={() => { setPreviewUrl(null); setSavedMaskBlob(null); }}
-          >
-            다시 칠하기
-          </button>
-          <button
-            className="bg-[#546E7A] text-white px-5 py-2.5 rounded-xl hover:bg-[#455A64] transition text-sm font-medium shadow-lg disabled:opacity-50"
-            onClick={handleInpaintApply}
-            disabled={inpaintLoading}
-          >
-            {inpaintLoading ? '적용 중...' : '원본에 적용'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={brushMode ? undefined : onClose}>
-      {/* Top Toolbar */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2" onClick={(e) => e.stopPropagation()}>
-        {!brushMode && (
-          <>
-            <ToolbarButton title="왼쪽 회전" onClick={handleRotateLeft}>
-              <RotateLeftIcon />
-            </ToolbarButton>
-            <ToolbarButton title="오른쪽 회전" onClick={handleRotateRight}>
-              <RotateRightIcon />
-            </ToolbarButton>
-            <ToolbarButton title="클립보드에 복사" onClick={handleCopy} disabled={copying}>
-              {copying ? <span className="animate-spin text-sm">...</span> : <CopyIcon />}
-            </ToolbarButton>
-            <ToolbarButton title="이미지 다운로드" onClick={handleDownload}>
-              <DownloadIcon />
-            </ToolbarButton>
-            <ToolbarButton title="카카오톡 공유" onClick={handleShare} disabled={sharing}>
-              {sharing ? <span className="animate-spin text-sm">...</span> : <ShareIcon />}
-            </ToolbarButton>
-          </>
-        )}
-        <ToolbarButton title="닫기" onClick={brushMode ? () => { setBrushMode(false); handleClearMask(); } : onClose}>
-          <CloseIcon />
-        </ToolbarButton>
-      </div>
-
-      {/* Brush mode toolbar (top-left) */}
-      {brushMode && (
-        <div className="absolute top-4 left-4 z-10 flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
-          <span className="text-amber-400 text-sm font-medium bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-amber-400/30">
-            리본 문구 영역을 칠하세요
-          </span>
-          <div className="flex gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10">
-            {[{ size: 10, label: '소' }, { size: 20, label: '중' }, { size: 35, label: '대' }].map((b) => (
-              <button
-                key={b.size}
-                onClick={() => setBrushSize(b.size)}
-                className={cn(
-                  'px-2.5 py-1 rounded-md text-xs font-medium transition-all',
-                  brushSize === b.size ? 'bg-amber-500 text-white' : 'text-white/60 hover:text-white'
-                )}
-              >
-                {b.label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={handleClearMask}
-            className="text-white/60 hover:text-white text-xs bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/10 transition"
-          >
-            초기화
-          </button>
-        </div>
-      )}
-
-      {/* Image + Canvas overlay */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="relative" style={{ transform: brushMode ? 'none' : `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={imgRef}
-            src={url}
-            alt="전체 화면"
-            className="max-w-[90vw] max-h-[85vh] object-contain select-none"
-            draggable={false}
-            onLoad={() => setImgLoaded(true)}
-          />
-          {brushMode && (
-            <canvas
-              ref={canvasRef}
-              className="absolute inset-0 w-full h-full"
-              style={{ cursor: 'crosshair', touchAction: 'none' }}
-              onMouseDown={handlePaintStart}
-              onMouseMove={handlePaintMove}
-              onMouseUp={handlePaintEnd}
-              onMouseLeave={handlePaintEnd}
-              onTouchStart={handlePaintStart}
-              onTouchMove={handlePaintMove}
-              onTouchEnd={handlePaintEnd}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Bottom Info Bar */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10" onClick={(e) => e.stopPropagation()}>
-        {brushMode ? (
-          <div className="bg-black/80 backdrop-blur-md rounded-xl px-5 py-3 flex items-center gap-3 border border-white/10">
-            <button
-              className="text-white/60 hover:text-white text-sm transition-colors"
-              onClick={() => { setBrushMode(false); handleClearMask(); }}
-            >
-              취소
-            </button>
-            <button
-              className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition disabled:opacity-50"
-              onClick={handleInpaintPreview}
-              disabled={inpaintLoading}
-            >
-              {inpaintLoading ? '처리 중...' : '문구 삭제 실행'}
-            </button>
-          </div>
-        ) : (
-          <div className="bg-black/80 backdrop-blur-md rounded-xl px-5 py-3 flex flex-col items-center gap-2 min-w-[200px] border border-white/10">
-            <div className="flex items-center gap-2 flex-wrap justify-center">
-              {categoryName && (
-                <span className="bg-[#546E7A] text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
-              )}
-              {photo.memo && <span className="text-white text-sm">{photo.memo}</span>}
-              {photo.isHidden && (
-                <span className="bg-amber-500 text-white text-[11px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium">
-                  비공개
-                </span>
-              )}
-            </div>
-            {rotation !== 0 && <span className="text-white/60 text-[13px]">{rotation}°</span>}
-            <div className="flex gap-4">
-              {rotation !== 0 && onRotateSave && (
-                <button
-                  className="text-sky-400 hover:text-sky-300 text-sm font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
-                  onClick={handleRotateSave}
-                  disabled={isRotating}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  {isRotating ? '저장 중...' : '회전 저장'}
-                </button>
-              )}
-              <button className="text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors" onClick={onToggleVisibility}>
-                {photo.isHidden ? '공개' : '비공개'}
-              </button>
-              <button className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 transition-colors" onClick={onDelete}>
-                삭제
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EraserIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.6 1.6c.8-.8 2-.8 2.8 0l5 5c.8.8.8 2 0 2.8L11 20" />
-      <path d="M6 11l4 4" />
-    </svg>
-  );
-}
-
-function ToolbarButton({ children, title, onClick, disabled }: { children: React.ReactNode; title: string; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button
-      className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-50 border border-white/10"
-      title={title}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
-  );
-}
-
-function RotateLeftIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38" />
-    </svg>
-  );
-}
-
-function RotateRightIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38" />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-    </svg>
-  );
-}
-
-function ShareIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
   );
 }

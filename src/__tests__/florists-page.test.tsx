@@ -105,7 +105,7 @@ describe('Florists Page', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/총 2개/)).toBeInTheDocument();
+      expect(screen.getByText('2')).toBeInTheDocument();
     });
   });
 
@@ -121,7 +121,10 @@ describe('Florists Page', () => {
       expect(screen.getAllByText('꽃나라').length).toBeGreaterThan(0);
     });
 
-    const input = screen.getByPlaceholderText('검색 (화원명, 서비스지역명, 전화번호)');
+    // 필터가 기본 숨김 — 펼치기 버튼 클릭
+    fireEvent.click(screen.getByText(/필터 펼치기/));
+
+    const input = screen.getByPlaceholderText('화원명, 지역, 전화번호');
     fireEvent.change(input, { target: { value: '꽃나라' } });
     fireEvent.click(screen.getByRole('button', { name: '검색' }));
 

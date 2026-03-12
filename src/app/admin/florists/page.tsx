@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { FloristSummary } from '@/lib/types/florist';
 import ProductSearch from './product-search';
 import FloristDetailDialog from './florist-dialog';
+import FloristCreateDialog from './florist-create-dialog';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: '활성' },
@@ -137,6 +138,7 @@ export default function FloristsPage() {
   const [selectedCaps, setSelectedCaps] = useState<string[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFloristId, setSelectedFloristId] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const pageSize = 30;
 
   const { data, isLoading, error } = useQuery({
@@ -197,7 +199,7 @@ export default function FloristsPage() {
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
             사진 변경 로그
           </Button>
-          <Button className="bg-[#546E7A] hover:bg-[#455A64] text-white rounded-full px-4 md:px-5 shadow-sm text-xs md:text-sm" onClick={() => toast.info('화원 등록 기능은 준비 중입니다.')}>
+          <Button className="bg-[#546E7A] hover:bg-[#455A64] text-white rounded-full px-4 md:px-5 shadow-sm text-xs md:text-sm" onClick={() => setCreateDialogOpen(true)}>
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             화원 등록
           </Button>
@@ -493,6 +495,15 @@ export default function FloristsPage() {
           onClose={() => setSelectedFloristId(null)}
         />
       )}
+
+      <FloristCreateDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onCreated={(id) => {
+          setCreateDialogOpen(false);
+          setSelectedFloristId(id);
+        }}
+      />
     </div>
   );
 }
