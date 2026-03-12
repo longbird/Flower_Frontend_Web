@@ -64,8 +64,36 @@ async function branchApi<T = unknown>(path: string, options: RequestInit = {}): 
 }
 
 /** 내 지사 정보 조회 */
+export interface MyBranchInfo {
+  id: number;
+  name: string;
+  code?: string;
+  phone?: string;
+  address?: string;
+  description?: string;
+  serviceAreas?: string;
+  virtualAccountBank?: string;
+  virtualAccountNumber?: string;
+  allowFloristSearch?: boolean;
+}
+
 export async function fetchMyBranchInfo() {
-  return branchApi<{ ok: boolean; data: any }>('/branch/me');
+  return branchApi<{ ok: boolean; data: MyBranchInfo }>('/branch/me');
+}
+
+/** 내 지사 정보 수정 */
+export async function updateMyBranchInfo(body: {
+  phone?: string;
+  address?: string;
+  description?: string;
+  serviceAreas?: string;
+  virtualAccountBank?: string;
+  virtualAccountNumber?: string;
+}) {
+  return branchApi<{ ok: boolean; data: MyBranchInfo }>('/branch/me', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
 }
 
 /** 상담 요청 목록 조회 */
