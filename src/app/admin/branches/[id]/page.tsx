@@ -309,19 +309,34 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
               <dd className="font-medium">{branch.code || <span className="text-slate-300">-</span>}</dd>
             </div>
             {branch.code && (
-              <div>
-                <dt className="text-slate-400 text-xs">홈페이지 URL</dt>
-                <dd>
-                  <a
-                    href={`https://${branch.code}.seoulflower.co.kr`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    {branch.code}.seoulflower.co.kr
-                  </a>
-                </dd>
-              </div>
+              <>
+                <div>
+                  <dt className="text-slate-400 text-xs">홈페이지 URL</dt>
+                  <dd>
+                    <a
+                      href={`/branch/${branch.code}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      /branch/{branch.code}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-400 text-xs">관리자 페이지 URL</dt>
+                  <dd>
+                    <a
+                      href={`/branch/${branch.code}/manage/login`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      /branch/{branch.code}/manage/login
+                    </a>
+                  </dd>
+                </div>
+              </>
             )}
             <div>
               <dt className="text-slate-400 text-xs">전화번호</dt>
