@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { fetchMyBranchInfo, updateMyBranchInfo, type MyBranchInfo } from '@/lib/branch/branch-api';
 
 export default function BranchSettingsPage() {
+  const params = useParams();
+  const slug = params.slug as string;
   const [info, setInfo] = useState<MyBranchInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -128,6 +131,24 @@ export default function BranchSettingsPage() {
             </div>
           </div>
         )}
+
+        {/* 페이지 URL (읽기전용) */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--branch-text)] mb-1.5">
+            홈페이지 URL
+          </label>
+          <div className="px-4 py-2.5 rounded-xl bg-[var(--branch-cream)] text-[var(--branch-text)] text-sm break-all">
+            {typeof window !== 'undefined' ? `${window.location.origin}/branch/${slug}` : `/branch/${slug}`}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-[var(--branch-text)] mb-1.5">
+            관리자 페이지 URL
+          </label>
+          <div className="px-4 py-2.5 rounded-xl bg-[var(--branch-cream)] text-[var(--branch-text)] text-sm break-all">
+            {typeof window !== 'undefined' ? `${window.location.origin}/branch/${slug}/manage/login` : `/branch/${slug}/manage/login`}
+          </div>
+        </div>
 
         {/* 사업자 정보 섹션 */}
         <div className="border-t border-[var(--branch-rose-light)] pt-5">
