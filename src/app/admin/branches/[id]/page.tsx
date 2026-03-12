@@ -94,8 +94,8 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
   });
   const [showEditHomepage, setShowEditHomepage] = useState(false);
   const [homepageForm, setHomepageForm] = useState({
-    code: '', phone: '', address: '', description: '',
-    serviceAreas: '', virtualAccountBank: '', virtualAccountNumber: '',
+    code: '', phone: '',
+    virtualAccountBank: '', virtualAccountNumber: '',
   });
 
   const { data: branch, isLoading } = useQuery({
@@ -187,9 +187,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     setHomepageForm({
       code: branch.code || '',
       phone: branch.phone || '',
-      address: branch.address || '',
-      description: branch.description || '',
-      serviceAreas: Array.isArray(branch.serviceAreas) ? branch.serviceAreas.join(', ') : (branch.serviceAreas || ''),
       virtualAccountBank: branch.virtualAccountBank || '',
       virtualAccountNumber: branch.virtualAccountNumber || '',
     });
@@ -197,16 +194,9 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const handleUpdateHomepage = () => {
-    const serviceAreasArr = homepageForm.serviceAreas
-      .split(',')
-      .map((s: string) => s.trim())
-      .filter(Boolean);
     updateHomepageMutation.mutate({
       code: homepageForm.code.trim() || undefined,
       phone: homepageForm.phone.trim() || undefined,
-      address: homepageForm.address.trim() || undefined,
-      description: homepageForm.description.trim() || undefined,
-      serviceAreas: serviceAreasArr.length > 0 ? serviceAreasArr : undefined,
       virtualAccountBank: homepageForm.virtualAccountBank.trim() || undefined,
       virtualAccountNumber: homepageForm.virtualAccountNumber.trim() || undefined,
     });
@@ -341,18 +331,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
             <div>
               <dt className="text-slate-400 text-xs">전화번호</dt>
               <dd>{branch.phone || <span className="text-slate-300">-</span>}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 text-xs">주소</dt>
-              <dd>{branch.address || <span className="text-slate-300">-</span>}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-slate-400 text-xs">지사 소개</dt>
-              <dd>{branch.description || <span className="text-slate-300">-</span>}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 text-xs">서비스 지역</dt>
-              <dd>{Array.isArray(branch.serviceAreas) ? branch.serviceAreas.join(', ') : (branch.serviceAreas || <span className="text-slate-300">-</span>)}</dd>
             </div>
             <div>
               <dt className="text-slate-400 text-xs">가상계좌</dt>
@@ -669,32 +647,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
                 onChange={e => setHomepageForm(f => ({ ...f, phone: e.target.value }))}
                 placeholder="02-1234-5678"
               />
-            </div>
-            <div>
-              <Label>주소</Label>
-              <Input
-                value={homepageForm.address}
-                onChange={e => setHomepageForm(f => ({ ...f, address: e.target.value }))}
-                placeholder="서울시 강남구..."
-              />
-            </div>
-            <div>
-              <Label>지사 소개</Label>
-              <textarea
-                className="w-full h-20 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none resize-none"
-                value={homepageForm.description}
-                onChange={e => setHomepageForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="지사 소개 문구"
-              />
-            </div>
-            <div>
-              <Label>서비스 지역</Label>
-              <Input
-                value={homepageForm.serviceAreas}
-                onChange={e => setHomepageForm(f => ({ ...f, serviceAreas: e.target.value }))}
-                placeholder="강남구, 서초구, 송파구 (쉼표 구분)"
-              />
-              <p className="text-xs text-slate-400 mt-1">쉼표(,)로 구분하여 입력</p>
             </div>
             <div className="border-t border-slate-100 pt-4">
               <p className="text-xs font-medium text-slate-500 mb-3">가상계좌 정보</p>
