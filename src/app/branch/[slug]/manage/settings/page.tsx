@@ -10,10 +10,12 @@ export default function BranchSettingsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Form state
+  const [businessRegistrationNo, setBusinessRegistrationNo] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
-  const [serviceAreas, setServiceAreas] = useState('');
   const [virtualAccountBank, setVirtualAccountBank] = useState('');
   const [virtualAccountNumber, setVirtualAccountNumber] = useState('');
 
@@ -23,10 +25,12 @@ export default function BranchSettingsPage() {
       const res = await fetchMyBranchInfo();
       if (res.ok && res.data) {
         setInfo(res.data);
+        setBusinessRegistrationNo(res.data.businessRegistrationNo || '');
+        setOwnerName(res.data.ownerName || '');
+        setEmail(res.data.email || '');
         setPhone(res.data.phone || '');
         setAddress(res.data.address || '');
         setDescription(res.data.description || '');
-        setServiceAreas(res.data.serviceAreas || '');
         setVirtualAccountBank(res.data.virtualAccountBank || '');
         setVirtualAccountNumber(res.data.virtualAccountNumber || '');
       }
@@ -46,10 +50,12 @@ export default function BranchSettingsPage() {
       setSaving(true);
       setMessage(null);
       const res = await updateMyBranchInfo({
+        businessRegistrationNo,
+        ownerName,
+        email,
         phone,
         address,
         description,
-        serviceAreas,
         virtualAccountBank,
         virtualAccountNumber,
       });
@@ -82,6 +88,8 @@ export default function BranchSettingsPage() {
     );
   }
 
+  const inputClass = "w-full px-4 py-2.5 rounded-xl border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20";
+
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl font-semibold text-[var(--branch-text)] mb-6">기본 정보 설정</h1>
@@ -102,7 +110,7 @@ export default function BranchSettingsPage() {
         {/* 지사명 (읽기전용) */}
         <div>
           <label className="block text-sm font-medium text-[var(--branch-text)] mb-1.5">
-            지사명
+            지사명 (상호)
           </label>
           <div className="px-4 py-2.5 rounded-xl bg-[var(--branch-cream)] text-[var(--branch-text)] text-sm">
             {info.name}
@@ -121,66 +129,89 @@ export default function BranchSettingsPage() {
           </div>
         )}
 
-        {/* 전화번호 */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--branch-text)] mb-1.5">
-            전화번호
-          </label>
-          <input
-            type="text"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="예: 031-123-4567"
-            className="w-full px-4 py-2.5 rounded-xl border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20"
-          />
+        {/* 사업자 정보 섹션 */}
+        <div className="border-t border-[var(--branch-rose-light)] pt-5">
+          <h3 className="text-sm font-medium text-[var(--branch-text)] mb-3">사업자 정보</h3>
+
+          {/* 사업자등록번호 */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">사업자등록번호</label>
+              <input
+                type="text"
+                value={businessRegistrationNo}
+                onChange={(e) => setBusinessRegistrationNo(e.target.value)}
+                placeholder="예: 123-45-67890"
+                className={inputClass}
+              />
+            </div>
+
+            {/* 대표자명 */}
+            <div>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">대표자명</label>
+              <input
+                type="text"
+                value={ownerName}
+                onChange={(e) => setOwnerName(e.target.value)}
+                placeholder="대표자 이름"
+                className={inputClass}
+              />
+            </div>
+
+            {/* 이메일 */}
+            <div>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">이메일</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="예: info@example.com"
+                className={inputClass}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* 주소 */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--branch-text)] mb-1.5">
-            주소
-          </label>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="사무실 주소"
-            className="w-full px-4 py-2.5 rounded-xl border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20"
-          />
+        {/* 연락처 / 주소 섹션 */}
+        <div className="border-t border-[var(--branch-rose-light)] pt-5">
+          <h3 className="text-sm font-medium text-[var(--branch-text)] mb-3">연락처 / 주소</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">전화번호</label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="예: 031-123-4567"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">주소</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="사무실 주소"
+                className={inputClass}
+              />
+            </div>
+          </div>
         </div>
 
         {/* 소개글 */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--branch-text)] mb-1.5">
-            소개글
-          </label>
+        <div className="border-t border-[var(--branch-rose-light)] pt-5">
+          <h3 className="text-sm font-medium text-[var(--branch-text)] mb-3">홈페이지 소개글</h3>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="홈페이지에 표시되는 지사 소개글"
             rows={3}
-            className="w-full px-4 py-2.5 rounded-xl border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 resize-none"
+            className={`${inputClass} resize-none`}
           />
         </div>
 
-        {/* 서비스 지역 */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--branch-text)] mb-1.5">
-            서비스 지역
-          </label>
-          <input
-            type="text"
-            value={serviceAreas}
-            onChange={(e) => setServiceAreas(e.target.value)}
-            placeholder="콤마로 구분 (예: 서울, 경기 북부)"
-            className="w-full px-4 py-2.5 rounded-xl border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20"
-          />
-          <p className="mt-1 text-xs text-[var(--branch-text-light)]">
-            홈페이지 상단에 표시됩니다.
-          </p>
-        </div>
-
-        {/* 가상계좌 */}
+        {/* 입금 계좌 */}
         <div className="border-t border-[var(--branch-rose-light)] pt-5">
           <h3 className="text-sm font-medium text-[var(--branch-text)] mb-3">입금 계좌 정보</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -191,7 +222,7 @@ export default function BranchSettingsPage() {
                 value={virtualAccountBank}
                 onChange={(e) => setVirtualAccountBank(e.target.value)}
                 placeholder="예: 국민은행"
-                className="w-full px-4 py-2.5 rounded-xl border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20"
+                className={inputClass}
               />
             </div>
             <div>
@@ -201,7 +232,7 @@ export default function BranchSettingsPage() {
                 value={virtualAccountNumber}
                 onChange={(e) => setVirtualAccountNumber(e.target.value)}
                 placeholder="예: 123-456-789012"
-                className="w-full px-4 py-2.5 rounded-xl border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20"
+                className={inputClass}
               />
             </div>
           </div>

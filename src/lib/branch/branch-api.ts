@@ -68,6 +68,9 @@ export interface MyBranchInfo {
   id: number;
   name: string;
   code?: string;
+  businessRegistrationNo?: string;
+  ownerName?: string;
+  email?: string;
   phone?: string;
   address?: string;
   description?: string;
@@ -83,10 +86,12 @@ export async function fetchMyBranchInfo() {
 
 /** 내 지사 정보 수정 */
 export async function updateMyBranchInfo(body: {
+  businessRegistrationNo?: string;
+  ownerName?: string;
+  email?: string;
   phone?: string;
   address?: string;
   description?: string;
-  serviceAreas?: string;
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
 }) {
