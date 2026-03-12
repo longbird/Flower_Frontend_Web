@@ -32,8 +32,6 @@ interface EditForm {
   delegationMode: string;
   isActive: boolean;
   businessRegistrationNo: string;
-  allowFloristSearch: boolean;
-  allowFloristPhotoManagement: boolean;
 }
 
 const ACCOUNT_STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -76,7 +74,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
   const [form, setForm] = useState<EditForm>({
     name: '', type: 'BRANCH', delegationMode: 'NONE',
     isActive: true, businessRegistrationNo: '',
-    allowFloristSearch: false, allowFloristPhotoManagement: false,
   });
 
   // Account management state
@@ -210,8 +207,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       delegationMode: branch.delegationMode || 'NONE',
       isActive: branch.isActive ?? true,
       businessRegistrationNo: branch.businessRegistrationNo || '',
-      allowFloristSearch: branch.allowFloristSearch ?? false,
-      allowFloristPhotoManagement: branch.allowFloristPhotoManagement ?? false,
     });
     setShowEdit(true);
   };
@@ -222,8 +217,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       type: form.type,
       delegationMode: form.delegationMode,
       isActive: form.isActive,
-      allowFloristSearch: form.allowFloristSearch,
-      allowFloristPhotoManagement: form.allowFloristPhotoManagement,
     };
     if (form.businessRegistrationNo.trim()) body.businessRegistrationNo = form.businessRegistrationNo.trim();
     updateMutation.mutate(body);
@@ -269,7 +262,12 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">지사 정보</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">지사 정보</CardTitle>
+            <Button variant="outline" size="sm" onClick={openEdit}>수정</Button>
+          </div>
+        </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div><dt className="text-slate-400 text-xs">지사명</dt><dd className="font-medium">{branch.name}</dd></div>
@@ -277,8 +275,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
             <div><dt className="text-slate-400 text-xs">위임 모드</dt><dd>{DELEGATION_LABELS[branch.delegationMode] || branch.delegationMode || '-'}</dd></div>
             {branch.parentName && <div><dt className="text-slate-400 text-xs">상위 조직</dt><dd>{branch.parentName}</dd></div>}
             {branch.businessRegistrationNo && <div><dt className="text-slate-400 text-xs">사업자번호</dt><dd>{branch.businessRegistrationNo}</dd></div>}
-            <div><dt className="text-slate-400 text-xs">화원 검색 허용</dt><dd>{branch.allowFloristSearch ? '예' : '아니오'}</dd></div>
-            <div><dt className="text-slate-400 text-xs">화원 사진 관리 허용</dt><dd>{branch.allowFloristPhotoManagement ? '예' : '아니오'}</dd></div>
             <div><dt className="text-slate-400 text-xs">생성일</dt><dd>{branch.createdAt ? new Date(branch.createdAt).toLocaleDateString('ko-KR') : '-'}</dd></div>
           </dl>
         </CardContent>
@@ -404,7 +400,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       </Card>
 
       <div className="flex gap-2">
-        <Button variant="outline" onClick={() => router.push(`/admin/branches/${id}/pricing`)}>가격 관리</Button>
         <Button className="bg-blue-600 hover:bg-blue-700" onClick={openEdit}>수정</Button>
         <Button variant="destructive" onClick={() => setShowDelete(true)}>삭제</Button>
       </div>
@@ -444,14 +439,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />
                 활성 상태
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={form.allowFloristSearch} onChange={e => setForm(f => ({ ...f, allowFloristSearch: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />
-                화원 검색 허용
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={form.allowFloristPhotoManagement} onChange={e => setForm(f => ({ ...f, allowFloristPhotoManagement: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />
-                사진 관리 허용
               </label>
             </div>
           </div>
