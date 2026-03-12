@@ -435,7 +435,7 @@ function ProductsSection({
     if (deliveryArea.trim()) {
       const input = deliveryArea.trim();
       result = result.filter((p) => {
-        if (!p.serviceAreas) return false;
+        if (!p.serviceAreas) return true;
         const areas = p.serviceAreas.split(',').map((a) => a.trim());
         return areas.some((area) => area.includes(input) || input.includes(area));
       });
