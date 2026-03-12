@@ -6,6 +6,7 @@ interface BranchUser {
   name: string;
   role: string;
   organizationId: number;
+  permissions?: string[];
 }
 
 interface BranchAuthState {
