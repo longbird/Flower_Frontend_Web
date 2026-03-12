@@ -275,6 +275,15 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
             <div><dt className="text-slate-400 text-xs">위임 모드</dt><dd>{DELEGATION_LABELS[branch.delegationMode] || branch.delegationMode || '-'}</dd></div>
             {branch.parentName && <div><dt className="text-slate-400 text-xs">상위 조직</dt><dd>{branch.parentName}</dd></div>}
             {branch.businessRegistrationNo && <div><dt className="text-slate-400 text-xs">사업자번호</dt><dd>{branch.businessRegistrationNo}</dd></div>}
+            <div><dt className="text-slate-400 text-xs">전화번호</dt><dd>{branch.phone || <span className="text-slate-300">-</span>}</dd></div>
+            <div>
+              <dt className="text-slate-400 text-xs">가상계좌</dt>
+              <dd>
+                {branch.virtualAccountBank && branch.virtualAccountNumber
+                  ? `${branch.virtualAccountBank} ${branch.virtualAccountNumber}`
+                  : <span className="text-slate-300">-</span>}
+              </dd>
+            </div>
             <div><dt className="text-slate-400 text-xs">생성일</dt><dd>{branch.createdAt ? new Date(branch.createdAt).toLocaleDateString('ko-KR') : '-'}</dd></div>
           </dl>
         </CardContent>
@@ -324,18 +333,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               </>
             )}
-            <div>
-              <dt className="text-slate-400 text-xs">전화번호</dt>
-              <dd>{branch.phone || <span className="text-slate-300">-</span>}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400 text-xs">가상계좌</dt>
-              <dd>
-                {branch.virtualAccountBank && branch.virtualAccountNumber
-                  ? `${branch.virtualAccountBank} ${branch.virtualAccountNumber}`
-                  : <span className="text-slate-300">-</span>}
-              </dd>
-            </div>
           </dl>
         </CardContent>
       </Card>
