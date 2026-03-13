@@ -410,8 +410,8 @@ function ProductsSection({
   onProductClick: (product: RecommendedPhoto) => void;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
-  const [selectedGrade, setSelectedGrade] = useState<string>('전체');
-  const [deliveryArea, setDeliveryArea] = useState('');
+  const [areaInput, setAreaInput] = useState('');
+  const [activeArea, setActiveArea] = useState('');
 
   const categoryList = useMemo(() => {
     const cats = new Set<string>();
@@ -423,38 +423,28 @@ function ProductsSection({
     return ['전체', ...sorted, ...rest];
   }, [products]);
 
-  const gradeList = useMemo(() => {
-    const grades = new Set<string>();
-    for (const p of products) {
-      if (p.grade) grades.add(p.grade);
-    }
-    return grades.size > 0 ? ['전체', ...Array.from(grades)] : [];
-  }, [products]);
+  const handleAreaSearch = () => {
+    setActiveArea(areaInput.trim());
+  };
 
-  const serviceAreaList = useMemo(() => {
-    if (!branch.serviceAreas) return [];
-    return branch.serviceAreas.split(',').map((a) => a.trim()).filter(Boolean);
-  }, [branch.serviceAreas]);
-
-  const areaMatchResult = useMemo(() => {
-    if (!deliveryArea.trim() || serviceAreaList.length === 0) return null;
-    const input = deliveryArea.trim();
-    const matched = serviceAreaList.some(
-      (area) => input.includes(area) || area.includes(input)
-    );
-    return matched;
-  }, [deliveryArea, serviceAreaList]);
+  const handleAreaClear = () => {
+    setAreaInput('');
+    setActiveArea('');
+  };
 
   const filteredProducts = useMemo(() => {
     let result = products;
     if (selectedCategory !== '전체') {
       result = result.filter((p) => p.category === selectedCategory);
     }
-    if (selectedGrade !== '전체') {
-      result = result.filter((p) => p.grade === selectedGrade);
+    if (activeArea) {
+      result = result.filter((p) => {
+        if (!p.serviceAreas) return false;
+        return p.serviceAreas.includes(activeArea);
+      });
     }
     return result;
-  }, [products, selectedCategory, selectedGrade]);
+  }, [products, selectedCategory, activeArea]);
 
   if (products.length === 0) return null;
 
@@ -498,75 +488,43 @@ function ProductsSection({
               </>
             )}
 
-            {gradeList.length > 1 && (
-              <>
-                <select
-                  value={selectedGrade}
-                  onChange={(e) => setSelectedGrade(e.target.value)}
-                  className="sm:hidden w-full max-w-xs px-4 py-2.5 rounded-full border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%237a6365%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_12px_center]"
-                >
-                  {gradeList.map((g) => (
-                    <option key={g} value={g}>
-                      {g === '전체' ? '전체 등급' : gradeLabel(g)}
-                    </option>
-                  ))}
-                </select>
-                <div className="hidden sm:flex flex-wrap justify-center gap-2">
-                  {gradeList.map((g) => {
-                    const isActive = g === selectedGrade;
-                    const label = g === '전체' ? '전체 등급' : gradeLabel(g);
-                    return (
-                      <button
-                        key={g}
-                        onClick={() => setSelectedGrade(g)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          isActive
-                            ? 'bg-[var(--branch-accent)] text-white shadow-md'
-                            : 'bg-white/70 text-[var(--branch-text-light)] hover:bg-white border border-[var(--branch-rose-light)]'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
           </div>
 
-          {/* Delivery area search */}
-          {serviceAreaList.length > 0 && (
-            <div className="max-w-md mx-auto">
-              <div className="relative">
+          {/* Area search */}
+          <div className="max-w-md mx-auto">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base">🚗</span>
                 <input
                   type="text"
-                  value={deliveryArea}
-                  onChange={(e) => setDeliveryArea(e.target.value)}
-                  placeholder="배달 지역을 입력하세요 (예: 서울, 강남)"
+                  value={areaInput}
+                  onChange={(e) => setAreaInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAreaSearch()}
+                  placeholder="배달 지역 검색 (예: 강남, 서초)"
                   className="w-full pl-10 pr-4 py-2.5 rounded-full border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] placeholder-[var(--branch-text-light)]/50 focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors text-sm"
                 />
               </div>
-              {areaMatchResult !== null && (
-                <p className={`text-center text-sm mt-2 ${areaMatchResult ? 'text-emerald-600' : 'text-amber-600'}`}>
-                  {areaMatchResult
-                    ? '배달 가능 지역입니다!'
-                    : '서비스 가능 지역이 아닐 수 있습니다. 전화로 문의해 주세요.'}
-                </p>
-              )}
-              <div className="flex flex-wrap justify-center gap-1.5 mt-2">
-                {serviceAreaList.map((area) => (
-                  <button
-                    key={area}
-                    onClick={() => setDeliveryArea(area)}
-                    className="px-2.5 py-1 rounded-full bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]/50 text-xs text-[var(--branch-text-light)] hover:bg-white hover:text-[var(--branch-text)] transition-colors"
-                  >
-                    {area}
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={handleAreaSearch}
+                className="px-4 py-2.5 rounded-full bg-[var(--branch-accent)] text-white text-sm font-medium hover:bg-[var(--branch-rose)] transition-colors shrink-0"
+              >
+                검색
+              </button>
             </div>
-          )}
+            {activeArea && (
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <span className="text-sm text-[var(--branch-text-light)]">
+                  &quot;{activeArea}&quot; 지역 검색 결과: {filteredProducts.length}건
+                </span>
+                <button
+                  onClick={handleAreaClear}
+                  className="text-xs text-[var(--branch-accent)] hover:underline"
+                >
+                  초기화
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {filteredProducts.length === 0 ? (
