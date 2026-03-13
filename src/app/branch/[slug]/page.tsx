@@ -401,14 +401,17 @@ function ProductDetailModal({
 function ProductsSection({
   products,
   slug,
+  branch,
   onProductClick,
 }: {
   products: RecommendedPhoto[];
   slug: string;
+  branch: BranchInfo;
   onProductClick: (product: RecommendedPhoto) => void;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [selectedGrade, setSelectedGrade] = useState<string>('전체');
+  const [deliveryArea, setDeliveryArea] = useState('');
 
   const categoryList = useMemo(() => {
     const cats = new Set<string>();
@@ -427,6 +430,20 @@ function ProductsSection({
     }
     return grades.size > 0 ? ['전체', ...Array.from(grades)] : [];
   }, [products]);
+
+  const serviceAreaList = useMemo(() => {
+    if (!branch.serviceAreas) return [];
+    return branch.serviceAreas.split(',').map((a) => a.trim()).filter(Boolean);
+  }, [branch.serviceAreas]);
+
+  const areaMatchResult = useMemo(() => {
+    if (!deliveryArea.trim() || serviceAreaList.length === 0) return null;
+    const input = deliveryArea.trim();
+    const matched = serviceAreaList.some(
+      (area) => input.includes(area) || area.includes(input)
+    );
+    return matched;
+  }, [deliveryArea, serviceAreaList]);
 
   const filteredProducts = useMemo(() => {
     let result = products;
@@ -516,6 +533,40 @@ function ProductsSection({
               </>
             )}
           </div>
+
+          {/* Delivery area search */}
+          {serviceAreaList.length > 0 && (
+            <div className="max-w-md mx-auto">
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base">🚗</span>
+                <input
+                  type="text"
+                  value={deliveryArea}
+                  onChange={(e) => setDeliveryArea(e.target.value)}
+                  placeholder="배달 지역을 입력하세요 (예: 서울, 강남)"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-full border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] placeholder-[var(--branch-text-light)]/50 focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 transition-colors text-sm"
+                />
+              </div>
+              {areaMatchResult !== null && (
+                <p className={`text-center text-sm mt-2 ${areaMatchResult ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {areaMatchResult
+                    ? '배달 가능 지역입니다!'
+                    : '서비스 가능 지역이 아닐 수 있습니다. 전화로 문의해 주세요.'}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+                {serviceAreaList.map((area) => (
+                  <button
+                    key={area}
+                    onClick={() => setDeliveryArea(area)}
+                    className="px-2.5 py-1 rounded-full bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]/50 text-xs text-[var(--branch-text-light)] hover:bg-white hover:text-[var(--branch-text)] transition-colors"
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {filteredProducts.length === 0 ? (
@@ -646,6 +697,7 @@ export default function BranchHomePage() {
       <ProductsSection
         products={products}
         slug={slug}
+        branch={branch}
         onProductClick={(product) => setSelectedProduct(product)}
       />
       <Footer branch={branch} />
