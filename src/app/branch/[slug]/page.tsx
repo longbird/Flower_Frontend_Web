@@ -176,6 +176,7 @@ function ProductDetailModal({
   const [form, setForm] = useState<ConsultRequestForm>({
     customerName: '',
     customerPhone: '',
+    productCode: String(product.id),
     productName: product.name || (product.category ? categoryLabel(product.category) : '상품'),
     desiredDate: todayStr,
     message: '',

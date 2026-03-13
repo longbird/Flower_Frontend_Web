@@ -31,33 +31,36 @@ const STATUS_OPTIONS = [
   { value: '', label: '전체' },
 ];
 
-const CAPABILITY_CHIPS = [
-  { code: 'CELEBRATION', label: '축하기본' },
-  { code: 'CELEBRATION_LARGE', label: '축하(대)' },
-  { code: 'CELEB_BASIC', label: '축하기본' },
-  { code: 'CELEB_LARGE', label: '축하(대)' },
-  { code: 'CONDOLENCE', label: '근조기본' },
-  { code: 'CONDOLENCE_LARGE', label: '근조(대)' },
-  { code: 'CONDO_BASIC', label: '근조기본' },
-  { code: 'CONDO_LARGE', label: '근조(대)' },
-  { code: 'CONDO_XLARGE', label: '근조(특대)' },
-  { code: 'CONDO_4TIER', label: '근조4단이상' },
-  { code: 'LARGE', label: '근조(특대)' },
-  { code: 'MULTI_TIER', label: '근조4단이상' },
-  { code: 'BASKET', label: '바구니' },
-  { code: 'ROUND', label: '원형' },
-  { code: 'OBJET', label: '오브제' },
-  { code: 'RICE', label: '쌀' },
-  { code: 'ORIENTAL_ORCHID', label: '동양란' },
-  { code: 'WESTERN_ORCHID', label: '서양란' },
-  { code: 'FLOWER', label: '꽃' },
-  { code: 'FOLIAGE', label: '관엽' },
-  { code: 'FRUITS', label: '과일' },
-  { code: 'BONSAI', label: '분재' },
-  { code: 'BLACK_RIBBON', label: '검정리본' },
-  { code: 'HOLIDAY', label: '휴일가능' },
-  { code: 'NIGHT', label: '야간배송' },
-  { code: 'HOLIDAY_UNAVAILABLE', label: '휴일불가' },
+// 코드→라벨 매핑 (old/new 코드 모두 지원)
+const CODE_TO_LABEL: Record<string, string> = {
+  CELEBRATION: '축하기본', CELEB_BASIC: '축하기본',
+  CELEBRATION_LARGE: '축하(대)', CELEB_LARGE: '축하(대)',
+  CONDOLENCE: '근조기본', CONDO_BASIC: '근조기본',
+  CONDOLENCE_LARGE: '근조(대)', CONDO_LARGE: '근조(대)',
+  CONDO_XLARGE: '근조(특대)', LARGE: '근조(특대)',
+  CONDO_4TIER: '근조4단이상', MULTI_TIER: '근조4단이상',
+  BASKET: '바구니', ROUND: '원형', OBJET: '오브제', RICE: '쌀',
+  ORIENTAL_ORCHID: '동양란', WESTERN_ORCHID: '서양란',
+  FLOWER: '꽃', FOLIAGE: '관엽', FRUITS: '과일', BONSAI: '분재',
+  BLACK_RIBBON: '검정리본', HOLIDAY: '휴일가능', NIGHT: '야간배송',
+  HOLIDAY_UNAVAILABLE: '휴일불가',
+};
+
+// 역량 필터 (사용자 정의 13개 항목, old/new 코드 모두 포함)
+const CAPABILITY_FILTER: { label: string; codes: string[] }[] = [
+  { label: '축하기본', codes: ['CELEBRATION', 'CELEB_BASIC'] },
+  { label: '축하(대)', codes: ['CELEBRATION_LARGE', 'CELEB_LARGE'] },
+  { label: '근조기본', codes: ['CONDOLENCE', 'CONDO_BASIC'] },
+  { label: '근조(대)', codes: ['CONDOLENCE_LARGE', 'CONDO_LARGE'] },
+  { label: '근조(특대)', codes: ['CONDO_XLARGE', 'LARGE'] },
+  { label: '근조4단이상', codes: ['CONDO_4TIER', 'MULTI_TIER'] },
+  { label: '오브제', codes: ['OBJET'] },
+  { label: '쌀', codes: ['RICE'] },
+  { label: '동양란', codes: ['ORIENTAL_ORCHID'] },
+  { label: '서양란', codes: ['WESTERN_ORCHID'] },
+  { label: '꽃', codes: ['FLOWER'] },
+  { label: '관엽', codes: ['FOLIAGE'] },
+  { label: '휴일불가', codes: ['HOLIDAY_UNAVAILABLE'] },
 ];
 
 const GRADE_MAP: Record<number, { label: string; color: string }> = {
@@ -324,21 +327,30 @@ function FloristsPage() {
 
         {/* 역량 필터 */}
         <div className="flex flex-wrap gap-2">
-          {CAPABILITY_CHIPS.map((cap) => (
-            <button
-              key={cap.code}
-              type="button"
-              onClick={() => toggleCap(cap.code)}
-              className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
-                selectedCaps.includes(cap.code)
-                  ? 'bg-[#546E7A] text-white border-[#546E7A]'
-                  : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-[#546E7A] hover:text-[#546E7A]'
-              )}
-            >
-              {cap.label}
-            </button>
-          ))}
+          {CAPABILITY_FILTER.map((item) => {
+            const isActive = item.codes.some((c) => selectedCaps.includes(c));
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  const next = isActive
+                    ? selectedCaps.filter((c) => !item.codes.includes(c))
+                    : [...selectedCaps, ...item.codes];
+                  setSelectedCaps(next);
+                  syncParams({ caps: next });
+                }}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                  isActive
+                    ? 'bg-[#546E7A] text-white border-[#546E7A]'
+                    : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-[#546E7A] hover:text-[#546E7A]'
+                )}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -413,9 +425,7 @@ function FloristsPage() {
                       <div className="space-y-1">
                         {f.capabilities && f.capabilities.length > 0 ? (
                           <div className="text-xs text-[#666666] leading-relaxed">
-                            {f.capabilities.map((c) =>
-                              CAPABILITY_CHIPS.find((ch) => ch.code === c)?.label || c
-                            ).join(', ')}
+                            {[...new Set(f.capabilities.map((c) => CODE_TO_LABEL[c] || c))].join(', ')}
                           </div>
                         ) : null}
                         {f.remarks ? (

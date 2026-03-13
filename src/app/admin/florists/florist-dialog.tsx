@@ -431,9 +431,16 @@ function FloristEditPanel({
               <Section title="역량" accent="bg-[#4CAF50]">
                 <div className="flex flex-wrap gap-2">
                   {CAPABILITY_OPTIONS.map((opt) => {
-                    const active = capabilities.includes(opt.code);
+                    const active = opt.codes.some((c) => capabilities.includes(c));
                     return (
-                      <button key={opt.code} onClick={() => toggleCap(opt.code)} className={cn('px-3 py-1.5 rounded-lg text-sm font-medium border transition-all', active ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#4CAF50]/30 shadow-sm' : 'bg-white text-stone-500 border-stone-200 hover:border-[#4CAF50]/50 hover:text-[#2E7D32]')}>
+                      <button key={opt.label} onClick={() => {
+                        setCapabilities((prev) => {
+                          if (opt.codes.some((c) => prev.includes(c))) {
+                            return prev.filter((c) => !opt.codes.includes(c));
+                          }
+                          return [...prev, opt.codes[0]];
+                        });
+                      }} className={cn('px-3 py-1.5 rounded-lg text-sm font-medium border transition-all', active ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#4CAF50]/30 shadow-sm' : 'bg-white text-stone-500 border-stone-200 hover:border-[#4CAF50]/50 hover:text-[#2E7D32]')}>
                         {active && <svg className="inline w-3.5 h-3.5 mr-0.5 -mt-px text-[#4CAF50]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
                         {opt.label}
                       </button>

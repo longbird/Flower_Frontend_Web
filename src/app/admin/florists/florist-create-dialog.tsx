@@ -274,11 +274,18 @@ export default function FloristCreateDialog({
               <Section title="역량" accent="bg-[#4CAF50]">
                 <div className="flex flex-wrap gap-2">
                   {CAPABILITY_OPTIONS.map((opt) => {
-                    const active = capabilities.includes(opt.code);
+                    const active = opt.codes.some((c) => capabilities.includes(c));
                     return (
                       <button
-                        key={opt.code}
-                        onClick={() => toggleCap(opt.code)}
+                        key={opt.label}
+                        onClick={() => {
+                          setCapabilities((prev) => {
+                            if (opt.codes.some((c) => prev.includes(c))) {
+                              return prev.filter((c) => !opt.codes.includes(c));
+                            }
+                            return [...prev, opt.codes[0]];
+                          });
+                        }}
                         className={cn(
                           'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
                           active

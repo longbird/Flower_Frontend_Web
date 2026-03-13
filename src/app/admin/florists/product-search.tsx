@@ -465,27 +465,121 @@ export default function ProductSearch() {
       </AlertDialog>
 
       {/* Full-screen image viewer */}
-      <Dialog open={!!viewerUrl} onOpenChange={() => setViewerUrl(null)}>
-        <DialogContent showCloseButton={false} className="max-w-[95vw] max-h-[95vh] p-0 bg-black border-none">
-          {viewerUrl && (
-            <div className="relative w-full h-[90vh]">
-              <Image
-                src={viewerUrl}
-                alt="전체 화면"
-                fill
-                className="object-contain"
-                unoptimized
-              />
-              <button
-                onClick={() => setViewerUrl(null)}
-                className="absolute top-3 right-3 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {viewerUrl && (
+        <FullScreenViewer
+          url={viewerUrl}
+          filename={selectedItem?.memo || '상품사진'}
+          onClose={() => setViewerUrl(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function FullScreenViewer({
+  url,
+  filename,
+  onClose,
+}: {
+  url: string;
+  filename: string;
+  onClose: () => void;
+}) {
+  const [copying, setCopying] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const handleCopy = async () => {
+    setCopying(true);
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const pngBlob = await new Promise<Blob>((resolve, reject) => {
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error('PNG 변환 실패'));
+          }, 'image/png');
+        };
+        img.onerror = () => reject(new Error('이미지 로드 실패'));
+        img.src = URL.createObjectURL(blob);
+      });
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': pngBlob }),
+      ]);
+      toast.success('이미지가 클립보드에 복사되었습니다');
+    } catch {
+      toast.error('복사에 실패했습니다');
+    } finally {
+      setCopying(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = url.split('/').pop()?.split('?')[0] || 'image.jpg';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success('이미지 다운로드를 시작합니다');
+    } catch {
+      toast.error('다운로드에 실패했습니다');
+    }
+  };
+
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('이미지를 가져올 수 없습니다');
+      const blob = await res.blob();
+      const ext = blob.type === 'image/png' ? '.png' : blob.type === 'image/webp' ? '.webp' : '.jpg';
+      const file = new File([blob], filename + ext, { type: blob.type });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        toast.success('공유 완료');
+      } else {
+        await navigator.clipboard.writeText(window.location.origin + url);
+        toast.info('이 브라우저에서는 파일 공유가 지원되지 않아 URL을 복사했습니다');
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return;
+      toast.error('공유에 실패했습니다');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={onClose}>
+      <div className="absolute top-4 right-4 z-10 flex gap-2" onClick={(e) => e.stopPropagation()}>
+        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10 disabled:opacity-50" title="클립보드에 복사" onClick={handleCopy} disabled={copying}>
+          {copying ? <span className="animate-spin text-sm">...</span> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>}
+        </button>
+        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10" title="이미지 다운로드" onClick={handleDownload}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+        </button>
+        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10 disabled:opacity-50" title="공유" onClick={handleShare} disabled={sharing}>
+          {sharing ? <span className="animate-spin text-sm">...</span> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>}
+        </button>
+        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10" title="닫기" onClick={onClose}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+      <div className="flex-1 flex items-center justify-center overflow-hidden p-4" onClick={(e) => e.stopPropagation()}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="전체 화면" className="max-w-[90vw] max-h-[85vh] object-contain select-none" draggable={false} />
+      </div>
     </div>
   );
 }
