@@ -203,8 +203,30 @@ export function ImageViewer({
   const handleCopy = async () => {
     setCopying(true);
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success('이미지 URL이 클립보드에 복사되었습니다');
+      const res = await fetch(url);
+      const blob = await res.blob();
+      // PNG로 변환 (clipboard API는 image/png만 지원)
+      const pngBlob = await new Promise<Blob>((resolve, reject) => {
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error('PNG 변환 실패'));
+          }, 'image/png');
+        };
+        img.onerror = () => reject(new Error('이미지 로드 실패'));
+        img.src = URL.createObjectURL(blob);
+      });
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': pngBlob }),
+      ]);
+      toast.success('이미지가 클립보드에 복사되었습니다');
     } catch {
       toast.error('복사에 실패했습니다');
     } finally {

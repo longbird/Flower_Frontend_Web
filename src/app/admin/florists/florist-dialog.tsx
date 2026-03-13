@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -101,6 +101,28 @@ function FloristEditPanel({
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 클립보드 이미지 붙여넣기 핸들러
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            setUploadDialogFile(file);
+            // 사진 관리 탭으로 자동 전환
+            setActiveTab('photos');
+          }
+          break;
+        }
+      }
+    };
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
+
   const [name, setName] = useState(florist.name || '');
   const [phone, setPhone] = useState(florist.phone || '');
   const [address, setAddress] = useState(florist.address || '');
@@ -144,7 +166,7 @@ function FloristEditPanel({
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (args: { file: File; category: string; grade?: string; isRecommended?: boolean; costPrice?: number; sellingPrice?: number; memo?: string }) =>
+    mutationFn: (args: { file: File; category: string; grade?: string; isRecommended?: boolean; costPrice?: number; sellingPrice?: number; memo?: string; description?: string }) =>
       uploadFloristPhoto(floristId, args.file, {
         category: args.category,
         grade: args.grade,
@@ -152,6 +174,7 @@ function FloristEditPanel({
         costPrice: args.costPrice,
         sellingPrice: args.sellingPrice,
         memo: args.memo,
+        description: args.description,
       }),
     onSuccess: (res) => {
       const uploaded = (res as { data?: FloristPhoto })?.data ?? null;
@@ -296,8 +319,43 @@ function FloristEditPanel({
             <span className={cn('w-2 h-2 rounded-full ring-2 ring-[#388E3C] shrink-0', statusColor)} />
             <span className="text-xs md:text-sm text-white/70 shrink-0">{statusLabel}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#388E3C] text-white/70 hover:text-white transition-colors">
+          <div className="flex items-center gap-1.5">
+            <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileSelect} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-sm font-medium transition-colors"
+              title="사진 업로드"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              업로드
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const items = await navigator.clipboard.read();
+                  for (const item of items) {
+                    const imageType = item.types.find(t => t.startsWith('image/'));
+                    if (imageType) {
+                      const blob = await item.getType(imageType);
+                      const ext = imageType.split('/')[1] || 'png';
+                      const file = new File([blob], `paste_${Date.now()}.${ext}`, { type: imageType });
+                      setUploadDialogFile(file);
+                      setActiveTab('photos');
+                      return;
+                    }
+                  }
+                  toast.info('클립보드에 이미지가 없습니다.');
+                } catch {
+                  toast.error('클립보드 접근 권한이 필요합니다.\nCtrl+V로 붙여넣기를 시도해주세요.');
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-sm font-medium transition-colors"
+              title="클립보드에서 이미지 붙여넣기 (Ctrl+V)"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+              붙여넣기
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#388E3C] text-white/70 hover:text-white transition-colors ml-1">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -394,7 +452,11 @@ function FloristEditPanel({
                     </select>
                   </Field>
                   <Field label="배정 우선순위">
-                    <input type="number" min={0} max={99} value={priority || ''} onChange={(e) => setPriority(Number(e.target.value) || 0)} className="field-input" />
+                    <select value={priority} onChange={(e) => setPriority(Number(e.target.value))} className="field-input">
+                      {Array.from({ length: 11 }, (_, i) => (
+                        <option key={i} value={i}>{i === 0 ? '없음' : `${i}`}</option>
+                      ))}
+                    </select>
                   </Field>
                 </div>
               </Section>
@@ -437,13 +499,6 @@ function FloristEditPanel({
           <div className="flex flex-col h-full bg-white p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-stone-800">사진 갤러리 ({photos.length}장)</h3>
-              <div className="flex items-center gap-2">
-                <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileSelect} />
-                <button onClick={() => fileInputRef.current?.click()} disabled={uploadMutation.isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-[#4CAF50] text-white hover:bg-[#388E3C] transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  {uploadMutation.isPending ? '업로드 중...' : '사진 업로드'}
-                </button>
-              </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5 mb-6">
@@ -502,13 +557,14 @@ function FloristEditPanel({
 
       {/* 사진 정보 수정 다이얼로그 — 탭 독립 */}
       <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-stone-800">사진 정보 수정</DialogTitle>
           </DialogHeader>
           {selectedPhoto && (
             <PhotoEditForm
               photo={selectedPhoto}
+              floristInfo={florist ? { name: florist.name, phone: florist.phone, address: florist.address } : undefined}
               onSave={(data) => updatePhotoMutation.mutate({ photoId: selectedPhoto.id, data, beforeSnapshot: selectedPhoto })}
               onDelete={() => setDeletePhotoConfirm('selected')}
               onViewFull={() => { const p = selectedPhoto; setSelectedPhoto(null); setTimeout(() => setViewerPhoto(p), 100); }}
@@ -520,7 +576,7 @@ function FloristEditPanel({
       </Dialog>
 
       <Dialog open={!!uploadDialogFile} onOpenChange={() => setUploadDialogFile(null)}>
-        <DialogContent className="max-w-sm border-stone-200">
+        <DialogContent className="max-w-2xl border-stone-200">
           <DialogHeader>
             <DialogTitle className="text-stone-800">사진 정보 입력</DialogTitle>
           </DialogHeader>
@@ -536,6 +592,7 @@ function FloristEditPanel({
                   costPrice: info.costPrice ?? undefined,
                   sellingPrice: info.sellingPrice ?? undefined,
                   memo: info.memo || undefined,
+                  description: info.description || undefined,
                 });
               }}
               onCancel={() => setUploadDialogFile(null)}

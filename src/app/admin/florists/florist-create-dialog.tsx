@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { createFlorist } from '@/lib/api/admin';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { CAPABILITY_OPTIONS } from './florist-constants';
+import { CAPABILITY_OPTIONS, GRADE_OPTIONS } from './florist-constants';
 
 export default function FloristCreateDialog({
   open,
@@ -26,6 +26,8 @@ export default function FloristCreateDialog({
   const [address, setAddress] = useState('');
   const [remarks, setRemarks] = useState('');
   const [capabilities, setCapabilities] = useState<string[]>([]);
+  const [grade, setGrade] = useState(0);
+  const [priority, setPriority] = useState(0);
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
   const [newArea, setNewArea] = useState('');
 
@@ -52,6 +54,8 @@ export default function FloristCreateDialog({
     setAddress('');
     setRemarks('');
     setCapabilities([]);
+    setGrade(0);
+    setPriority(0);
     setServiceAreas([]);
     setNewArea('');
   };
@@ -73,6 +77,8 @@ export default function FloristCreateDialog({
       sido: sido.trim() || '',
       gugun: gugun.trim() || '',
       remarks: remarks.trim() || null,
+      grade: grade || 0,
+      priority: priority || 0,
       serviceAreas,
       capabilities,
     });
@@ -294,6 +300,25 @@ export default function FloristCreateDialog({
                       </button>
                     );
                   })}
+                </div>
+              </Section>
+
+              <Section title="영업 정보" accent="bg-[#4CAF50]">
+                <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                  <Field label="등급">
+                    <select value={grade} onChange={(e) => setGrade(Number(e.target.value))} className="field-input">
+                      {GRADE_OPTIONS.map((g) => (
+                        <option key={g.value} value={g.value}>{g.label}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="배정 우선순위">
+                    <select value={priority} onChange={(e) => setPriority(Number(e.target.value))} className="field-input">
+                      {Array.from({ length: 11 }, (_, i) => (
+                        <option key={i} value={i}>{i === 0 ? '없음' : `${i}`}</option>
+                      ))}
+                    </select>
+                  </Field>
                 </div>
               </Section>
             </div>

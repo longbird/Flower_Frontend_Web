@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { fetchConsultRequests, updateConsultRequestStatus } from '@/lib/branch/branch-api';
+import { fetchConsultRequests, updateConsultRequestStatus, fetchBranchProducts } from '@/lib/branch/branch-api';
 import type { ConsultRequest } from '@/lib/branch/types';
+import type { BranchProductSetting } from '@/lib/branch/branch-api';
 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   NEW: { label: '신규', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
@@ -40,12 +41,79 @@ function formatPhone(phone: string) {
   return phone;
 }
 
+function productImageUrl(url: string) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  const API_BASE = RAW_API_BASE ? '/api/proxy' : '';
+  return `${API_BASE}${url}`;
+}
+
+function formatPrice(n: number) {
+  return n.toLocaleString() + '원';
+}
+
+function ProductDetailPopup({
+  product,
+  onClose,
+}: {
+  product: BranchProductSetting;
+  onClose: () => void;
+}) {
+  const imgSrc = product.imageUrl ? productImageUrl(product.imageUrl) : '';
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:text-slate-700 transition-colors shadow-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        {imgSrc ? (
+          <div className="aspect-[3/4] bg-slate-50">
+            <img src={imgSrc} alt={product.name} className="w-full h-full object-contain" />
+          </div>
+        ) : (
+          <div className="aspect-[3/4] bg-slate-50 flex items-center justify-center text-5xl opacity-30">🌸</div>
+        )}
+        <div className="p-4 space-y-2">
+          <h3 className="font-semibold text-slate-900">{product.name}</h3>
+          {product.description && (
+            <p className="text-sm text-slate-500 leading-relaxed">{product.description}</p>
+          )}
+          <div className="flex items-center gap-3 text-sm">
+            {product.basePrice > 0 && product.surcharge > 0 ? (
+              <>
+                <span className="text-slate-400 line-through">{formatPrice(product.basePrice)}</span>
+                <span className="font-bold text-[var(--branch-accent,#e91e63)]">{formatPrice(product.basePrice + product.surcharge)}</span>
+              </>
+            ) : (
+              <span className="font-bold text-[var(--branch-accent,#e91e63)]">{formatPrice(product.sellingPrice || product.basePrice)}</span>
+            )}
+          </div>
+          {product.category && (
+            <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{product.category}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ConsultCard({
   consult,
   onStatusChange,
+  products,
+  onProductClick,
 }: {
   consult: ConsultRequest;
   onStatusChange: (id: number, status: string) => void;
+  products: BranchProductSetting[];
+  onProductClick: (product: BranchProductSetting) => void;
 }) {
   const statusInfo = STATUS_LABELS[consult.status] || STATUS_LABELS.NEW;
   const transitions = STATUS_TRANSITIONS[consult.status] || [];
@@ -74,12 +142,26 @@ function ConsultCard({
 
       {/* Details */}
       <div className="space-y-1.5 text-sm">
-        {consult.productName && (
-          <div className="flex gap-2">
-            <span className="text-[var(--branch-text-light)] shrink-0">상품:</span>
-            <span className="text-[var(--branch-text)]">{consult.productName}</span>
-          </div>
-        )}
+        {consult.productName && (() => {
+          const matched = consult.productCode
+            ? products.find((p) => p.sku === consult.productCode)
+            : undefined;
+          return (
+            <div className="flex gap-2">
+              <span className="text-[var(--branch-text-light)] shrink-0">상품:</span>
+              {matched ? (
+                <button
+                  onClick={() => onProductClick(matched)}
+                  className="text-[var(--branch-accent)] hover:underline text-left"
+                >
+                  {consult.productName}
+                </button>
+              ) : (
+                <span className="text-[var(--branch-text)]">{consult.productName}</span>
+              )}
+            </div>
+          );
+        })()}
         {consult.desiredDate && (
           <div className="flex gap-2">
             <span className="text-[var(--branch-text-light)] shrink-0">희망일:</span>
@@ -128,6 +210,8 @@ export default function ConsultsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 20;
+  const [products, setProducts] = useState<BranchProductSetting[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<BranchProductSetting | null>(null);
 
   const loadConsults = useCallback(async () => {
     setLoading(true);
@@ -149,6 +233,12 @@ export default function ConsultsPage() {
   useEffect(() => {
     loadConsults();
   }, [loadConsults]);
+
+  useEffect(() => {
+    fetchBranchProducts()
+      .then((res) => { if (res.ok) setProducts(res.data); })
+      .catch(() => {});
+  }, []);
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
@@ -220,6 +310,8 @@ export default function ConsultsPage() {
                 key={c.id}
                 consult={c}
                 onStatusChange={handleStatusChange}
+                products={products}
+                onProductClick={setSelectedProduct}
               />
             ))}
           </div>
@@ -247,6 +339,9 @@ export default function ConsultsPage() {
             </div>
           )}
         </>
+      )}
+      {selectedProduct && (
+        <ProductDetailPopup product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
     </div>
   );

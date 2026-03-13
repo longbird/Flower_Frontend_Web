@@ -27,6 +27,21 @@ export interface BranchProduct {
   serviceAreas?: string | null;
 }
 
+/** 추천 상품 (화원 사진 기반) */
+export interface RecommendedPhoto {
+  id: number;
+  category?: string;
+  grade?: string;
+  name?: string;
+  costPrice?: number;
+  sellingPrice?: number;
+  imageUrl?: string;
+  isRecommended?: boolean;
+  floristName?: string;
+  floristPhone?: string;
+  serviceAreas?: string | null;
+}
+
 /** 상담 요청 */
 export interface ConsultRequest {
   id: number;

@@ -52,6 +52,7 @@ export interface FloristPhoto {
   costPrice?: number | null;
   sellingPrice?: number | null;
   memo?: string | null;
+  description?: string | null;
   createdAt?: string;
 }
 
@@ -71,6 +72,7 @@ export interface FloristPhotoSearchItem {
   costPrice?: number | null;
   sellingPrice?: number | null;
   memo?: string | null;
+  description?: string | null;
   createdAt: string;
 }
 

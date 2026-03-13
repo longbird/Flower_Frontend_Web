@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { listFlorists, updateFloristStatus, getFloristPhotos } from '@/lib/api/admin';
 import { Input } from '@/components/ui/input';
@@ -34,16 +34,29 @@ const STATUS_OPTIONS = [
 const CAPABILITY_CHIPS = [
   { code: 'CELEBRATION', label: '축하기본' },
   { code: 'CELEBRATION_LARGE', label: '축하(대)' },
+  { code: 'CELEB_BASIC', label: '축하기본' },
+  { code: 'CELEB_LARGE', label: '축하(대)' },
   { code: 'CONDOLENCE', label: '근조기본' },
   { code: 'CONDOLENCE_LARGE', label: '근조(대)' },
+  { code: 'CONDO_BASIC', label: '근조기본' },
+  { code: 'CONDO_LARGE', label: '근조(대)' },
+  { code: 'CONDO_XLARGE', label: '근조(특대)' },
+  { code: 'CONDO_4TIER', label: '근조4단이상' },
   { code: 'LARGE', label: '근조(특대)' },
   { code: 'MULTI_TIER', label: '근조4단이상' },
+  { code: 'BASKET', label: '바구니' },
+  { code: 'ROUND', label: '원형' },
   { code: 'OBJET', label: '오브제' },
   { code: 'RICE', label: '쌀' },
   { code: 'ORIENTAL_ORCHID', label: '동양란' },
   { code: 'WESTERN_ORCHID', label: '서양란' },
   { code: 'FLOWER', label: '꽃' },
   { code: 'FOLIAGE', label: '관엽' },
+  { code: 'FRUITS', label: '과일' },
+  { code: 'BONSAI', label: '분재' },
+  { code: 'BLACK_RIBBON', label: '검정리본' },
+  { code: 'HOLIDAY', label: '휴일가능' },
+  { code: 'NIGHT', label: '야간배송' },
   { code: 'HOLIDAY_UNAVAILABLE', label: '휴일불가' },
 ];
 
@@ -128,18 +141,48 @@ function GradeBadge({ grade }: { grade?: number }) {
   );
 }
 
-export default function FloristsPage() {
+export default function FloristsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="text-center py-8 text-[#666666]">로딩 중...</div>}>
+      <FloristsPage />
+    </Suspense>
+  );
+}
+
+function FloristsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ACTIVE');
-  const [selectedCaps, setSelectedCaps] = useState<string[]>([]);
+
+  // URL search params에서 필터 상태 복원
+  const initialQuery = searchParams.get('q') || '';
+  const initialStatus = searchParams.get('status') || 'ACTIVE';
+  const initialCaps = searchParams.get('caps')?.split(',').filter(Boolean) || [];
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
+
+  const [page, setPage] = useState(initialPage);
+  const [search, setSearch] = useState(initialQuery);
+  const [query, setQuery] = useState(initialQuery);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [selectedCaps, setSelectedCaps] = useState<string[]>(initialCaps);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFloristId, setSelectedFloristId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const pageSize = 30;
+
+  const syncParams = useCallback((params: { q?: string; status?: string; caps?: string[]; page?: number }) => {
+    const sp = new URLSearchParams();
+    const q = params.q ?? query;
+    const s = params.status ?? statusFilter;
+    const c = params.caps ?? selectedCaps;
+    const p = params.page ?? page;
+    if (q) sp.set('q', q);
+    if (s && s !== 'ACTIVE') sp.set('status', s);
+    if (c.length > 0) sp.set('caps', c.join(','));
+    if (p > 1) sp.set('page', String(p));
+    const qs = sp.toString();
+    router.replace(`/admin/florists${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [query, statusFilter, selectedCaps, page, router]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['florists', page, query, statusFilter],
@@ -163,6 +206,7 @@ export default function FloristsPage() {
     e.preventDefault();
     setQuery(search);
     setPage(1);
+    syncParams({ q: search, page: 1 });
   };
 
   const handleReset = () => {
@@ -171,12 +215,13 @@ export default function FloristsPage() {
     setStatusFilter('ACTIVE');
     setSelectedCaps([]);
     setPage(1);
+    router.replace('/admin/florists', { scroll: false });
   };
 
   const toggleCap = (code: string) => {
-    setSelectedCaps((prev) =>
-      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
-    );
+    const next = selectedCaps.includes(code) ? selectedCaps.filter((c) => c !== code) : [...selectedCaps, code];
+    setSelectedCaps(next);
+    syncParams({ caps: next });
   };
 
   const handleToggleStatus = async (f: FloristSummary) => {
@@ -232,11 +277,11 @@ export default function FloristsPage() {
           <TabsContent value="list" className="bg-[#F5F6F8] p-3 md:p-6 m-0 outline-none rounded-b-xl">
             <div className="space-y-6">
 
-      {/* 필터 토글 버튼 */}
+      {/* 필터 토글 버튼 (모바일만) */}
       <button
         type="button"
         onClick={() => setFilterOpen(!filterOpen)}
-        className="flex items-center gap-1.5 text-sm text-[#546E7A] hover:text-[#37474F] font-medium transition-colors"
+        className="md:hidden flex items-center gap-1.5 text-sm text-[#546E7A] hover:text-[#37474F] font-medium transition-colors"
       >
         <svg className={cn('w-4 h-4 transition-transform', filterOpen && 'rotate-180')} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
         필터 {filterOpen ? '접기' : '펼치기'}
@@ -245,9 +290,11 @@ export default function FloristsPage() {
         )}
       </button>
 
-      {/* 필터 영역 */}
-      {filterOpen && (
-      <div className="bg-[#F5F6F8] rounded-lg border border-[#E0E0E0] p-3 md:p-4 flex flex-col gap-3 md:gap-4">
+      {/* 필터 영역: 데스크톱 항상 표시, 모바일 토글 */}
+      <div className={cn(
+        'bg-[#F5F6F8] rounded-lg border border-[#E0E0E0] p-3 md:p-4 flex flex-col gap-3 md:gap-4',
+        filterOpen ? 'block' : 'hidden md:flex'
+      )}>
         <form onSubmit={handleSearch} className="flex flex-col gap-2">
           <div className="flex gap-2">
             <div className="relative flex-1 min-w-0">
@@ -265,7 +312,7 @@ export default function FloristsPage() {
             <select
               className="h-9 rounded-lg border border-[#E0E0E0] bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A] outline-none text-[#333333]"
               value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); syncParams({ status: e.target.value, page: 1 }); }}
             >
               {STATUS_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -294,7 +341,6 @@ export default function FloristsPage() {
           ))}
         </div>
       </div>
-      )}
 
       {isLoading && <div className="text-center py-8 text-[#666666]">로딩 중...</div>}
       {error && (
@@ -373,7 +419,7 @@ export default function FloristsPage() {
                           </div>
                         ) : null}
                         {f.remarks ? (
-                          <div className="text-xs bg-[#FFF3E0] text-[#FF9800] border border-[#FFE0B2] rounded px-1.5 py-0.5 line-clamp-2">
+                          <div className="text-[13px] font-medium bg-[#FFF8E1] text-[#8D6E00] border border-[#FFE082] rounded px-2 py-1 line-clamp-2 leading-snug">
                             {f.remarks}
                           </div>
                         ) : null}
@@ -466,7 +512,7 @@ export default function FloristsPage() {
                 size="sm"
                 className="border-[#E0E0E0] text-[#666666] hover:bg-gray-50"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
+                onClick={() => { const p = page - 1; setPage(p); syncParams({ page: p }); }}
               >
                 이전
               </Button>
@@ -475,7 +521,7 @@ export default function FloristsPage() {
                 size="sm"
                 className="border-[#546E7A] text-[#546E7A] hover:bg-[#ECEFF1]"
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => { const p = page + 1; setPage(p); syncParams({ page: p }); }}
               >
                 다음
               </Button>

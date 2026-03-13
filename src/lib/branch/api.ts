@@ -1,4 +1,4 @@
-import type { BranchInfo, BranchProduct, ConsultRequestForm } from './types';
+import type { BranchInfo, BranchProduct, RecommendedPhoto, ConsultRequestForm } from './types';
 
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const API_BASE = RAW_API_BASE ? '/api/proxy' : '';
@@ -19,6 +19,18 @@ export async function fetchBranchInfo(slug: string): Promise<BranchInfo | null> 
 export async function fetchBranchProducts(slug: string): Promise<BranchProduct[]> {
   try {
     const res = await fetch(`${API_BASE}/public/branch/${slug}/products`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** 추천 상품(화원 사진) 목록 조회 (인증 불필요) */
+export async function fetchRecommendedPhotos(slug: string): Promise<RecommendedPhoto[]> {
+  try {
+    const res = await fetch(`${API_BASE}/public/branch/${slug}/recommended-photos`);
     if (!res.ok) return [];
     const json = await res.json();
     return json.data ?? [];

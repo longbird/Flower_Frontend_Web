@@ -5,13 +5,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import { searchAllPhotos, updateFloristPhoto } from '@/lib/api/admin';
-import type { FloristPhotoSearchItem, PhotoCategory } from '@/lib/types/florist';
+import { searchAllPhotos, updateFloristPhoto, deleteFloristPhoto } from '@/lib/api/admin';
+import type { FloristPhotoSearchItem, FloristPhoto, PhotoCategory } from '@/lib/types/florist';
 import { addPhotoLog } from '@/lib/photo-log';
 import { useAuthStore } from '@/lib/auth/store';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -19,6 +18,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { PhotoEditForm } from './florist-photo-forms';
 
 const CATEGORIES: { code: PhotoCategory | ''; label: string }[] = [
   { code: '', label: '전체' },
@@ -60,13 +70,6 @@ const GRADE_COLORS: Record<string, string> = {
   STANDARD: 'bg-teal-600/90 text-white',
 };
 
-const PHOTO_GRADES: { code: string; label: string; color: string }[] = [
-  { code: 'PREMIUM', label: '프리미엄', color: 'bg-amber-700 text-white' },
-  { code: 'HIGH', label: '고급형', color: 'bg-blue-600 text-white' },
-  { code: 'STANDARD', label: '실속형', color: 'bg-teal-600 text-white' },
-];
-
-const EDIT_CATEGORIES = CATEGORIES.filter((c) => c.code !== '');
 
 function photoUrl(url: string) {
   if (!url) return '';
@@ -76,17 +79,6 @@ function photoUrl(url: string) {
 
 function categoryLabel(code: string) {
   return CATEGORIES.find((c) => c.code === code)?.label || code;
-}
-
-function formatCurrency(value: string): string {
-  const num = value.replace(/[^\d]/g, '');
-  if (!num) return '';
-  return Number(num).toLocaleString();
-}
-
-function parseCurrency(value: string): number | null {
-  const num = parseInt(value.replace(/[^\d]/g, ''), 10);
-  return isNaN(num) ? null : num;
 }
 
 export default function ProductSearch() {
@@ -102,6 +94,7 @@ export default function ProductSearch() {
   const [editMode, setEditMode] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const pageSize = 40;
   const queryClient = useQueryClient();
@@ -194,6 +187,43 @@ export default function ProductSearch() {
     onError: () => {
       toast.error('상태 변경에 실패했습니다');
     },
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: (item: FloristPhotoSearchItem) =>
+      deleteFloristPhoto(item.floristId, item.id),
+    onSuccess: (_data, item) => {
+      addPhotoLog({
+        action: 'DELETE',
+        floristId: item.floristId,
+        floristName: item.floristName || item.floristId,
+        photoId: item.id,
+        before: toFloristPhoto(item),
+        after: null,
+        userName: useAuthStore.getState().user?.name || '-',
+      });
+      toast.success('사진이 삭제되었습니다');
+      setSelectedItem(null);
+      setEditMode(false);
+      queryClient.invalidateQueries({ queryKey: ['allPhotos'] });
+    },
+    onError: () => {
+      toast.error('삭제에 실패했습니다');
+    },
+  });
+
+  const toFloristPhoto = (item: FloristPhotoSearchItem): FloristPhoto => ({
+    id: item.id,
+    floristId: item.floristId,
+    fileUrl: item.fileUrl,
+    category: item.category,
+    grade: item.grade,
+    isHidden: item.isHidden ?? false,
+    isRecommended: item.isRecommended,
+    costPrice: item.costPrice,
+    sellingPrice: item.sellingPrice,
+    memo: item.memo,
+    description: item.description,
   });
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
@@ -332,7 +362,7 @@ export default function ProductSearch() {
 
       {/* Product grid */}
       <div className="bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl p-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {items.map((item) => (
             <ProductCard
               key={item.id}
@@ -397,16 +427,42 @@ export default function ProductSearch() {
             />
           )}
           {selectedItem && editMode && (
-            <ProductDetailEdit
-              item={selectedItem}
+            <PhotoEditForm
+              photo={toFloristPhoto(selectedItem)}
+              floristInfo={{ name: selectedItem.floristName, phone: selectedItem.floristPhone, address: selectedItem.floristAddress }}
               onSave={(data) => updatePhotoDetailMutation.mutate({ item: selectedItem, data })}
-              onCancel={() => setEditMode(false)}
+              onDelete={() => setDeleteConfirm(true)}
               onViewFull={() => setViewerUrl(photoUrl(selectedItem.fileUrl))}
+              onCancel={() => setEditMode(false)}
               saving={updatePhotoDetailMutation.isPending}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirm */}
+      <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>사진 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 사진을 정말 삭제하시겠습니까? 삭제된 사진은 복구할 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() => {
+                if (selectedItem) deletePhotoMutation.mutate(selectedItem);
+                setDeleteConfirm(false);
+              }}
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Full-screen image viewer */}
       <Dialog open={!!viewerUrl} onOpenChange={() => setViewerUrl(null)}>
@@ -664,160 +720,3 @@ function ProductDetail({
   );
 }
 
-/* --- Product Detail Edit Form --- */
-function ProductDetailEdit({
-  item,
-  onSave,
-  onCancel,
-  onViewFull,
-  saving,
-}: {
-  item: FloristPhotoSearchItem;
-  onSave: (data: Record<string, unknown>) => void;
-  onCancel: () => void;
-  onViewFull: () => void;
-  saving: boolean;
-}) {
-  const [editCategory, setEditCategory] = useState<string>(item.category);
-  const [editGrade, setEditGrade] = useState<string>(item.grade || '');
-  const [editIsRecommended, setEditIsRecommended] = useState(item.isRecommended || false);
-  const [editMemo, setEditMemo] = useState(item.memo || '');
-  const [editCostPrice, setEditCostPrice] = useState(item.costPrice ? item.costPrice.toLocaleString() : '');
-  const [editSellingPrice, setEditSellingPrice] = useState(item.sellingPrice ? item.sellingPrice.toLocaleString() : '');
-
-  const handleSave = () => {
-    onSave({
-      category: editCategory,
-      ...(editGrade ? { grade: editGrade } : {}),
-      isRecommended: editIsRecommended,
-      ...(editIsRecommended ? { isHidden: false } : {}),
-      ...(editCostPrice ? { costPrice: parseCurrency(editCostPrice) } : { costPrice: null }),
-      ...(editSellingPrice ? { sellingPrice: parseCurrency(editSellingPrice) } : { sellingPrice: null }),
-      ...(editMemo ? { memo: editMemo } : { memo: null }),
-    });
-  };
-
-  return (
-    <div className="flex flex-col md:flex-row gap-4">
-      {/* Image */}
-      <div
-        className="relative w-full md:w-[35%] aspect-[3/4] rounded-xl overflow-hidden border border-slate-200 cursor-pointer flex-shrink-0 group bg-slate-50"
-        onClick={onViewFull}
-      >
-        <Image
-          src={photoUrl(item.fileUrl)}
-          alt={item.memo || '상품 사진'}
-          fill
-          className="object-contain group-hover:scale-105 transition-transform duration-300"
-          unoptimized
-        />
-        <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
-          크게 보기
-        </span>
-      </div>
-
-      {/* Edit Form */}
-      <div className="flex-1 min-w-0 space-y-4">
-        {/* Category */}
-        <div className="space-y-1.5">
-          <Label className="text-slate-600">상품 구분 *</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {EDIT_CATEGORIES.map((c) => (
-              <button
-                key={c.code}
-                onClick={() => setEditCategory(c.code as string)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                  editCategory === c.code
-                    ? 'bg-[#546E7A] text-white border-transparent shadow-md shadow-slate-600/20'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                )}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Grade + Recommended */}
-        <div className="space-y-1.5">
-          <Label className="text-slate-600">상품 등급</Label>
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <button
-              onClick={() => setEditIsRecommended(!editIsRecommended)}
-              className={cn(
-                'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                editIsRecommended
-                  ? 'bg-amber-500 text-white border-transparent shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200'
-              )}
-            >
-              추천
-            </button>
-            <span className="w-px h-4 bg-slate-200 mx-1" />
-            {PHOTO_GRADES.map((g) => (
-              <button
-                key={g.code}
-                onClick={() => setEditGrade(editGrade === g.code ? '' : g.code)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                  editGrade === g.code ? `${g.color} border-transparent shadow-sm` : 'bg-white text-slate-600 border-slate-200'
-                )}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Memo */}
-        <div className="space-y-1">
-          <Label className="text-slate-600">메모 (제품명 등)</Label>
-          <Input value={editMemo} onChange={(e) => setEditMemo(e.target.value)} placeholder="예: 장미 꽃다발 50송이" maxLength={200} className="border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400" />
-        </div>
-
-        {/* Prices */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label className="text-slate-600">입금가 (원가)</Label>
-            <div className="relative">
-              <Input
-                value={editCostPrice}
-                onChange={(e) => setEditCostPrice(formatCurrency(e.target.value))}
-                placeholder="예: 50,000"
-                className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
-              />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-slate-600">판매가</Label>
-            <div className="relative">
-              <Input
-                value={editSellingPrice}
-                onChange={(e) => setEditSellingPrice(formatCurrency(e.target.value))}
-                placeholder="예: 70,000"
-                className="pr-8 border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
-              />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-          <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={!editCategory || saving}
-            className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
-          >
-            {saving ? '저장 중...' : '저장'}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
