@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { searchAllPhotos, updateFloristPhoto, deleteFloristPhoto } from '@/lib/api/admin';
 import type { FloristPhotoSearchItem, FloristPhoto } from '@/lib/types/florist';
 import { CATEGORIES } from '@/app/admin/florists/florist-constants';
@@ -30,30 +31,30 @@ import {
 
 // ─── Products Tab ────────────────────────────────────────────────────────────
 
+const pageSize = 40;
+
 export function ProductsTab() {
-  const [photos, setPhotos] = useState<FloristPhotoSearchItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedPhoto, setSelectedPhoto] = useState<FloristPhotoSearchItem | null>(null);
   const [viewerPhoto, setViewerPhoto] = useState<FloristPhotoSearchItem | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<'selected' | 'viewer' | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const loadPhotos = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await searchAllPhotos({ isRecommended: true, size: 500, includeHidden: false });
-      setPhotos(res.data ?? []);
-    } catch {
-      // handled by auth
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: ['recommendedPhotos', page, selectedCategory],
+    queryFn: () =>
+      searchAllPhotos({
+        isRecommended: true,
+        size: pageSize,
+        page,
+        category: selectedCategory || undefined,
+        includeHidden: false,
+      }),
+  });
 
-  useEffect(() => {
-    loadPhotos();
-  }, [loadPhotos]);
+  const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
 
   const toFloristPhoto = (item: FloristPhotoSearchItem): FloristPhoto => ({
     id: item.id,
@@ -69,23 +70,23 @@ export function ProductsTab() {
     description: item.description,
   });
 
-  const handleSave = async (data: Record<string, unknown>) => {
+  const handleSave = async (formData: Record<string, unknown>) => {
     if (!selectedPhoto) return;
     setSaving(true);
     try {
-      await updateFloristPhoto(selectedPhoto.floristId, selectedPhoto.id, data);
+      await updateFloristPhoto(selectedPhoto.floristId, selectedPhoto.id, formData);
       addPhotoLog({
         action: 'UPDATE',
         floristId: selectedPhoto.floristId,
         floristName: selectedPhoto.floristName || selectedPhoto.floristId,
         photoId: selectedPhoto.id,
         before: toFloristPhoto(selectedPhoto),
-        after: { ...toFloristPhoto(selectedPhoto), ...data } as Partial<FloristPhoto>,
+        after: { ...toFloristPhoto(selectedPhoto), ...formData } as Partial<FloristPhoto>,
         userName: useAuthStore.getState().user?.name || '-',
       });
       toast.success('사진 정보가 수정되었습니다.');
       setSelectedPhoto(null);
-      loadPhotos();
+      queryClient.invalidateQueries({ queryKey: ['recommendedPhotos'] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '수정 실패');
     } finally {
@@ -108,17 +109,15 @@ export function ProductsTab() {
       toast.success('사진이 삭제되었습니다.');
       setSelectedPhoto(null);
       setViewerPhoto(null);
-      loadPhotos();
+      queryClient.invalidateQueries({ queryKey: ['recommendedPhotos'] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '삭제 실패');
     }
   };
 
-  const filtered = selectedCategory
-    ? photos.filter(p => p.category === selectedCategory)
-    : photos;
+  const photos = data?.data ?? [];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="text-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
@@ -132,13 +131,13 @@ export function ProductsTab() {
       {/* Header */}
       <div className="mb-4">
         <p className="text-sm text-slate-500 mb-1">
-          총 {photos.length}개 — 화원에서 추천 체크한 상품이 자동으로 표시됩니다.
+          총 {data?.total ?? 0}개 — 화원에서 추천 체크한 상품이 자동으로 표시됩니다.
         </p>
 
         {/* Category filter */}
         <div className="flex flex-wrap gap-2 mt-3">
           <button
-            onClick={() => setSelectedCategory('')}
+            onClick={() => { setSelectedCategory(''); setPage(1); }}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               selectedCategory === ''
                 ? 'bg-emerald-600 text-white'
@@ -150,7 +149,7 @@ export function ProductsTab() {
           {CATEGORIES.map(cat => (
             <button
               key={cat.code}
-              onClick={() => setSelectedCategory(cat.code)}
+              onClick={() => { setSelectedCategory(cat.code); setPage(1); }}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 selectedCategory === cat.code
                   ? 'bg-emerald-600 text-white'
@@ -163,14 +162,14 @@ export function ProductsTab() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {photos.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
           <p className="text-slate-400">표시할 추천 상품이 없습니다.</p>
           <p className="text-sm text-slate-400 mt-1">화원 상품 관리에서 추천 체크를 추가하세요.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((photo) => (
+          {photos.map((photo) => (
             <div
               key={photo.id}
               className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer"
@@ -231,6 +230,31 @@ export function ProductsTab() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {data && totalPages > 1 && (
+        <div className="flex items-center justify-between flex-col sm:flex-row gap-2 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm mt-4">
+          <span className="text-sm text-slate-500">
+            페이지 <span className="font-medium text-slate-700">{data.page}</span>/{totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button
+              className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              이전
+            </button>
+            <button
+              className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              다음
+            </button>
+          </div>
         </div>
       )}
 

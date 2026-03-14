@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { fetchBranchInfo, fetchRecommendedPhotos, submitConsultRequest } from '@/lib/branch/api';
-import type { BranchInfo, RecommendedPhoto, ConsultRequestForm } from '@/lib/branch/types';
+import type { BranchInfo, RecommendedPhoto, ConsultRequestForm, PaginatedResponse } from '@/lib/branch/types';
 
 function formatPrice(price: number) {
   return price.toLocaleString('ko-KR') + '원';
@@ -399,29 +399,52 @@ function ProductDetailModal({
 // ─── Products Section ─────────────────────────────────────────────
 
 function ProductsSection({
-  products,
   slug,
   branch,
+  initialData,
   onProductClick,
 }: {
-  products: RecommendedPhoto[];
   slug: string;
   branch: BranchInfo;
+  initialData: PaginatedResponse<RecommendedPhoto>;
   onProductClick: (product: RecommendedPhoto) => void;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [areaInput, setAreaInput] = useState('');
   const [activeArea, setActiveArea] = useState('');
+  const [page, setPage] = useState(1);
+  const [photosData, setPhotosData] = useState<PaginatedResponse<RecommendedPhoto>>(initialData);
+  const [loadingPage, setLoadingPage] = useState(false);
 
+  // Derive category list from initialData so tabs don't disappear on category filter
   const categoryList = useMemo(() => {
     const cats = new Set<string>();
-    for (const p of products) {
+    for (const p of initialData.data) {
       if (p.category) cats.add(p.category);
     }
     const sorted = CATEGORY_ORDER.filter((c) => cats.has(c));
     const rest = Array.from(cats).filter((c) => !CATEGORY_ORDER.includes(c));
     return ['전체', ...sorted, ...rest];
-  }, [products]);
+  }, [initialData]);
+
+  // Fetch from server when page or category changes
+  useEffect(() => {
+    const category = selectedCategory === '전체' ? undefined : selectedCategory;
+
+    async function loadPage() {
+      setLoadingPage(true);
+      const result = await fetchRecommendedPhotos(slug, { page, size: 40, category });
+      setPhotosData(result);
+      setLoadingPage(false);
+    }
+    loadPage();
+  }, [slug, page, selectedCategory]);
+
+  // Reset page to 1 when category changes
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    setPage(1);
+  };
 
   const handleAreaSearch = () => {
     setActiveArea(areaInput.trim());
@@ -432,21 +455,18 @@ function ProductsSection({
     setActiveArea('');
   };
 
+  // Area filter is client-side on the current page's data
   const filteredProducts = useMemo(() => {
-    let result = products;
-    if (selectedCategory !== '전체') {
-      result = result.filter((p) => p.category === selectedCategory);
-    }
-    if (activeArea) {
-      result = result.filter((p) => {
-        if (!p.serviceAreas) return false;
-        return p.serviceAreas.includes(activeArea);
-      });
-    }
-    return result;
-  }, [products, selectedCategory, activeArea]);
+    if (!activeArea) return photosData.data;
+    return photosData.data.filter((p) => {
+      if (!p.serviceAreas) return false;
+      return p.serviceAreas.includes(activeArea);
+    });
+  }, [photosData.data, activeArea]);
 
-  if (products.length === 0) return null;
+  const totalPages = Math.ceil(photosData.total / photosData.size);
+
+  if (initialData.data.length === 0) return null;
 
   return (
     <section className="py-8 px-4">
@@ -457,7 +477,7 @@ function ProductsSection({
               <>
                 <select
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
                   className="sm:hidden w-full max-w-xs px-4 py-2.5 rounded-full border border-[var(--branch-rose-light)] bg-white text-[var(--branch-text)] text-sm focus:outline-none focus:border-[var(--branch-accent)] focus:ring-2 focus:ring-[var(--branch-accent)]/20 appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%237a6365%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_12px_center]"
                 >
                   {categoryList.map((cat) => (
@@ -473,7 +493,7 @@ function ProductsSection({
                     return (
                       <button
                         key={cat}
-                        onClick={() => setSelectedCategory(cat)}
+                        onClick={() => handleCategoryChange(cat)}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                           isActive
                             ? 'bg-[var(--branch-accent)] text-white shadow-md'
@@ -527,7 +547,18 @@ function ProductsSection({
           </div>
         </div>
 
-        {filteredProducts.length === 0 ? (
+        {photosData.total > 0 && (
+          <p className="text-sm text-[var(--branch-text-light)] text-center mb-4">
+            총 {photosData.total}개 상품
+          </p>
+        )}
+
+        {loadingPage ? (
+          <div className="text-center py-12 text-[var(--branch-text-light)]">
+            <div className="text-4xl mb-3 opacity-40 animate-pulse">🌸</div>
+            <p className="font-light">불러오는 중...</p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12 text-[var(--branch-text-light)]">
             <div className="text-4xl mb-3 opacity-40">🌷</div>
             <p className="font-light">해당 조건에 맞는 상품이 없습니다.</p>
@@ -541,6 +572,28 @@ function ProductsSection({
                 onClick={() => onProductClick(product)}
               />
             ))}
+          </div>
+        )}
+
+        {photosData.total > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <button
+              onClick={() => setPage(p => p - 1)}
+              disabled={page <= 1}
+              className="px-4 py-2 rounded-full text-sm font-medium transition-colors bg-white/70 text-[var(--branch-text-light)] hover:bg-white border border-[var(--branch-rose-light)] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              이전
+            </button>
+            <span className="text-sm text-[var(--branch-text-light)]">
+              {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= totalPages}
+              className="px-4 py-2 rounded-full text-sm font-medium transition-colors bg-white/70 text-[var(--branch-text-light)] hover:bg-white border border-[var(--branch-rose-light)] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              다음
+            </button>
           </div>
         )}
 
@@ -619,7 +672,7 @@ export default function BranchHomePage() {
   const slug = params.slug as string;
 
   const [branch, setBranch] = useState<BranchInfo | null>(null);
-  const [products, setProducts] = useState<RecommendedPhoto[]>([]);
+  const [products, setProducts] = useState<PaginatedResponse<RecommendedPhoto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<RecommendedPhoto | null>(null);
@@ -631,7 +684,7 @@ export default function BranchHomePage() {
       setLoading(true);
       const [branchData, photosData] = await Promise.all([
         fetchBranchInfo(slug),
-        fetchRecommendedPhotos(slug),
+        fetchRecommendedPhotos(slug, { page: 1, size: 40 }),
       ]);
 
       if (!branchData) {
@@ -652,12 +705,14 @@ export default function BranchHomePage() {
   return (
     <>
       <HeroSection branch={branch} />
-      <ProductsSection
-        products={products}
-        slug={slug}
-        branch={branch}
-        onProductClick={(product) => setSelectedProduct(product)}
-      />
+      {products && products.data.length > 0 && (
+        <ProductsSection
+          slug={slug}
+          branch={branch}
+          initialData={products}
+          onProductClick={(product) => setSelectedProduct(product)}
+        />
+      )}
       <Footer branch={branch} />
 
       {selectedProduct && (

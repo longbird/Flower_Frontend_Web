@@ -42,6 +42,14 @@ export interface RecommendedPhoto {
   serviceAreas?: string | null;
 }
 
+/** 페이지네이션 응답 */
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  size: number;
+}
+
 /** 상담 요청 */
 export interface ConsultRequest {
   id: number;

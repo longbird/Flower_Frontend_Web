@@ -346,7 +346,7 @@ export default function ConsultsPage() {
   useEffect(() => {
     if (slug) {
       fetchRecommendedPhotos(slug)
-        .then((data) => setPhotos(data))
+        .then((res) => setPhotos(res.data))
         .catch(() => {});
     }
     fetchMyBranchInfo()
