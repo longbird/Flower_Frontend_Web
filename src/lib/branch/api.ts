@@ -30,13 +30,14 @@ export async function fetchBranchProducts(slug: string): Promise<BranchProduct[]
 /** 추천 상품(화원 사진) 목록 조회 (인증 불필요) */
 export async function fetchRecommendedPhotos(
   slug: string,
-  params?: { page?: number; size?: number; category?: string }
+  params?: { page?: number; size?: number; category?: string; serviceArea?: string }
 ): Promise<PaginatedResponse<RecommendedPhoto>> {
   try {
     const sp = new URLSearchParams();
     if (params?.page) sp.set('page', String(params.page));
     if (params?.size) sp.set('size', String(params.size));
     if (params?.category) sp.set('category', params.category);
+    if (params?.serviceArea) sp.set('serviceArea', params.serviceArea);
     const qs = sp.toString();
     const res = await fetch(`${API_BASE}/public/branch/${slug}/recommended-photos${qs ? `?${qs}` : ''}`);
     if (!res.ok) return { data: [], total: 0, page: 1, size: params?.size ?? 40 };

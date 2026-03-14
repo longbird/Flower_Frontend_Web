@@ -427,18 +427,19 @@ function ProductsSection({
     return ['전체', ...sorted, ...rest];
   }, [initialData]);
 
-  // Fetch from server when page or category changes
+  // Fetch from server when page, category, or area changes
   useEffect(() => {
     const category = selectedCategory === '전체' ? undefined : selectedCategory;
+    const serviceArea = activeArea || undefined;
 
     async function loadPage() {
       setLoadingPage(true);
-      const result = await fetchRecommendedPhotos(slug, { page, size: 40, category });
+      const result = await fetchRecommendedPhotos(slug, { page, size: 40, category, serviceArea });
       setPhotosData(result);
       setLoadingPage(false);
     }
     loadPage();
-  }, [slug, page, selectedCategory]);
+  }, [slug, page, selectedCategory, activeArea]);
 
   // Reset page to 1 when category changes
   const handleCategoryChange = (cat: string) => {
@@ -448,21 +449,16 @@ function ProductsSection({
 
   const handleAreaSearch = () => {
     setActiveArea(areaInput.trim());
+    setPage(1);
   };
 
   const handleAreaClear = () => {
     setAreaInput('');
     setActiveArea('');
+    setPage(1);
   };
 
-  // Area filter is client-side on the current page's data
-  const filteredProducts = useMemo(() => {
-    if (!activeArea) return photosData.data;
-    return photosData.data.filter((p) => {
-      if (!p.serviceAreas) return false;
-      return p.serviceAreas.includes(activeArea);
-    });
-  }, [photosData.data, activeArea]);
+  const filteredProducts = photosData.data;
 
   const totalPages = Math.ceil(photosData.total / photosData.size);
 
