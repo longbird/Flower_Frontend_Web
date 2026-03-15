@@ -370,12 +370,6 @@ function ProductDetailModal({
                   </div>
                 )}
 
-                {product.floristName && (
-                  <p className="text-sm text-[var(--branch-text-light)] mb-4 font-light">
-                    제공: {product.floristName}
-                  </p>
-                )}
-
                 <button
                   onClick={() => setShowOrderForm(true)}
                   className="w-full py-4 bg-[var(--branch-accent)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-rose)] transition-colors shadow-lg"
