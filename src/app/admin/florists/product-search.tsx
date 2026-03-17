@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -399,8 +399,8 @@ export default function ProductSearch() {
       )}
 
       {/* Product detail dialog */}
-      <Dialog open={!!selectedItem} onOpenChange={() => { setSelectedItem(null); setEditMode(false); }}>
-        <DialogContent showCloseButton={false} className="w-[95vw] max-w-2xl h-[100dvh] md:h-auto md:max-h-[92vh] rounded-none md:rounded-lg overflow-y-auto overflow-x-hidden">
+      <Dialog open={!!selectedItem} onOpenChange={(open) => { if (!open && !viewerUrl) { setSelectedItem(null); setEditMode(false); } }} modal={!viewerUrl}>
+        <DialogContent showCloseButton={false} onEscapeKeyDown={(e) => { if (viewerUrl) { e.preventDefault(); setViewerUrl(null); } }} className="w-[95vw] max-w-2xl h-[100dvh] md:h-auto md:max-h-[92vh] rounded-none md:rounded-lg overflow-y-auto overflow-x-hidden">
           <div className="flex items-center justify-between sticky top-0 z-10 bg-white pt-1 pb-2">
             <DialogTitle className="text-slate-800">{editMode ? '사진 정보 수정' : '상품 상세'}</DialogTitle>
             <button
@@ -440,6 +440,15 @@ export default function ProductSearch() {
         </DialogContent>
       </Dialog>
 
+      {/* Full-screen image viewer - outside Dialog, modal=false disables focus trap */}
+      {viewerUrl && (
+        <FullScreenViewer
+          url={viewerUrl}
+          filename={selectedItem?.memo || '상품사진'}
+          onClose={() => setViewerUrl(null)}
+        />
+      )}
+
       {/* Delete confirm */}
       <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
         <AlertDialogContent>
@@ -464,14 +473,6 @@ export default function ProductSearch() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Full-screen image viewer */}
-      {viewerUrl && (
-        <FullScreenViewer
-          url={viewerUrl}
-          filename={selectedItem?.memo || '상품사진'}
-          onClose={() => setViewerUrl(null)}
-        />
-      )}
     </div>
   );
 }
@@ -487,6 +488,81 @@ function FullScreenViewer({
 }) {
   const [copying, setCopying] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const posStart = useRef({ x: 0, y: 0 });
+  const lastTouchDist = useRef<number | null>(null);
+
+  const resetView = () => { setScale(1); setPos({ x: 0, y: 0 }); };
+
+  const clampScale = (s: number) => Math.min(Math.max(s, 0.5), 8);
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.stopPropagation();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setScale((prev) => clampScale(prev * delta));
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (scale <= 1) return;
+    e.stopPropagation();
+    dragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    posStart.current = { ...pos };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [scale, pos]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    e.stopPropagation();
+    setPos({
+      x: posStart.current.x + (e.clientX - dragStart.current.x),
+      y: posStart.current.y + (e.clientY - dragStart.current.y),
+    });
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    dragging.current = false;
+  }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastTouchDist.current = Math.hypot(dx, dy);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDist.current !== null) {
+      e.stopPropagation();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / lastTouchDist.current;
+      setScale((prev) => clampScale(prev * ratio));
+      lastTouchDist.current = dist;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchDist.current = null;
+  }, []);
+
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (scale > 1) { resetView(); } else { setScale(3); }
+  }, [scale]);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+    };
+    document.addEventListener('keydown', handleEsc, true);
+    return () => document.removeEventListener('keydown', handleEsc, true);
+  }, [onClose]);
 
   const handleCopy = async () => {
     setCopying(true);
@@ -560,25 +636,70 @@ function FullScreenViewer({
     }
   };
 
+  const btnCls = 'w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10 disabled:opacity-50';
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onClick={() => { if (scale <= 1) onClose(); }}>
+      {/* Toolbar */}
       <div className="absolute top-4 right-4 z-10 flex gap-2" onClick={(e) => e.stopPropagation()}>
-        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10 disabled:opacity-50" title="클립보드에 복사" onClick={handleCopy} disabled={copying}>
+        <button className={btnCls} title="축소" onClick={() => setScale((s) => clampScale(s / 1.3))}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <button className={btnCls} title="확대" onClick={() => setScale((s) => clampScale(s * 1.3))}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        {scale !== 1 && (
+          <button className={btnCls} title="원래 크기" onClick={resetView}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+        )}
+        <button className={btnCls} title="클립보드에 복사" onClick={handleCopy} disabled={copying}>
           {copying ? <span className="animate-spin text-sm">...</span> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>}
         </button>
-        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10" title="이미지 다운로드" onClick={handleDownload}>
+        <button className={btnCls} title="이미지 다운로드" onClick={handleDownload}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
         </button>
-        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10 disabled:opacity-50" title="공유" onClick={handleShare} disabled={sharing}>
+        <button className={btnCls} title="공유" onClick={handleShare} disabled={sharing}>
           {sharing ? <span className="animate-spin text-sm">...</span> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>}
         </button>
-        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10" title="닫기" onClick={onClose}>
+        <button className={btnCls} title="닫기" onClick={onClose}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
-      <div className="flex-1 flex items-center justify-center overflow-hidden p-4" onClick={(e) => e.stopPropagation()}>
+
+      {/* Zoom indicator */}
+      {scale !== 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full">
+          {Math.round(scale * 100)}%
+        </div>
+      )}
+
+      {/* Image area */}
+      <div
+        className="flex-1 flex items-center justify-center overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt="전체 화면" className="max-w-[90vw] max-h-[85vh] object-contain select-none" draggable={false} />
+        <img
+          src={url}
+          alt="전체 화면"
+          className="max-w-[90vw] max-h-[85vh] object-contain select-none touch-none"
+          draggable={false}
+          style={{
+            transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
+            cursor: scale > 1 ? (dragging.current ? 'grabbing' : 'grab') : 'zoom-in',
+            transition: dragging.current ? 'none' : 'transform 0.15s ease-out',
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onDoubleClick={handleDoubleClick}
+        />
       </div>
     </div>
   );

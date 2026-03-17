@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,7 +60,7 @@ const METHOD_COLORS: Record<string, string> = {
 };
 
 export default function MonitoringPage() {
-  const { data: sysInfo, isLoading: sysLoading } = useQuery({
+  const { data: sysInfo, isLoading: sysLoading, dataUpdatedAt } = useQuery({
     queryKey: ['admin-monitoring-system'],
     queryFn: () => api<SystemInfo>('/admin/monitoring/system-info').catch(() => null),
     refetchInterval: 30_000,
@@ -71,66 +72,80 @@ export default function MonitoringPage() {
     refetchInterval: 30_000,
   });
 
+  const [lastRefresh, setLastRefresh] = useState<string>('');
+
+  useEffect(() => {
+    if (dataUpdatedAt) {
+      const date = new Date(dataUpdatedAt);
+      setLastRefresh(date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }
+  }, [dataUpdatedAt]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">모니터링</h1>
-        <Badge variant="outline" className="text-xs">30초 자동 갱신</Badge>
+        <h1 className="text-lg md:text-2xl font-bold text-slate-900">모니터링</h1>
+        <div className="flex flex-col items-end gap-0.5">
+          <Badge variant="outline" className="text-[10px] md:text-xs">30초 자동 갱신</Badge>
+          {lastRefresh && (
+            <span className="text-[10px] md:text-xs text-slate-400">{lastRefresh}</span>
+          )}
+        </div>
       </div>
 
       {sysLoading && <div className="text-center py-8 text-slate-500">로딩 중...</div>}
 
       {sysInfo && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 md:gap-4">
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">CPU</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{sysInfo.cpuUsage.toFixed(1)}%</p>
-                <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <CardHeader className="pb-0 md:pb-2 px-2.5 md:px-6 pt-2.5 md:pt-6"><CardTitle className="text-[11px] md:text-sm">CPU</CardTitle></CardHeader>
+              <CardContent className="px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <p className="text-base md:text-2xl font-bold">{sysInfo.cpuUsage.toFixed(1)}%</p>
+                <div className="mt-1 md:mt-2 h-1.5 md:h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(sysInfo.cpuUsage, 100)}%` }} />
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">메모리</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{((sysInfo.memory.used / sysInfo.memory.total) * 100).toFixed(1)}%</p>
-                <p className="text-xs text-slate-500 mt-1">{formatBytes(sysInfo.memory.used)} / {formatBytes(sysInfo.memory.total)}</p>
-                <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <CardHeader className="pb-0 md:pb-2 px-2.5 md:px-6 pt-2.5 md:pt-6"><CardTitle className="text-[11px] md:text-sm">메모리</CardTitle></CardHeader>
+              <CardContent className="px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <p className="text-base md:text-2xl font-bold">{((sysInfo.memory.used / sysInfo.memory.total) * 100).toFixed(1)}%</p>
+                <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 md:mt-1">{formatBytes(sysInfo.memory.used)} / {formatBytes(sysInfo.memory.total)}</p>
+                <div className="mt-1 md:mt-2 h-1.5 md:h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(sysInfo.memory.used / sysInfo.memory.total) * 100}%` }} />
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">디스크</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{((sysInfo.disk.used / sysInfo.disk.total) * 100).toFixed(1)}%</p>
-                <p className="text-xs text-slate-500 mt-1">{formatBytes(sysInfo.disk.used)} / {formatBytes(sysInfo.disk.total)}</p>
-                <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <CardHeader className="pb-0 md:pb-2 px-2.5 md:px-6 pt-2.5 md:pt-6"><CardTitle className="text-[11px] md:text-sm">디스크</CardTitle></CardHeader>
+              <CardContent className="px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <p className="text-base md:text-2xl font-bold">{((sysInfo.disk.used / sysInfo.disk.total) * 100).toFixed(1)}%</p>
+                <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 md:mt-1">{formatBytes(sysInfo.disk.used)} / {formatBytes(sysInfo.disk.total)}</p>
+                <div className="mt-1 md:mt-2 h-1.5 md:h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(sysInfo.disk.used / sysInfo.disk.total) * 100}%` }} />
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">업타임</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{formatUptime(sysInfo.uptime)}</p>
-                <p className="text-xs text-slate-500 mt-1">Node {sysInfo.nodeVersion}</p>
+              <CardHeader className="pb-0 md:pb-2 px-2.5 md:px-6 pt-2.5 md:pt-6"><CardTitle className="text-[11px] md:text-sm">업타임</CardTitle></CardHeader>
+              <CardContent className="px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <p className="text-base md:text-2xl font-bold">{formatUptime(sysInfo.uptime)}</p>
+                <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 md:mt-1">Node {sysInfo.nodeVersion}</p>
               </CardContent>
             </Card>
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">프로세스 메모리</CardTitle></CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                <div><dt className="text-slate-400 text-xs">RSS</dt><dd className="font-medium">{formatBytes(sysInfo.processMemory.rss)}</dd></div>
-                <div><dt className="text-slate-400 text-xs">Heap Total</dt><dd className="font-medium">{formatBytes(sysInfo.processMemory.heapTotal)}</dd></div>
-                <div><dt className="text-slate-400 text-xs">Heap Used</dt><dd className="font-medium">{formatBytes(sysInfo.processMemory.heapUsed)}</dd></div>
+            <CardHeader className="px-2.5 md:px-6 pt-2.5 md:pt-6 pb-1 md:pb-2"><CardTitle className="text-xs md:text-base">프로세스 메모리</CardTitle></CardHeader>
+            <CardContent className="px-2.5 md:px-6 pb-2.5 md:pb-6">
+              <dl className="grid grid-cols-3 gap-1.5 md:gap-4 text-xs md:text-sm">
+                <div><dt className="text-slate-400 text-[10px] md:text-xs">RSS</dt><dd className="font-medium">{formatBytes(sysInfo.processMemory.rss)}</dd></div>
+                <div><dt className="text-slate-400 text-[10px] md:text-xs">Heap Total</dt><dd className="font-medium">{formatBytes(sysInfo.processMemory.heapTotal)}</dd></div>
+                <div><dt className="text-slate-400 text-[10px] md:text-xs">Heap Used</dt><dd className="font-medium">{formatBytes(sysInfo.processMemory.heapUsed)}</dd></div>
               </dl>
             </CardContent>
           </Card>
@@ -141,29 +156,29 @@ export default function MonitoringPage() {
       {metrics && (
         <>
           {/* 요약 카드 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 md:gap-4">
             <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-slate-500 mb-1">총 요청</p>
-                <p className="text-2xl font-bold text-slate-900">{metrics.totalRequests.toLocaleString()}</p>
+              <CardContent className="pt-2.5 md:pt-4 px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <p className="text-[10px] md:text-xs text-slate-500 mb-0.5 md:mb-1">총 요청</p>
+                <p className="text-base md:text-2xl font-bold text-slate-900">{metrics.totalRequests.toLocaleString()}</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-slate-500 mb-1">총 에러</p>
-                <p className="text-2xl font-bold text-red-600">{metrics.totalErrors.toLocaleString()}</p>
+              <CardContent className="pt-2.5 md:pt-4 px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <p className="text-[10px] md:text-xs text-slate-500 mb-0.5 md:mb-1">총 에러</p>
+                <p className="text-base md:text-2xl font-bold text-red-600">{metrics.totalErrors.toLocaleString()}</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-slate-500 mb-1">평균 응답시간</p>
-                <p className="text-2xl font-bold text-slate-900">{metrics.avgResponseTime}ms</p>
+              <CardContent className="pt-2.5 md:pt-4 px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <p className="text-[10px] md:text-xs text-slate-500 mb-0.5 md:mb-1">평균 응답시간</p>
+                <p className="text-base md:text-2xl font-bold text-slate-900">{metrics.avgResponseTime}ms</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-slate-500 mb-1">에러율</p>
-                <p className="text-2xl font-bold text-slate-900">
+              <CardContent className="pt-2.5 md:pt-4 px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <p className="text-[10px] md:text-xs text-slate-500 mb-0.5 md:mb-1">에러율</p>
+                <p className="text-base md:text-2xl font-bold text-slate-900">
                   {metrics.totalRequests > 0 ? ((metrics.totalErrors / metrics.totalRequests) * 100).toFixed(1) : 0}%
                 </p>
               </CardContent>
@@ -173,9 +188,9 @@ export default function MonitoringPage() {
           {/* 상태 코드 분포 */}
           {Object.keys(metrics.statusCodes).length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">HTTP 상태 코드</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-3">
+              <CardHeader className="px-2.5 md:px-6 pt-2.5 md:pt-6 pb-1 md:pb-2"><CardTitle className="text-xs md:text-base">HTTP 상태 코드</CardTitle></CardHeader>
+              <CardContent className="px-2.5 md:px-6 pb-2.5 md:pb-6">
+                <div className="flex flex-wrap gap-1.5 md:gap-3">
                   {Object.entries(metrics.statusCodes)
                     .sort(([a], [b]) => Number(a) - Number(b))
                     .map(([code, count]) => {
@@ -199,8 +214,8 @@ export default function MonitoringPage() {
           {/* 엔드포인트 테이블 */}
           {metrics.endpoints.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">엔드포인트별 메트릭</CardTitle></CardHeader>
-              <CardContent>
+              <CardHeader className="px-2.5 md:px-6 pt-2.5 md:pt-6 pb-1 md:pb-2"><CardTitle className="text-xs md:text-base">엔드포인트별 메트릭</CardTitle></CardHeader>
+              <CardContent className="px-2.5 md:px-6 pb-2.5 md:pb-6">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
