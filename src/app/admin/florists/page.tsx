@@ -198,9 +198,15 @@ function FloristsPage() {
   });
 
   // 클라이언트 사이드 역량 필터링
+  // selectedCaps에는 각 필터 그룹의 첫 번째 코드만 저장됨
+  // 필터링 시 해당 그룹의 모든 코드(old/new) 중 하나라도 매치하면 통과
   const filteredData = data?.data?.filter((f) => {
     if (selectedCaps.length === 0) return true;
-    return selectedCaps.every((cap) => f.capabilities?.includes(cap));
+    return selectedCaps.every((cap) => {
+      const group = CAPABILITY_FILTER.find((g) => g.codes.includes(cap));
+      const codes = group ? group.codes : [cap];
+      return codes.some((c) => f.capabilities?.includes(c));
+    });
   }) ?? [];
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
@@ -336,7 +342,7 @@ function FloristsPage() {
                 onClick={() => {
                   const next = isActive
                     ? selectedCaps.filter((c) => !item.codes.includes(c))
-                    : [...selectedCaps, ...item.codes];
+                    : [...selectedCaps, item.codes[0]];
                   setSelectedCaps(next);
                   syncParams({ caps: next });
                 }}
