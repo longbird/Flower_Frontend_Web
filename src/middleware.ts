@@ -10,12 +10,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Skip static files, API routes, and Next.js internals
+  // Skip static files, API routes, Next.js internals, and already-rewritten branch paths
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/partner') ||
+    pathname.startsWith('/branch') ||
     pathname.includes('.') // static files (favicon, etc.)
   ) {
     return NextResponse.next();
