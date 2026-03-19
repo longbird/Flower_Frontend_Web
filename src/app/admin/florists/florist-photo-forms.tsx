@@ -502,7 +502,7 @@ export function PhotoEditForm({
               onClick={() =>
                 onSave({
                   category,
-                  ...(grade ? { grade } : {}),
+                  grade: grade || null,
                   isRecommended,
                   ...(isRecommended ? { isHidden: false } : {}),
                   ...(costPrice ? { costPrice: parseCurrency(costPrice) } : { costPrice: null }),
