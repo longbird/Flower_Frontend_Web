@@ -26,9 +26,9 @@ export async function GET(req: NextRequest) {
       params.push(floristId);
     }
     if (keyword) {
-      conditions.push('(actor LIKE ? OR category LIKE ? OR CAST(photo_id AS CHAR) LIKE ?)');
+      conditions.push('(actor LIKE ? OR category LIKE ? OR CAST(photo_id AS CHAR) LIKE ? OR florist_id LIKE ? OR before_json LIKE ? OR after_json LIKE ?)');
       const kw = `%${keyword}%`;
-      params.push(kw, kw, kw);
+      params.push(kw, kw, kw, kw, kw, kw);
     }
     if (from) {
       conditions.push('created_at >= ?');

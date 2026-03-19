@@ -130,6 +130,7 @@ export async function uploadFloristPhoto(
     sellingPrice?: number;
     memo?: string;
     description?: string;
+    internalMemo?: string;
   }
 ) {
   const formData = new FormData();
@@ -141,6 +142,7 @@ export async function uploadFloristPhoto(
   if (meta?.sellingPrice) formData.append('sellingPrice', String(meta.sellingPrice));
   if (meta?.memo) formData.append('memo', meta.memo);
   if (meta?.description) formData.append('description', meta.description);
+  if (meta?.internalMemo) formData.append('internalMemo', meta.internalMemo);
 
   return api<{ data: FloristPhoto }>(`/admin/florists/${floristId}/gallery`, {
     method: 'POST',

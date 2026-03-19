@@ -38,10 +38,12 @@ export default function FloristDetailDialog({
   floristId,
   open,
   onClose,
+  initialEditPhotoId,
 }: {
   floristId: string;
   open: boolean;
   onClose: () => void;
+  initialEditPhotoId?: number;
 }) {
   const queryClient = useQueryClient();
 
@@ -73,6 +75,7 @@ export default function FloristDetailDialog({
             floristId={floristId}
             queryClient={queryClient}
             onClose={onClose}
+            initialEditPhotoId={initialEditPhotoId}
           />
         )}
       </DialogContent>
@@ -86,12 +89,14 @@ function FloristEditPanel({
   floristId,
   queryClient,
   onClose,
+  initialEditPhotoId,
 }: {
   florist: FloristSummary;
   photos: FloristPhoto[];
   floristId: string;
   queryClient: ReturnType<typeof useQueryClient>;
   onClose: () => void;
+  initialEditPhotoId?: number;
 }) {
   const [activeTab, setActiveTab] = useState<'info' | 'photos'>('info');
   const [selectedPhoto, setSelectedPhoto] = useState<FloristPhoto | null>(null);
@@ -100,6 +105,17 @@ function FloristEditPanel({
   const [photoCacheBuster, setPhotoCacheBuster] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (initialEditPhotoId && photos.length > 0) {
+      const target = photos.find(p => p.id === initialEditPhotoId);
+      if (target) {
+        setActiveTab('photos');
+        setSelectedPhoto(target);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEditPhotoId, photos.length]);
 
   // 클립보드 이미지 붙여넣기 핸들러
   useEffect(() => {
@@ -166,7 +182,7 @@ function FloristEditPanel({
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (args: { file: File; category: string; grade?: string; isRecommended?: boolean; costPrice?: number; sellingPrice?: number; memo?: string; description?: string }) =>
+    mutationFn: (args: { file: File; category: string; grade?: string; isRecommended?: boolean; costPrice?: number; sellingPrice?: number; memo?: string; description?: string; internalMemo?: string }) =>
       uploadFloristPhoto(floristId, args.file, {
         category: args.category,
         grade: args.grade,
@@ -175,6 +191,7 @@ function FloristEditPanel({
         sellingPrice: args.sellingPrice,
         memo: args.memo,
         description: args.description,
+        internalMemo: args.internalMemo,
       }),
     onSuccess: (res) => {
       const uploaded = (res as { data?: FloristPhoto })?.data ?? null;
@@ -253,6 +270,49 @@ function FloristEditPanel({
       setViewerPhoto(null);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : '삭제 실패'),
+  });
+
+  const replacePhotoMutation = useMutation({
+    mutationFn: async ({ oldPhoto, newFile }: { oldPhoto: FloristPhoto; newFile: File }) => {
+      // 1. Upload new photo with basic metadata (FormData doesn't support integer prices)
+      const uploadRes = await uploadFloristPhoto(floristId, newFile, {
+        category: oldPhoto.category,
+        grade: oldPhoto.grade || undefined,
+        isRecommended: oldPhoto.isRecommended,
+        memo: oldPhoto.memo || undefined,
+        description: oldPhoto.description || undefined,
+        internalMemo: oldPhoto.internalMemo || undefined,
+      });
+      const newPhoto = (uploadRes as { data?: FloristPhoto })?.data;
+      // 2. If prices exist, update via PATCH (JSON body handles integers correctly)
+      if (newPhoto && (oldPhoto.costPrice != null || oldPhoto.sellingPrice != null)) {
+        await updateFloristPhoto(floristId, newPhoto.id, {
+          ...(oldPhoto.costPrice != null ? { costPrice: Math.round(oldPhoto.costPrice) } : {}),
+          ...(oldPhoto.sellingPrice != null ? { sellingPrice: Math.round(oldPhoto.sellingPrice) } : {}),
+        });
+      }
+      // 3. Delete old photo
+      await deleteFloristPhoto(floristId, oldPhoto.id);
+      return { uploadRes, oldPhoto };
+    },
+    onSuccess: ({ uploadRes, oldPhoto }) => {
+      const newPhoto = (uploadRes as { data?: FloristPhoto })?.data ?? null;
+      // Log the replacement
+      addPhotoLog({
+        action: 'UPLOAD',
+        floristId: floristId,
+        floristName: florist?.name || floristId,
+        photoId: newPhoto?.id ?? null,
+        before: oldPhoto,
+        after: newPhoto,
+        userName: useAuthStore.getState().user?.name || '-',
+        note: `사진 교체 (이전 ID: ${oldPhoto.id})`,
+      });
+      toast.success('사진이 교체되었습니다.');
+      queryClient.invalidateQueries({ queryKey: ['floristPhotos', floristId] });
+      setSelectedPhoto(null);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : '사진 교체 실패'),
   });
 
   const handleSave = () => {
@@ -577,6 +637,8 @@ function FloristEditPanel({
               onViewFull={() => { const p = selectedPhoto; setSelectedPhoto(null); setTimeout(() => setViewerPhoto(p), 100); }}
               onCancel={() => setSelectedPhoto(null)}
               saving={updatePhotoMutation.isPending}
+              onReplace={(file) => replacePhotoMutation.mutate({ oldPhoto: selectedPhoto, newFile: file })}
+              replacing={replacePhotoMutation.isPending}
             />
           )}
         </DialogContent>
@@ -600,6 +662,7 @@ function FloristEditPanel({
                   sellingPrice: info.sellingPrice ?? undefined,
                   memo: info.memo || undefined,
                   description: info.description || undefined,
+                  internalMemo: info.internalMemo || undefined,
                 });
               }}
               onCancel={() => setUploadDialogFile(null)}

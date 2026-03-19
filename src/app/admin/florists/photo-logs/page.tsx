@@ -18,6 +18,7 @@ import {
   type PhotoLogAction,
 } from '@/lib/photo-log';
 import type { FloristPhoto } from '@/lib/types/florist';
+import FloristDetailDialog from '../florist-dialog';
 
 const ACTION_LABELS: Record<PhotoLogAction, string> = {
   UPLOAD: '등록',
@@ -60,6 +61,7 @@ export default function PhotoLogsPage() {
   const [filterAction, setFilterAction] = useState<PhotoLogAction | ''>('');
   const [filterKeyword, setFilterKeyword] = useState('');
   const [selectedLog, setSelectedLog] = useState<PhotoLogEntry | null>(null);
+  const [editTarget, setEditTarget] = useState<{ floristId: string; photoId: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const pageSize = 50;
 
@@ -124,7 +126,7 @@ export default function PhotoLogsPage() {
           <input
             type="text"
             className="border rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[200px]"
-            placeholder="사용자, 사진ID 검색..."
+            placeholder="사용자, 사진ID, 메모, 상품설명 검색..."
             value={filterKeyword}
             onChange={(e) => { setFilterKeyword(e.target.value); setPage(1); }}
           />
@@ -150,30 +152,63 @@ export default function PhotoLogsPage() {
             className="cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => setSelectedLog(log)}
           >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={`text-[11px] ${ACTION_COLORS[log.action]}`}>
-                      {ACTION_LABELS[log.action]}
-                    </Badge>
-                    {log.floristName && (
-                      <span className="font-medium text-sm text-slate-800">{log.floristName}</span>
-                    )}
-                    {log.floristId && !log.floristName && (
-                      <span className="font-medium text-sm text-slate-800">{log.floristId}</span>
-                    )}
-                    {log.photoId && (
-                      <span className="text-xs text-slate-400">사진#{log.photoId}</span>
-                    )}
+            <CardContent className="p-3 flex items-start gap-3">
+              {/* Thumbnail */}
+              {(() => {
+                const snap = log.after || log.before;
+                const imgUrl = snap?.fileUrl ? photoUrl(snap.fileUrl) : '';
+                return imgUrl ? (
+                  <div className="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                    <img src={imgUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   </div>
-                  {log.note && (
-                    <p className="text-xs text-slate-500 truncate">{log.note}</p>
+                ) : (
+                  <div className="w-14 h-14 flex-shrink-0 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  </div>
+                );
+              })()}
+
+              {/* Content */}
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className={`text-[11px] ${ACTION_COLORS[log.action]}`}>
+                    {ACTION_LABELS[log.action]}
+                  </Badge>
+                  {(() => {
+                    const snap = log.after || log.before;
+                    return snap?.category ? (
+                      <Badge variant="outline" className="text-[10px]">
+                        {CATEGORY_LABELS[snap.category] || snap.category}
+                      </Badge>
+                    ) : null;
+                  })()}
+                  {(() => {
+                    const snap = log.after || log.before;
+                    return snap?.grade ? (
+                      <span className="text-[10px] text-slate-500">{snap.grade}</span>
+                    ) : null;
+                  })()}
+                  {log.floristName && (
+                    <span className="font-medium text-sm text-slate-800">{log.floristName}</span>
                   )}
-                  <div className="flex items-center gap-3 text-xs text-slate-400">
-                    <span>{new Date(log.timestamp).toLocaleString('ko-KR')}</span>
-                    <span>{log.userName}</span>
-                  </div>
+                  {log.floristId && !log.floristName && (
+                    <span className="font-medium text-sm text-slate-800">{log.floristId}</span>
+                  )}
+                  {log.photoId && (
+                    <span className="text-xs text-slate-400">#{log.photoId}</span>
+                  )}
+                </div>
+                {(() => {
+                  const snap = log.after || log.before;
+                  return snap?.memo ? (
+                    <p className="text-xs text-slate-600 truncate">{snap.memo}</p>
+                  ) : log.note ? (
+                    <p className="text-xs text-slate-500 truncate">{log.note}</p>
+                  ) : null;
+                })()}
+                <div className="flex items-center gap-3 text-xs text-slate-400">
+                  <span>{new Date(log.timestamp).toLocaleString('ko-KR')}</span>
+                  <span>{log.userName}</span>
                 </div>
               </div>
             </CardContent>
@@ -188,6 +223,15 @@ export default function PhotoLogsPage() {
           <span className="text-sm text-slate-500">{page} / {totalPages}</span>
           <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>다음</Button>
         </div>
+      )}
+
+      {editTarget && (
+        <FloristDetailDialog
+          floristId={editTarget.floristId}
+          open={true}
+          onClose={() => setEditTarget(null)}
+          initialEditPhotoId={editTarget.photoId}
+        />
       )}
 
       {/* 상세 다이얼로그 */}
@@ -255,7 +299,20 @@ export default function PhotoLogsPage() {
                 )}
               </div>
 
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex items-center justify-between pt-2 border-t">
+                {selectedLog && selectedLog.after?.id && selectedLog.floristId && selectedLog.action !== 'DELETE' ? (
+                  <Button
+                    size="sm"
+                    className="bg-[#4CAF50] hover:bg-[#388E3C] text-white"
+                    onClick={() => {
+                      setEditTarget({ floristId: selectedLog.floristId, photoId: selectedLog.after!.id as number });
+                      setSelectedLog(null);
+                    }}
+                  >
+                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    사진 수정
+                  </Button>
+                ) : <div />}
                 <Button variant="outline" size="sm" onClick={() => setSelectedLog(null)}>닫기</Button>
               </div>
             </div>
