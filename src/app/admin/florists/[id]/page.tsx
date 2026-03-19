@@ -64,12 +64,12 @@ const PHOTO_GRADES: { code: PhotoGrade; name: string; color: string }[] = [
 ];
 
 const CAPABILITY_OPTIONS = [
-  { code: 'CELEBRATION', label: '축하기본' },
-  { code: 'CELEBRATION_LARGE', label: '축하(대)' },
-  { code: 'CONDOLENCE', label: '근조기본' },
-  { code: 'CONDOLENCE_LARGE', label: '근조(대)' },
-  { code: 'LARGE', label: '근조(특대)' },
-  { code: 'MULTI_TIER', label: '근조4단이상' },
+  { code: 'CELEB_BASIC', label: '축하기본' },
+  { code: 'CELEB_LARGE', label: '축하(대)' },
+  { code: 'CONDO_BASIC', label: '근조기본' },
+  { code: 'CONDO_LARGE', label: '근조(대)' },
+  { code: 'CONDO_XLARGE', label: '근조(특대)' },
+  { code: 'CONDO_4TIER', label: '근조4단이상' },
   { code: 'OBJET', label: '오브제' },
   { code: 'RICE', label: '쌀' },
   { code: 'ORIENTAL_ORCHID', label: '동양란' },

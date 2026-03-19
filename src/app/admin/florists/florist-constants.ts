@@ -1,19 +1,19 @@
 import type { PhotoCategory, PhotoGrade } from '@/lib/types/florist';
 
-export const CAPABILITY_OPTIONS: { label: string; codes: string[] }[] = [
-  { label: '축하기본', codes: ['CELEBRATION', 'CELEB_BASIC'] },
-  { label: '축하(대)', codes: ['CELEBRATION_LARGE', 'CELEB_LARGE'] },
-  { label: '근조기본', codes: ['CONDOLENCE', 'CONDO_BASIC'] },
-  { label: '근조(대)', codes: ['CONDOLENCE_LARGE', 'CONDO_LARGE'] },
-  { label: '근조(특대)', codes: ['CONDO_XLARGE', 'LARGE'] },
-  { label: '근조4단이상', codes: ['CONDO_4TIER', 'MULTI_TIER'] },
-  { label: '오브제', codes: ['OBJET'] },
-  { label: '쌀', codes: ['RICE'] },
-  { label: '동양란', codes: ['ORIENTAL_ORCHID'] },
-  { label: '서양란', codes: ['WESTERN_ORCHID'] },
-  { label: '꽃', codes: ['FLOWER'] },
-  { label: '관엽', codes: ['FOLIAGE'] },
-  { label: '휴일불가', codes: ['HOLIDAY_UNAVAILABLE'] },
+export const CAPABILITY_OPTIONS: { label: string; code: string }[] = [
+  { label: '축하기본', code: 'CELEB_BASIC' },
+  { label: '축하(대)', code: 'CELEB_LARGE' },
+  { label: '근조기본', code: 'CONDO_BASIC' },
+  { label: '근조(대)', code: 'CONDO_LARGE' },
+  { label: '근조(특대)', code: 'CONDO_XLARGE' },
+  { label: '근조4단이상', code: 'CONDO_4TIER' },
+  { label: '오브제', code: 'OBJET' },
+  { label: '쌀', code: 'RICE' },
+  { label: '동양란', code: 'ORIENTAL_ORCHID' },
+  { label: '서양란', code: 'WESTERN_ORCHID' },
+  { label: '꽃', code: 'FLOWER' },
+  { label: '관엽', code: 'FOLIAGE' },
+  { label: '휴일불가', code: 'HOLIDAY_UNAVAILABLE' },
 ];
 
 export const GRADE_OPTIONS = [

@@ -33,34 +33,30 @@ const STATUS_OPTIONS = [
 
 // 코드→라벨 매핑 (old/new 코드 모두 지원)
 const CODE_TO_LABEL: Record<string, string> = {
-  CELEBRATION: '축하기본', CELEB_BASIC: '축하기본',
-  CELEBRATION_LARGE: '축하(대)', CELEB_LARGE: '축하(대)',
-  CONDOLENCE: '근조기본', CONDO_BASIC: '근조기본',
-  CONDOLENCE_LARGE: '근조(대)', CONDO_LARGE: '근조(대)',
-  CONDO_XLARGE: '근조(특대)', LARGE: '근조(특대)',
-  CONDO_4TIER: '근조4단이상', MULTI_TIER: '근조4단이상',
-  BASKET: '바구니', ROUND: '원형', OBJET: '오브제', RICE: '쌀',
+  CELEB_BASIC: '축하기본', CELEB_LARGE: '축하(대)',
+  CONDO_BASIC: '근조기본', CONDO_LARGE: '근조(대)',
+  CONDO_XLARGE: '근조(특대)', CONDO_4TIER: '근조4단이상',
+  OBJET: '오브제', RICE: '쌀',
   ORIENTAL_ORCHID: '동양란', WESTERN_ORCHID: '서양란',
-  FLOWER: '꽃', FOLIAGE: '관엽', FRUITS: '과일', BONSAI: '분재',
-  BLACK_RIBBON: '검정리본', HOLIDAY: '휴일가능', NIGHT: '야간배송',
+  FLOWER: '꽃', FOLIAGE: '관엽',
   HOLIDAY_UNAVAILABLE: '휴일불가',
 };
 
-// 역량 필터 (사용자 정의 13개 항목, old/new 코드 모두 포함)
-const CAPABILITY_FILTER: { label: string; codes: string[] }[] = [
-  { label: '축하기본', codes: ['CELEBRATION', 'CELEB_BASIC'] },
-  { label: '축하(대)', codes: ['CELEBRATION_LARGE', 'CELEB_LARGE'] },
-  { label: '근조기본', codes: ['CONDOLENCE', 'CONDO_BASIC'] },
-  { label: '근조(대)', codes: ['CONDOLENCE_LARGE', 'CONDO_LARGE'] },
-  { label: '근조(특대)', codes: ['CONDO_XLARGE', 'LARGE'] },
-  { label: '근조4단이상', codes: ['CONDO_4TIER', 'MULTI_TIER'] },
-  { label: '오브제', codes: ['OBJET'] },
-  { label: '쌀', codes: ['RICE'] },
-  { label: '동양란', codes: ['ORIENTAL_ORCHID'] },
-  { label: '서양란', codes: ['WESTERN_ORCHID'] },
-  { label: '꽃', codes: ['FLOWER'] },
-  { label: '관엽', codes: ['FOLIAGE'] },
-  { label: '휴일불가', codes: ['HOLIDAY_UNAVAILABLE'] },
+// 역량 필터 (통합 코드)
+const CAPABILITY_FILTER: { label: string; code: string }[] = [
+  { label: '축하기본', code: 'CELEB_BASIC' },
+  { label: '축하(대)', code: 'CELEB_LARGE' },
+  { label: '근조기본', code: 'CONDO_BASIC' },
+  { label: '근조(대)', code: 'CONDO_LARGE' },
+  { label: '근조(특대)', code: 'CONDO_XLARGE' },
+  { label: '근조4단이상', code: 'CONDO_4TIER' },
+  { label: '오브제', code: 'OBJET' },
+  { label: '쌀', code: 'RICE' },
+  { label: '동양란', code: 'ORIENTAL_ORCHID' },
+  { label: '서양란', code: 'WESTERN_ORCHID' },
+  { label: '꽃', code: 'FLOWER' },
+  { label: '관엽', code: 'FOLIAGE' },
+  { label: '휴일불가', code: 'HOLIDAY_UNAVAILABLE' },
 ];
 
 const GRADE_MAP: Record<number, { label: string; color: string }> = {
@@ -187,20 +183,14 @@ function FloristsPage() {
     router.replace(`/admin/florists${qs ? `?${qs}` : ''}`, { scroll: false });
   }, [query, statusFilter, selectedCaps, page, router]);
 
-  // 선택된 필터 그룹의 모든 코드(old/new)를 펼쳐서 서버에 전달
-  const capsCodes = selectedCaps.flatMap((cap) => {
-    const group = CAPABILITY_FILTER.find((g) => g.codes.includes(cap));
-    return group ? group.codes : [cap];
-  });
-
   const { data, isLoading, error } = useQuery({
-    queryKey: ['florists', page, query, statusFilter, capsCodes.join(',')],
+    queryKey: ['florists', page, query, statusFilter, selectedCaps.join(',')],
     queryFn: () => listFlorists({
       page,
       size: pageSize,
       q: query || undefined,
       status: statusFilter || undefined,
-      capabilities: capsCodes.length > 0 ? capsCodes : undefined,
+      capabilities: selectedCaps.length > 0 ? selectedCaps : undefined,
     }),
   });
 
@@ -331,15 +321,15 @@ function FloristsPage() {
         {/* 역량 필터 */}
         <div className="flex flex-wrap gap-2">
           {CAPABILITY_FILTER.map((item) => {
-            const isActive = item.codes.some((c) => selectedCaps.includes(c));
+            const isActive = selectedCaps.includes(item.code);
             return (
               <button
                 key={item.label}
                 type="button"
                 onClick={() => {
                   const next = isActive
-                    ? selectedCaps.filter((c) => !item.codes.includes(c))
-                    : [...selectedCaps, item.codes[0]];
+                    ? selectedCaps.filter((c) => c !== item.code)
+                    : [...selectedCaps, item.code];
                   setSelectedCaps(next);
                   syncParams({ caps: next });
                 }}
