@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   type PhotoLogAction,
 } from '@/lib/photo-log';
 import type { FloristPhoto } from '@/lib/types/florist';
+import { getFlorist } from '@/lib/api/admin';
 import FloristDetailDialog from '../florist-dialog';
 
 const ACTION_LABELS: Record<PhotoLogAction, string> = {
@@ -65,6 +66,8 @@ export default function PhotoLogsPage() {
   const [loading, setLoading] = useState(false);
   const pageSize = 50;
 
+  const floristNameCache = useRef<Record<string, string>>({});
+
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
@@ -74,7 +77,32 @@ export default function PhotoLogsPage() {
         page,
         size: pageSize,
       });
-      setLogs(result.data);
+
+      // floristName이 코드값(fs_ 또는 숫자)인 로그의 화원명 보정
+      const needResolve = new Set<string>();
+      for (const log of result.data) {
+        const name = log.floristName || '';
+        if (!name || /^(fs_)?\d+$/.test(name)) {
+          needResolve.add(log.floristId);
+        }
+      }
+      for (const id of needResolve) {
+        if (!floristNameCache.current[id]) {
+          try {
+            const res = await getFlorist(id);
+            if (res?.data?.name) floristNameCache.current[id] = res.data.name;
+          } catch { /* ignore */ }
+        }
+      }
+      const enriched = result.data.map((log) => {
+        const cached = floristNameCache.current[log.floristId];
+        if (cached && (!log.floristName || /^(fs_)?\d+$/.test(log.floristName))) {
+          return { ...log, floristName: cached };
+        }
+        return log;
+      });
+
+      setLogs(enriched);
       setTotal(result.total);
     } catch {
       toast.error('로그 조회 실패');
