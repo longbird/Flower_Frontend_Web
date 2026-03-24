@@ -14,6 +14,14 @@ function formatPrice(price: number) {
   return price.toLocaleString('ko-KR') + '원';
 }
 
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
+function productImageUrl(url?: string) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return RAW_API_BASE ? `/api/proxy${url}` : url;
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
   CELEBRATION: '축하', CONDOLENCE: '근조', OBJET: '오브제',
   ORIENTAL: '동양란', WESTERN: '서양란', FLOWER: '꽃',
@@ -77,7 +85,7 @@ function ProductEditModal({
           {/* Product Info */}
           <div className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-[var(--branch-cream)] border border-[var(--branch-rose-light)]/50">
             {product.imageUrl ? (
-              <img src={product.imageUrl} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />
+              <img src={productImageUrl(product.imageUrl)} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />
             ) : (
               <div className="w-14 h-14 rounded-lg bg-[var(--branch-rose-light)] flex items-center justify-center text-2xl opacity-50">
                 🌸
@@ -473,7 +481,7 @@ export default function BranchManageProductsPage() {
                     {/* Image */}
                     <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--branch-rose-light)]">
                       {product.imageUrl ? (
-                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                        <img src={productImageUrl(product.imageUrl)} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-2xl opacity-40">🌸</div>
                       )}

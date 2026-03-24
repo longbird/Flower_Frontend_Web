@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { fetchMyBranchInfo, updateMyBranchInfo, type MyBranchInfo } from '@/lib/branch/branch-api';
+import { getAllThemes, type BranchTheme } from '@/lib/branch/themes';
 
 export default function BranchSettingsPage() {
   const params = useParams();
@@ -21,6 +22,7 @@ export default function BranchSettingsPage() {
   const [description, setDescription] = useState('');
   const [virtualAccountBank, setVirtualAccountBank] = useState('');
   const [virtualAccountNumber, setVirtualAccountNumber] = useState('');
+  const [homepageDesign, setHomepageDesign] = useState('green');
 
   const loadInfo = useCallback(async () => {
     try {
@@ -36,6 +38,7 @@ export default function BranchSettingsPage() {
         setDescription(res.data.description || '');
         setVirtualAccountBank(res.data.virtualAccountBank || '');
         setVirtualAccountNumber(res.data.virtualAccountNumber || '');
+        setHomepageDesign(res.data.homepageDesign || 'green');
       }
     } catch {
       setMessage({ type: 'error', text: '정보를 불러오는데 실패했습니다.' });
@@ -61,6 +64,7 @@ export default function BranchSettingsPage() {
         description,
         virtualAccountBank,
         virtualAccountNumber,
+        homepageDesign,
       });
       if (res.ok && res.data) {
         setInfo(res.data);
@@ -263,15 +267,63 @@ export default function BranchSettingsPage() {
         </div>
       </div>
 
+      {/* 홈페이지 디자인 */}
+      <div className="mt-6 bg-[var(--branch-white)] rounded-2xl border border-[var(--branch-rose-light)] p-5">
+        <h2 className="text-lg font-semibold text-[var(--branch-text)] mb-4">홈페이지 디자인</h2>
+        <p className="text-xs text-[var(--branch-text-light)] mb-4">
+          홈페이지에 적용할 디자인 테마를 선택하세요. 저장 후 홈페이지에 바로 반영됩니다.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {getAllThemes().map((theme: BranchTheme) => {
+            const isSelected = homepageDesign === theme.key;
+            const accent = theme.variables['--branch-green'];
+            const bg = theme.variables['--branch-bg'];
+            const bgAlt = theme.variables['--branch-bg-alt'];
+            const text = theme.variables['--branch-text'];
+            return (
+              <button
+                key={theme.key}
+                type="button"
+                onClick={() => setHomepageDesign(theme.key)}
+                className={`relative rounded-xl border-2 p-4 text-left transition-all ${
+                  isSelected
+                    ? 'border-[var(--branch-accent)] ring-2 ring-[var(--branch-accent)]/20'
+                    : 'border-[var(--branch-rose-light)] hover:border-[var(--branch-accent)]/50'
+                }`}
+              >
+                {isSelected && (
+                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: accent }}>
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+                {/* Color swatches */}
+                <div className="flex gap-1.5 mb-3">
+                  <div className="w-8 h-8 rounded-lg border border-gray-200" style={{ backgroundColor: accent }} />
+                  <div className="w-8 h-8 rounded-lg border border-gray-200" style={{ backgroundColor: bg }} />
+                  <div className="w-8 h-8 rounded-lg border border-gray-200" style={{ backgroundColor: bgAlt }} />
+                  <div className="w-8 h-8 rounded-lg border border-gray-200" style={{ backgroundColor: text }} />
+                </div>
+                <h3 className="text-sm font-semibold text-[var(--branch-text)]">{theme.name}</h3>
+                <p className="text-xs text-[var(--branch-text-light)] mt-0.5">{theme.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 저장 버튼 */}
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-6 py-2.5 rounded-xl bg-[var(--branch-accent)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
-        >
-          {saving ? '저장 중...' : '저장'}
-        </button>
+      <div className="sticky bottom-0 mt-6 -mx-4 md:-mx-6 px-4 md:px-6 py-4 bg-[var(--branch-cream)] border-t border-[var(--branch-rose-light)]">
+        <div className="max-w-2xl mx-auto flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-2.5 rounded-xl bg-[var(--branch-accent)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {saving ? '저장 중...' : '저장'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -60,7 +60,7 @@ const CATEGORIES: { code: PhotoCategory; name: string }[] = [
 const PHOTO_GRADES: { code: PhotoGrade; name: string; color: string }[] = [
   { code: 'PREMIUM', name: '프리미엄', color: 'bg-amber-700 text-white' },
   { code: 'HIGH', name: '고급형', color: 'bg-blue-600 text-white' },
-  { code: 'STANDARD', name: '실속형', color: 'bg-teal-600 text-white' },
+  { code: 'STANDARD', name: '실속형', color: 'bg-[#5B7A3D] text-white' },
 ];
 
 const CAPABILITY_OPTIONS = [
@@ -374,7 +374,7 @@ export default function FloristDetailPage({
           {!editing && (
             <Button
               size="sm"
-              className="h-8 bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
+              className="h-8 bg-[#5B7A3D] hover:bg-[#4A6830] shadow-sm"
               onClick={() => startEditing(florist)}
             >
               <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -388,8 +388,8 @@ export default function FloristDetailPage({
 
       <Tabs defaultValue="info">
         <TabsList className="bg-slate-100 rounded-lg p-0.5 h-9">
-          <TabsTrigger value="info" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#37474F]">기본 정보</TabsTrigger>
-          <TabsTrigger value="photos" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#37474F]">사진 관리 ({photos.length})</TabsTrigger>
+          <TabsTrigger value="info" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-800">기본 정보</TabsTrigger>
+          <TabsTrigger value="photos" className="rounded-md text-xs h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-800">사진 관리 ({photos.length})</TabsTrigger>
         </TabsList>
 
         {/* === Info Tab === */}
@@ -419,7 +419,7 @@ export default function FloristDetailPage({
                     </div>
                     <div className="space-y-0.5">
                       <dt className="text-xs font-semibold text-slate-500">지역</dt>
-                      <dd className="text-[#546E7A] font-medium">{florist.sido} {florist.gugun}</dd>
+                      <dd className="text-gray-600 font-medium">{florist.sido} {florist.gugun}</dd>
                     </div>
                     <div className="space-y-0.5">
                       <dt className="text-xs font-semibold text-slate-500">등급</dt>
@@ -486,7 +486,7 @@ export default function FloristDetailPage({
                           onKeyDown={(e) => e.key === 'Enter' && handleAddServiceArea()}
                           className="h-7 w-24 text-xs border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
                         />
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-slate-200 hover:bg-slate-50 hover:text-[#546E7A] hover:border-slate-400" onClick={handleAddServiceArea} disabled={addAreaMutation.isPending}>+</Button>
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-slate-200 hover:bg-slate-50 hover:text-gray-600 hover:border-slate-400" onClick={handleAddServiceArea} disabled={addAreaMutation.isPending}>+</Button>
                       </div>
                     </div>
                     {florist.serviceAreas && florist.serviceAreas.length > 0 ? (
@@ -584,7 +584,7 @@ export default function FloristDetailPage({
                 <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleFileSelect} />
                 <Button
                   size="sm"
-                  className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
+                  className="bg-[#5B7A3D] hover:bg-[#4A6830] shadow-sm"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadMutation.isPending}
                 >
@@ -830,7 +830,7 @@ function PhotoUploadForm({
               className={cn(
                 'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
                 category === c.code
-                  ? 'bg-[#546E7A] text-white border-transparent shadow-md shadow-slate-600/20'
+                  ? 'bg-[#5B7A3D] text-white border-transparent shadow-md shadow-slate-600/20'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
               )}
             >
@@ -908,7 +908,7 @@ function PhotoUploadForm({
         <Button
           onClick={() => onUpload({ category, grade, isRecommended, costPrice: parseCurrency(costPrice), sellingPrice: parseCurrency(sellingPrice), memo })}
           disabled={!category || uploading}
-          className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
+          className="bg-[#5B7A3D] hover:bg-[#4A6830] shadow-sm"
         >
           {uploading ? '업로드 중...' : '업로드'}
         </Button>
@@ -996,7 +996,7 @@ function PhotoEditForm({
               className={cn(
                 'px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
                 category === c.code
-                  ? 'bg-[#546E7A] text-white border-transparent shadow-md shadow-slate-600/20'
+                  ? 'bg-[#5B7A3D] text-white border-transparent shadow-md shadow-slate-600/20'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
               )}
             >
@@ -1090,7 +1090,7 @@ function PhotoEditForm({
               })
             }
             disabled={!category || saving}
-            className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
+            className="bg-[#5B7A3D] hover:bg-[#4A6830] shadow-sm"
           >
             {saving ? '저장 중...' : '저장'}
           </Button>
@@ -1202,7 +1202,7 @@ function FloristEditForm({
 
       <div className="flex gap-2 justify-end">
         <Button variant="outline" size="sm" className="border-slate-200" onClick={onCancel}>취소</Button>
-        <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm" onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
+        <Button size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830] shadow-sm" onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
       </div>
     </div>
   );
@@ -1484,7 +1484,7 @@ function ImageViewer({
             다시 칠하기
           </button>
           <button
-            className="bg-[#546E7A] text-white px-5 py-2.5 rounded-xl hover:bg-[#455A64] transition text-sm font-medium shadow-lg disabled:opacity-50"
+            className="bg-[#5B7A3D] text-white px-5 py-2.5 rounded-xl hover:bg-[#4A6830] transition text-sm font-medium shadow-lg disabled:opacity-50"
             onClick={handleInpaintApply}
             disabled={inpaintLoading}
           >
@@ -1603,7 +1603,7 @@ function ImageViewer({
           <div className="bg-black/80 backdrop-blur-md rounded-xl px-5 py-3 flex flex-col items-center gap-2 min-w-[200px] border border-white/10">
             <div className="flex items-center gap-2 flex-wrap justify-center">
               {categoryName && (
-                <span className="bg-[#546E7A] text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
+                <span className="bg-[#5B7A3D] text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
               )}
               {photo.memo && <span className="text-white text-sm">{photo.memo}</span>}
               {photo.isHidden && (

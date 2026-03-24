@@ -27,14 +27,14 @@ export default function OrderRegisterPage() {
           <div className="space-y-1">
             <Label>카카오톡/SMS 메시지 붙여넣기</Label>
             <textarea
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm min-h-[200px] resize-y focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm min-h-[200px] resize-y focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D] outline-none"
               placeholder="주문 메시지를 붙여넣으세요..."
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={!messageText.trim()}>파싱 및 등록</Button>
+            <Button className="bg-[#5B7A3D] hover:bg-[#4A6830]" disabled={!messageText.trim()}>파싱 및 등록</Button>
             <Button variant="outline" onClick={() => setMessageText('')}>초기화</Button>
           </div>
         </CardContent>

@@ -288,7 +288,7 @@ export default function PhotoLogsPage() {
                 <div>
                   <span className="text-slate-500">화원:</span>{' '}
                   <button
-                    className="font-medium text-[#546E7A] hover:underline"
+                    className="font-medium text-gray-600 hover:underline"
                     onClick={() => { setSelectedLog(null); router.push(`/admin/florists/${selectedLog.floristId}`); }}
                   >
                     {selectedLog.floristName || selectedLog.floristId}
@@ -318,7 +318,7 @@ export default function PhotoLogsPage() {
                 {selectedLog.after && (
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-[#546E7A]">변경 후 (After)</CardTitle>
+                      <CardTitle className="text-sm text-gray-600">변경 후 (After)</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <PhotoSnapshot photo={selectedLog.after} />
@@ -331,7 +331,7 @@ export default function PhotoLogsPage() {
                 {selectedLog && selectedLog.after?.id && selectedLog.floristId && selectedLog.action !== 'DELETE' ? (
                   <Button
                     size="sm"
-                    className="bg-[#4CAF50] hover:bg-[#388E3C] text-white"
+                    className="bg-[#5B7A3D] hover:bg-[#4A6830] text-white"
                     onClick={() => {
                       setEditTarget({ floristId: selectedLog.floristId, photoId: selectedLog.after!.id as number });
                       setSelectedLog(null);

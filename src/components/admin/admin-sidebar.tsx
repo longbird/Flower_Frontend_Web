@@ -53,7 +53,7 @@ const navEntries: NavEntry[] = [
   {
     label: '관리',
     icon: <BranchIcon />,
-    color: 'text-green-600',
+    color: 'text-[#5B7A3D]',
     items: [
       { href: '/admin/branches', label: '지사', icon: <BranchIcon /> },
       { href: '/admin/catalog', label: '상품', icon: <CatalogIcon /> },
@@ -103,7 +103,7 @@ function CollapsedNavItem({ entry, pathname, onNavClick }: { entry: NavItem; pat
       className={cn(
         'flex items-center justify-center rounded-lg w-10 h-10 transition-all',
         isActive
-          ? 'bg-emerald-50 text-emerald-700'
+          ? 'bg-[#E8F0E0] text-[#5B7A3D]'
           : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
       )}
     >
@@ -128,7 +128,7 @@ function CollapsedNavGroup({ group, pathname, onNavClick }: { group: NavGroup; p
         className={cn(
           'flex items-center justify-center rounded-lg w-10 h-10 cursor-pointer transition-all',
           hasActiveChild
-            ? 'bg-emerald-50 text-emerald-700'
+            ? 'bg-[#E8F0E0] text-[#5B7A3D]'
             : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
         )}
       >
@@ -149,7 +149,7 @@ function CollapsedNavGroup({ group, pathname, onNavClick }: { group: NavGroup; p
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 text-sm transition-all',
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                    ? 'bg-[#E8F0E0] text-[#5B7A3D] font-semibold'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 )}
               >
@@ -194,7 +194,7 @@ function NavGroupItem({ group, pathname, onNavClick }: { group: NavGroup; pathna
                 className={cn(
                   'flex items-center gap-2.5 rounded-lg px-3 py-2 text-base transition-all',
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                    ? 'bg-[#E8F0E0] text-[#5B7A3D] font-semibold'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 )}
               >
@@ -269,16 +269,16 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
         {/* 헤더 */}
         <div className={cn('flex items-center border-b border-slate-100 px-3 py-4', collapsed ? 'justify-center' : 'justify-between px-4')}>
           {collapsed ? (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-[#5B7A3D] flex items-center justify-center shadow-sm">
               <span className="text-white text-sm font-bold">F</span>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-[#5B7A3D] flex items-center justify-center shadow-sm">
                   <span className="text-white text-sm font-bold">F</span>
                 </div>
-                <span className="font-semibold text-slate-800">꽃배달 관리자</span>
+                <span className="font-semibold text-slate-800">달려라 꽃배달</span>
               </div>
               <button
                 className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
@@ -316,7 +316,7 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-all',
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                    ? 'bg-[#E8F0E0] text-[#5B7A3D] font-semibold'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 )}
               >
@@ -333,7 +333,7 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
             <>
               {user && (
                 <div className="flex justify-center" title={`${user.name} (${user.username})`}>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-[#5B7A3D] flex items-center justify-center text-white text-xs font-bold shadow-sm">
                     {user.name?.charAt(0) || 'A'}
                   </div>
                 </div>
@@ -350,7 +350,7 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
             <>
               {user && (
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#5B7A3D] flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
                     {user.name?.charAt(0) || 'A'}
                   </div>
                   <div className="min-w-0 flex-1">

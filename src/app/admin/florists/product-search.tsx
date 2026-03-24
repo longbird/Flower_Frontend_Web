@@ -55,10 +55,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   CELEBRATION: 'bg-pink-500/90 text-white',
   CONDOLENCE: 'bg-slate-700 text-white',
   OBJET: 'bg-purple-500/90 text-white',
-  ORIENTAL: 'bg-teal-500/90 text-white',
+  ORIENTAL: 'bg-[#5B7A3D]/90 text-white',
   WESTERN: 'bg-indigo-500/90 text-white',
   FLOWER: 'bg-rose-500/90 text-white',
-  FOLIAGE: 'bg-emerald-500/90 text-white',
+  FOLIAGE: 'bg-[#5B7A3D]/90 text-white',
   RICE: 'bg-amber-600/90 text-white',
   FRUIT: 'bg-orange-500/90 text-white',
   OTHER: 'bg-slate-500/90 text-white',
@@ -67,7 +67,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 const GRADE_COLORS: Record<string, string> = {
   PREMIUM: 'bg-amber-700/90 text-white',
   HIGH: 'bg-blue-600/90 text-white',
-  STANDARD: 'bg-teal-600/90 text-white',
+  STANDARD: 'bg-[#5B7A3D]/90 text-white',
 };
 
 
@@ -262,25 +262,25 @@ export default function ProductSearch() {
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
           필터
           {(category || grade || isRecommended || includeHidden || memo || serviceArea) && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#546E7A] rounded-full" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#5B7A3D] rounded-full" />
           )}
         </Button>
-        <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm h-8" onClick={handleSearch}>검색</Button>
+        <Button size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830] shadow-sm h-8" onClick={handleSearch}>검색</Button>
         {data && (
-          <span className="text-sm text-slate-500 font-medium ml-auto">총 <span className="text-[#37474F] font-semibold">{data.total}</span>개</span>
+          <span className="text-sm text-slate-500 font-medium ml-auto">총 <span className="text-gray-800 font-semibold">{data.total}</span>개</span>
         )}
       </div>
       <div
         id="product-search-filter"
         className={cn(
-          'bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl shadow-sm p-3 space-y-2',
+          'bg-gray-50 border border-gray-200 rounded-xl shadow-sm p-3 space-y-2',
           filterOpen ? 'block' : 'hidden md:block'
         )}
       >
         {/* 1줄: 카테고리, 등급 */}
         <div className="flex items-center gap-2">
           <select
-            className="flex-1 min-w-0 rounded-lg border border-[#E0E0E0] px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A] outline-none transition text-[#333333]"
+            className="flex-1 min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D] outline-none transition text-gray-900"
             value={category}
             onChange={(e) => { setCategory(e.target.value); setPage(1); }}
           >
@@ -289,7 +289,7 @@ export default function ProductSearch() {
             ))}
           </select>
           <select
-            className="flex-1 min-w-0 rounded-lg border border-[#E0E0E0] px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A] outline-none transition text-[#333333]"
+            className="flex-1 min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D] outline-none transition text-gray-900"
             value={grade}
             onChange={(e) => { setGrade(e.target.value); setPage(1); }}
           >
@@ -306,8 +306,8 @@ export default function ProductSearch() {
             className={cn(
               'px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0',
               isRecommended
-                ? 'bg-[#546E7A] text-white border-[#546E7A]'
-                : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-[#546E7A]'
+                ? 'bg-[#5B7A3D] text-white border-[#5B7A3D]'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-[#5B7A3D]'
             )}
           >
             추천
@@ -319,7 +319,7 @@ export default function ProductSearch() {
               'px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0',
               includeHidden
                 ? 'bg-orange-100 text-orange-800 border-orange-300'
-                : 'bg-white text-[#666666] border-[#E0E0E0] hover:border-orange-300'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300'
             )}
           >
             숨김포함
@@ -329,7 +329,7 @@ export default function ProductSearch() {
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="flex-1 min-w-0 h-8 text-sm border-[#E0E0E0] focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A]"
+            className="flex-1 min-w-0 h-8 text-sm border-gray-200 focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D]"
           />
         </div>
         {/* 3줄: 서비스 지역, 초기화, 검색 */}
@@ -339,18 +339,18 @@ export default function ProductSearch() {
             value={serviceArea}
             onChange={(e) => setServiceArea(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="flex-1 min-w-0 h-8 text-sm border-[#E0E0E0] focus:ring-2 focus:ring-[#546E7A]/20 focus:border-[#546E7A]"
+            className="flex-1 min-w-0 h-8 text-sm border-gray-200 focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D]"
           />
-          <Button variant="ghost" size="sm" className="text-[#666666] hover:text-[#333333] px-2 shrink-0 h-8" onClick={handleReset} title="초기화">
+          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-900 px-2 shrink-0 h-8" onClick={handleReset} title="초기화">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           </Button>
-          <Button size="sm" className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm shrink-0 h-8 md:inline-flex hidden" onClick={handleSearch}>검색</Button>
+          <Button size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830] shadow-sm shrink-0 h-8 md:inline-flex hidden" onClick={handleSearch}>검색</Button>
         </div>
       </div>
 
       {/* Result count (데스크톱) */}
       {data && (
-        <div className="hidden md:block text-sm text-slate-500 font-medium">총 <span className="text-[#37474F] font-semibold">{data.total}</span>개</div>
+        <div className="hidden md:block text-sm text-slate-500 font-medium">총 <span className="text-gray-800 font-semibold">{data.total}</span>개</div>
       )}
 
       {isLoading && (
@@ -361,7 +361,7 @@ export default function ProductSearch() {
       )}
 
       {/* Product grid */}
-      <div className="bg-[#F5F6F8] border border-[#E0E0E0] rounded-xl p-4">
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {items.map((item) => (
             <ProductCard
@@ -761,7 +761,7 @@ function ProductCard({
           <div className="text-xs truncate text-slate-700 font-medium">{item.memo}</div>
         )}
         {item.sellingPrice != null && (
-          <div className="text-sm font-bold text-[#37474F]">
+          <div className="text-sm font-bold text-gray-800">
             {item.sellingPrice.toLocaleString()}원
           </div>
         )}
@@ -771,7 +771,7 @@ function ProductCard({
           </div>
         )}
         <div
-          className="text-xs text-[#546E7A] hover:text-[#37474F] cursor-pointer truncate transition-colors font-medium"
+          className="text-xs text-gray-600 hover:text-gray-800 cursor-pointer truncate transition-colors font-medium"
           onClick={(e) => { e.stopPropagation(); onFloristClick(); }}
         >
           {item.floristName}
@@ -872,7 +872,7 @@ function ProductDetail({
             {item.sellingPrice != null && (
               <div className="flex gap-2">
                 <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">판매가</dt>
-                <dd className="text-[#37474F] font-bold">{item.sellingPrice.toLocaleString()}원</dd>
+                <dd className="text-gray-800 font-bold">{item.sellingPrice.toLocaleString()}원</dd>
               </div>
             )}
             {item.costPrice != null && (
@@ -891,7 +891,7 @@ function ProductDetail({
               <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">화원명</dt>
               <dd>
                 <span
-                  className="text-[#546E7A] hover:text-[#37474F] cursor-pointer font-medium transition-colors"
+                  className="text-gray-600 hover:text-gray-800 cursor-pointer font-medium transition-colors"
                   onClick={onFloristClick}
                 >
                   {item.floristName}
@@ -913,7 +913,7 @@ function ProductDetail({
             {item.floristServiceAreas.length > 0 && (
               <div className="flex gap-2">
                 <dt className="text-slate-400 w-16 sm:w-20 flex-shrink-0">서비스지역</dt>
-                <dd className="text-[#546E7A] font-medium break-all min-w-0">{item.floristServiceAreas.join(', ')}</dd>
+                <dd className="text-gray-600 font-medium break-all min-w-0">{item.floristServiceAreas.join(', ')}</dd>
               </div>
             )}
           </dl>
@@ -923,7 +923,7 @@ function ProductDetail({
         <div className="pt-2 border-t border-slate-100">
           <Button
             size="sm"
-            className="bg-[#546E7A] hover:bg-[#455A64] shadow-sm"
+            className="bg-[#5B7A3D] hover:bg-[#4A6830] shadow-sm"
             onClick={onEdit}
           >
             <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>

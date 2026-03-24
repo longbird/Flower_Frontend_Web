@@ -33,7 +33,7 @@ export default function AdminCatalogPage() {
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.key
-                  ? 'border-emerald-600 text-emerald-700'
+                  ? 'border-[#5B7A3D] text-[#5B7A3D]'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >

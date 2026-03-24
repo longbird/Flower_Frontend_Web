@@ -167,14 +167,14 @@ export default function AgentsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">상담원 관리</h1>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setCreateForm(emptyCreateForm); setShowCreate(true); }}>
+        <Button size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830]" onClick={() => { setCreateForm(emptyCreateForm); setShowCreate(true); }}>
           + 상담원 추가
         </Button>
       </div>
 
       <form onSubmit={handleSearch} className="flex gap-2">
         <Input placeholder="이름, 아이디 검색" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 border-slate-200 max-w-sm" />
-        <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700">검색</Button>
+        <Button type="submit" size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830]">검색</Button>
       </form>
 
       {isLoading && <div className="text-center py-8 text-slate-500">로딩 중...</div>}
@@ -266,7 +266,7 @@ export default function AgentsPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>취소</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={!createForm.username.trim() || !createForm.password || !createForm.name.trim() || createMutation.isPending} onClick={handleCreate}>
+            <Button className="bg-[#5B7A3D] hover:bg-[#4A6830]" disabled={!createForm.username.trim() || !createForm.password || !createForm.name.trim() || createMutation.isPending} onClick={handleCreate}>
               {createMutation.isPending ? '생성 중...' : '추가'}
             </Button>
           </DialogFooter>

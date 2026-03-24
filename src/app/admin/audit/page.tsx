@@ -41,7 +41,7 @@ export default function AuditPage() {
 
       <form onSubmit={handleSearch} className="flex gap-2">
         <Input placeholder="수행자 검색" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 border-slate-200 max-w-sm" />
-        <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700">검색</Button>
+        <Button type="submit" size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830]">검색</Button>
       </form>
 
       {isLoading && <div className="text-center py-8 text-slate-500">로딩 중...</div>}

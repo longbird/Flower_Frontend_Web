@@ -1,29 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&display=swap');
 
 .branch-homepage {
-  font-family: 'Noto Serif KR', serif;
-  --branch-rose: #e8a0b4;
-  --branch-rose-light: #f5d5de;
-  --branch-peach: #f8c9a0;
-  --branch-peach-light: #fde8d0;
-  --branch-cream: #fef9f4;
-  --branch-white: #ffffff;
-  --branch-text: #3d2c2e;
-  --branch-text-light: #7a6365;
-  --branch-accent: #c77d8f;
-  --branch-gold: #c9a96e;
-  background-color: var(--branch-cream);
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --branch-green: #3D6B2E;
+  --branch-green-hover: #2D5420;
+  --branch-green-light: #E8F0E3;
+  --branch-bg: #FFFFFF;
+  --branch-bg-alt: #F5F5F5;
+  --branch-white: #FFFFFF;
+  --branch-text: #1A1A1A;
+  --branch-text-secondary: #666666;
+  --branch-text-muted: #999999;
+  --branch-border: #E5E5E5;
+  --branch-star: #3D6B2E;
+  --branch-footer-bg: #1A1A1A;
+  /* 관리 페이지용 변수 */
+  --branch-accent: #3D6B2E;
+  --branch-rose: #2D5420;
+  --branch-rose-light: #E5E5E5;
+  --branch-cream: #F5F5F5;
+  --branch-text-light: #666666;
+  background-color: var(--branch-bg);
   color: var(--branch-text);
   font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .branch-homepage * {
-  border-color: var(--branch-rose-light);
+  border-color: var(--branch-border);
 }
 
 .branch-homepage h1,
 .branch-homepage h2,
 .branch-homepage h3 {
-  font-family: 'Noto Serif KR', serif;
-  font-weight: 600;
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+}
+
+.branch-serif {
+  font-family: var(--branch-serif-font, 'Playfair Display', Georgia, serif);
 }

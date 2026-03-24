@@ -303,7 +303,7 @@ export function ImageViewer({
             다시 칠하기
           </button>
           <button
-            className="bg-[#546E7A] text-white px-5 py-2.5 rounded-xl hover:bg-[#455A64] transition text-sm font-medium shadow-lg disabled:opacity-50"
+            className="bg-[#5B7A3D] text-white px-5 py-2.5 rounded-xl hover:bg-[#4A6830] transition text-sm font-medium shadow-lg disabled:opacity-50"
             onClick={handleInpaintApply}
             disabled={inpaintLoading}
           >
@@ -422,7 +422,7 @@ export function ImageViewer({
           <div className="bg-black/80 backdrop-blur-md rounded-xl px-5 py-3 flex flex-col items-center gap-2 min-w-[200px] border border-white/10">
             <div className="flex items-center gap-2 flex-wrap justify-center">
               {categoryName && (
-                <span className="bg-[#546E7A] text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
+                <span className="bg-[#5B7A3D] text-white text-xs px-2.5 py-0.5 rounded-md font-medium">{categoryName}</span>
               )}
               {photo.memo && <span className="text-white text-sm">{photo.memo}</span>}
               {photo.isHidden && (

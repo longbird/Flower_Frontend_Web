@@ -53,7 +53,7 @@ function formatUptime(seconds: number): string {
 
 const METHOD_COLORS: Record<string, string> = {
   GET: 'bg-blue-100 text-blue-700',
-  POST: 'bg-emerald-100 text-emerald-700',
+  POST: 'bg-[#E8F0E0] text-[#5B7A3D]',
   PUT: 'bg-amber-100 text-amber-700',
   PATCH: 'bg-orange-100 text-orange-700',
   DELETE: 'bg-red-100 text-red-700',
@@ -103,7 +103,7 @@ export default function MonitoringPage() {
               <CardContent className="px-2.5 md:px-6 pb-2.5 md:pb-6">
                 <p className="text-base md:text-2xl font-bold">{sysInfo.cpuUsage.toFixed(1)}%</p>
                 <div className="mt-1 md:mt-2 h-1.5 md:h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(sysInfo.cpuUsage, 100)}%` }} />
+                  <div className="h-full bg-[#5B7A3D] rounded-full" style={{ width: `${Math.min(sysInfo.cpuUsage, 100)}%` }} />
                 </div>
               </CardContent>
             </Card>
@@ -195,7 +195,7 @@ export default function MonitoringPage() {
                     .sort(([a], [b]) => Number(a) - Number(b))
                     .map(([code, count]) => {
                       const codeNum = Number(code);
-                      const color = codeNum < 300 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      const color = codeNum < 300 ? 'bg-[#E8F0E0] text-[#5B7A3D] border-[#D1E0C4]'
                         : codeNum < 400 ? 'bg-blue-50 text-blue-700 border-blue-200'
                         : codeNum < 500 ? 'bg-amber-50 text-amber-700 border-amber-200'
                         : 'bg-red-50 text-red-700 border-red-200';

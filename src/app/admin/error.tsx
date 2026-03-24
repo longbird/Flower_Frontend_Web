@@ -18,7 +18,7 @@ export default function AdminError({
       </div>
       <button
         onClick={reset}
-        className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700"
+        className="px-4 py-2 bg-[#5B7A3D] text-white rounded-lg text-sm hover:bg-[#4A6830]"
       >
         다시 시도
       </button>

@@ -9,6 +9,7 @@ export interface BranchInfo {
   serviceAreas?: string;
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
+  homepageDesign?: string;
 }
 
 /** 지사 상품 (가격 오버라이드 포함) */

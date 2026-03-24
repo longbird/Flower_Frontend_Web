@@ -54,7 +54,7 @@ export default function CommissionPage() {
           <Card><CardContent className="pt-4"><p className="text-xs text-slate-500 mb-1">총 주문금액</p><p className="text-xl font-bold">{summary.totalOrderAmount.toLocaleString()}원</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-slate-500 mb-1">총 수수료</p><p className="text-xl font-bold">{summary.totalCommissionAmount.toLocaleString()}원</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-slate-500 mb-1">미정산</p><p className="text-xl font-bold text-amber-600">{summary.pendingAmount.toLocaleString()}원</p></CardContent></Card>
-          <Card><CardContent className="pt-4"><p className="text-xs text-slate-500 mb-1">정산 완료</p><p className="text-xl font-bold text-emerald-600">{summary.settledAmount.toLocaleString()}원</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-slate-500 mb-1">정산 완료</p><p className="text-xl font-bold text-[#5B7A3D]">{summary.settledAmount.toLocaleString()}원</p></CardContent></Card>
         </div>
       )}
 

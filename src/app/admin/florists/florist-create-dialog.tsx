@@ -140,16 +140,16 @@ export default function FloristCreateDialog({
         showCloseButton={false}
         className="w-[95vw] max-w-7xl h-[100dvh] md:h-[92vh] max-h-[100dvh] md:max-h-[92vh] md:rounded-lg rounded-none overflow-hidden p-0 gap-0 border-stone-300/60 shadow-2xl flex flex-col"
       >
-        <div className="flex flex-col h-full bg-[#F5F5F5]">
+        <div className="flex flex-col h-full bg-gray-100">
           {/* 헤더 */}
-          <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-3.5 bg-[#4CAF50] text-white flex-shrink-0 border-b border-[#388E3C]">
+          <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-3.5 bg-[#5B7A3D] text-white flex-shrink-0 border-b border-[#4A6830]">
             <div className="flex items-center gap-2 md:gap-3">
               <span className="text-lg md:text-xl shrink-0">🌸</span>
               <h2 className="text-base md:text-xl font-bold tracking-tight">화원 등록</h2>
             </div>
             <button
               onClick={handleClose}
-              className="p-1.5 rounded-lg hover:bg-[#388E3C] text-white/70 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[#4A6830] text-white/70 hover:text-white transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -160,8 +160,8 @@ export default function FloristCreateDialog({
           {/* 본문 */}
           <div className="flex flex-1 overflow-hidden min-h-0">
             {/* 왼쪽: 등록 폼 */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-[#F5F5F5]">
-              <Section title="기본 정보" accent="bg-[#4CAF50]">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-gray-100">
+              <Section title="기본 정보" accent="bg-[#5B7A3D]">
                 <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                   <Field label="화원명" required className="col-span-2 sm:col-span-1">
                     <input
@@ -198,7 +198,7 @@ export default function FloristCreateDialog({
                       <button
                         type="button"
                         onClick={openDaumPostcode}
-                        className="px-3 py-2 bg-[#2E7D32] text-white hover:bg-[#1B5E20] transition-colors rounded-lg flex items-center gap-1.5 shrink-0 text-sm font-medium"
+                        className="px-3 py-2 bg-[#5B7A3D] text-white hover:bg-[#4A6830] transition-colors rounded-lg flex items-center gap-1.5 shrink-0 text-sm font-medium"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -218,7 +218,7 @@ export default function FloristCreateDialog({
                 </div>
               </Section>
 
-              <Section title="특이사항" accent="bg-[#4CAF50]">
+              <Section title="특이사항" accent="bg-[#5B7A3D]">
                 <textarea
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
@@ -228,17 +228,17 @@ export default function FloristCreateDialog({
                 />
               </Section>
 
-              <Section title="서비스 지역" accent="bg-[#4CAF50]">
+              <Section title="서비스 지역" accent="bg-[#5B7A3D]">
                 <div className="flex flex-wrap gap-2 mb-3">
                   {serviceAreas.length > 0 ? (
                     serviceAreas.map((area) => (
                       <span
                         key={area}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[#E8F0E0] text-[#5B7A3D] border border-[#D1E0C4]"
                       >
                         {area}
                         <button
-                          className="text-[#4CAF50]/60 hover:text-red-600 transition-colors"
+                          className="text-[#5B7A3D]/60 hover:text-red-600 transition-colors"
                           onClick={() => handleRemoveArea(area)}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,7 +261,7 @@ export default function FloristCreateDialog({
                   />
                   <button
                     onClick={handleAddArea}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-[#4CAF50] text-white hover:bg-[#388E3C] transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-[#5B7A3D] text-white hover:bg-[#4A6830] transition-colors flex items-center gap-1.5"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -271,7 +271,7 @@ export default function FloristCreateDialog({
                 </div>
               </Section>
 
-              <Section title="역량" accent="bg-[#4CAF50]">
+              <Section title="역량" accent="bg-[#5B7A3D]">
                 <div className="flex flex-wrap gap-2">
                   {CAPABILITY_OPTIONS.map((opt) => {
                     const active = capabilities.includes(opt.code);
@@ -288,13 +288,13 @@ export default function FloristCreateDialog({
                         className={cn(
                           'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
                           active
-                            ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#4CAF50]/30 shadow-sm'
-                            : 'bg-white text-stone-500 border-stone-200 hover:border-[#4CAF50]/50 hover:text-[#2E7D32]'
+                            ? 'bg-[#E8F0E0] text-[#5B7A3D] border-[#5B7A3D]/30 shadow-sm'
+                            : 'bg-white text-stone-500 border-stone-200 hover:border-[#5B7A3D]/50 hover:text-[#5B7A3D]'
                         )}
                       >
                         {active && (
                           <svg
-                            className="inline w-3.5 h-3.5 mr-0.5 -mt-px text-[#4CAF50]"
+                            className="inline w-3.5 h-3.5 mr-0.5 -mt-px text-[#5B7A3D]"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -309,7 +309,7 @@ export default function FloristCreateDialog({
                 </div>
               </Section>
 
-              <Section title="영업 정보" accent="bg-[#4CAF50]">
+              <Section title="영업 정보" accent="bg-[#5B7A3D]">
                 <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                   <Field label="등급">
                     <select value={grade} onChange={(e) => setGrade(Number(e.target.value))} className="field-input">
@@ -330,9 +330,9 @@ export default function FloristCreateDialog({
             </div>
 
             {/* 오른쪽: 갤러리 자리표시자 (데스크탑만) */}
-            <div className="hidden md:flex flex-col w-[280px] border-l border-[#E0E0E0] bg-[#FAFAFA] items-center justify-center gap-3 p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-[#E8F5E9] flex items-center justify-center">
-                <svg className="w-8 h-8 text-[#A5D6A7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="hidden md:flex flex-col w-[280px] border-l border-gray-200 bg-[#FAFAFA] items-center justify-center gap-3 p-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-[#E8F0E0] flex items-center justify-center">
+                <svg className="w-8 h-8 text-[#B4C9A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -348,7 +348,7 @@ export default function FloristCreateDialog({
           </div>
 
           {/* 푸터 */}
-          <div className="flex items-center justify-end gap-3 px-4 md:px-6 py-2.5 md:py-3 border-t border-[#E0E0E0] bg-white flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 px-4 md:px-6 py-2.5 md:py-3 border-t border-gray-200 bg-white flex-shrink-0">
             <button
               onClick={handleClose}
               className="px-4 md:px-5 py-2 md:py-2.5 rounded-lg text-sm md:text-[15px] font-medium text-stone-500 hover:bg-stone-100 transition-colors"
@@ -358,7 +358,7 @@ export default function FloristCreateDialog({
             <button
               onClick={handleSubmit}
               disabled={createMutation.isPending}
-              className="px-5 md:px-6 py-2 md:py-2.5 rounded-lg text-sm md:text-[15px] font-medium bg-[#4CAF50] text-white hover:bg-[#388E3C] transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+              className="px-5 md:px-6 py-2 md:py-2.5 rounded-lg text-sm md:text-[15px] font-medium bg-[#5B7A3D] text-white hover:bg-[#4A6830] transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -381,8 +381,8 @@ export default function FloristCreateDialog({
             transition: border-color 0.15s, box-shadow 0.15s;
           }
           .field-input:focus {
-            border-color: #4caf50;
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.15);
+            border-color: #5B7A3D;
+            box-shadow: 0 0 0 2px rgba(91, 122, 61, 0.15);
           }
           .field-input::placeholder {
             color: #a8a29e;
@@ -395,7 +395,7 @@ export default function FloristCreateDialog({
 
 function Section({
   title,
-  accent = 'bg-[#4CAF50]',
+  accent = 'bg-[#5B7A3D]',
   children,
 }: {
   title: string;
@@ -403,10 +403,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-[#C8E6C9] shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#E8F5E9] border-b border-[#C8E6C9]">
+    <div className="bg-white rounded-xl border border-[#D1E0C4] shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#E8F0E0] border-b border-[#D1E0C4]">
         <span className={cn('w-1 h-5 rounded-full', accent)} />
-        <h3 className="text-[15px] font-bold text-[#2E7D32]">{title}</h3>
+        <h3 className="text-[15px] font-bold text-[#5B7A3D]">{title}</h3>
       </div>
       <div className="px-4 py-3.5">{children}</div>
     </div>

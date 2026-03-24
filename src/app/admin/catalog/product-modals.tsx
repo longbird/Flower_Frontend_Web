@@ -149,7 +149,7 @@ export function ProductEditModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D] resize-none"
               />
             </div>
 
@@ -162,7 +162,7 @@ export function ProductEditModal({
                 id="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D]"
               >
                 {CATEGORY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -214,7 +214,7 @@ export function ProductEditModal({
                 aria-checked={isActive}
                 onClick={() => setIsActive(!isActive)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isActive ? 'bg-emerald-600' : 'bg-slate-300'
+                  isActive ? 'bg-[#5B7A3D]' : 'bg-slate-300'
                 }`}
               >
                 <span
@@ -239,7 +239,7 @@ export function ProductEditModal({
                 aria-checked={isBranchDefault}
                 onClick={() => setIsBranchDefault(!isBranchDefault)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isBranchDefault ? 'bg-emerald-600' : 'bg-slate-300'
+                  isBranchDefault ? 'bg-[#5B7A3D]' : 'bg-slate-300'
                 }`}
               >
                 <span
@@ -269,7 +269,7 @@ export function ProductEditModal({
               <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="flex-1 bg-[#5B7A3D] hover:bg-[#4A6830] text-white"
               >
                 {saving ? '저장 중...' : '저장'}
               </Button>
@@ -398,7 +398,7 @@ export function ProductCreateModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D] resize-none"
                 placeholder="상품 설명을 입력하세요."
               />
             </div>
@@ -412,7 +412,7 @@ export function ProductCreateModal({
                 id="createCategory"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D]"
               >
                 {CATEGORY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -464,7 +464,7 @@ export function ProductCreateModal({
                 aria-checked={isBranchDefault}
                 onClick={() => setIsBranchDefault(!isBranchDefault)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isBranchDefault ? 'bg-emerald-600' : 'bg-slate-300'
+                  isBranchDefault ? 'bg-[#5B7A3D]' : 'bg-slate-300'
                 }`}
               >
                 <span
@@ -490,7 +490,7 @@ export function ProductCreateModal({
               <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="flex-1 bg-[#5B7A3D] hover:bg-[#4A6830] text-white"
               >
                 {saving ? '등록 중...' : '등록'}
               </Button>

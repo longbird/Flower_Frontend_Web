@@ -39,7 +39,7 @@ const STATUS_COLORS: Record<string, string> = {
   ACCEPTED: 'bg-violet-100 text-violet-800',
   PREPARING: 'bg-purple-100 text-purple-800',
   DELIVERING: 'bg-orange-100 text-orange-800',
-  DELIVERED: 'bg-emerald-100 text-emerald-800',
+  DELIVERED: 'bg-[#E8F0E0] text-[#3D5229]',
   CANCELED: 'bg-red-100 text-red-800',
 };
 
@@ -77,7 +77,7 @@ export default function OrdersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">주문 관리</h1>
-        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => router.push('/admin/order-register')}>
+        <Button className="bg-[#5B7A3D] hover:bg-[#4A6830]" onClick={() => router.push('/admin/order-register')}>
           주문 등록
         </Button>
       </div>
@@ -93,7 +93,7 @@ export default function OrdersPage() {
           </select>
           <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-0">
             <Input placeholder="검색 (주문번호, 수령인, 전화번호)" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 border-slate-200" />
-            <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700 shrink-0">검색</Button>
+            <Button type="submit" size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830] shrink-0">검색</Button>
           </form>
         </div>
       </div>

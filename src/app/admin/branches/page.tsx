@@ -81,7 +81,7 @@ export default function BranchesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">지사 관리</h1>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setForm(emptyForm); setShowCreate(true); }}>
+        <Button size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830]" onClick={() => { setForm(emptyForm); setShowCreate(true); }}>
           + 지사 추가
         </Button>
       </div>
@@ -159,7 +159,7 @@ export default function BranchesPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>취소</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={!form.name.trim() || createMutation.isPending} onClick={handleCreate}>
+            <Button className="bg-[#5B7A3D] hover:bg-[#4A6830]" disabled={!form.name.trim() || createMutation.isPending} onClick={handleCreate}>
               {createMutation.isPending ? '생성 중...' : '추가'}
             </Button>
           </DialogFooter>

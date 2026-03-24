@@ -104,7 +104,7 @@ function SurchargeEditModal({
                 id="surchargeType"
                 value={surchargeType}
                 onChange={(e) => setSurchargeType(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D]"
               >
                 {SURCHARGE_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -154,7 +154,7 @@ function SurchargeEditModal({
                   const val = e.target.value;
                   setBranchId(val ? Number(val) : null);
                 }}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D]"
               >
                 <option value="">전체 지사</option>
                 {branches.map((b) => (
@@ -183,7 +183,7 @@ function SurchargeEditModal({
               <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="flex-1 bg-[#5B7A3D] hover:bg-[#4A6830] text-white"
               >
                 {saving ? '저장 중...' : isCreate ? '등록' : '저장'}
               </Button>
@@ -255,7 +255,7 @@ export function SurchargesTab() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5B7A3D] mx-auto" />
         <p className="text-sm text-slate-400 mt-3">로딩 중...</p>
       </div>
     );
@@ -270,7 +270,7 @@ export function SurchargesTab() {
         </p>
         <Button
           onClick={() => setEditSurcharge('create')}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="bg-[#5B7A3D] hover:bg-[#4A6830] text-white"
         >
           <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -323,7 +323,7 @@ export function SurchargesTab() {
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => setEditSurcharge(s)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#5B7A3D] hover:bg-[#E8F0E0] transition-colors"
                           title="수정"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

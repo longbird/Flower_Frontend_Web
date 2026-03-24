@@ -138,7 +138,7 @@ export function BranchSettingsTab() {
   if (loadingBranches) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5B7A3D] mx-auto" />
         <p className="text-sm text-slate-400 mt-3">지사 목록 로딩 중...</p>
       </div>
     );
@@ -160,7 +160,7 @@ export function BranchSettingsTab() {
                 const val = e.target.value;
                 setSelectedBranchId(val ? Number(val) : null);
               }}
-              className="mt-2 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="mt-2 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D]"
             >
               <option value="">지사를 선택하세요</option>
               {branches.map((branch) => (
@@ -202,7 +202,7 @@ export function BranchSettingsTab() {
         </div>
       ) : loadingProducts ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5B7A3D] mx-auto" />
           <p className="text-sm text-slate-400 mt-3">상품 목록 로딩 중...</p>
         </div>
       ) : branchProducts.length === 0 ? (
@@ -331,7 +331,7 @@ export function BranchSettingsTab() {
                             role="switch"
                             aria-checked={bp.isVisible}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              bp.isVisible ? 'bg-emerald-600' : 'bg-slate-300'
+                              bp.isVisible ? 'bg-[#5B7A3D]' : 'bg-slate-300'
                             } ${isSaving ? 'opacity-50' : ''}`}
                           >
                             <span
@@ -348,7 +348,7 @@ export function BranchSettingsTab() {
                             size="sm"
                             onClick={() => handleSave(bp)}
                             disabled={isSaving}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3"
+                            className="bg-[#5B7A3D] hover:bg-[#4A6830] text-white text-xs px-3"
                           >
                             {isSaving ? '...' : '저장'}
                           </Button>
@@ -429,8 +429,8 @@ function BulkSurchargeModal({
               onClick={() => setMode('default')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
                 mode === 'default'
-                  ? 'bg-emerald-600 text-white border-emerald-600'
-                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-emerald-300'
+                  ? 'bg-[#5B7A3D] text-white border-[#5B7A3D]'
+                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-[#D1E0C4]'
               }`}
             >
               기본 추가금
@@ -439,8 +439,8 @@ function BulkSurchargeModal({
               onClick={() => setMode('product')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
                 mode === 'product'
-                  ? 'bg-emerald-600 text-white border-emerald-600'
-                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-emerald-300'
+                  ? 'bg-[#5B7A3D] text-white border-[#5B7A3D]'
+                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-[#D1E0C4]'
               }`}
             >
               상품별 추가금 일괄
@@ -490,7 +490,7 @@ function BulkSurchargeModal({
               취소
             </Button>
             <Button
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              className="flex-1 bg-[#5B7A3D] hover:bg-[#4A6830]"
               onClick={handleSave}
               disabled={saving}
             >

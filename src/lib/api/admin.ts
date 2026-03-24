@@ -36,6 +36,8 @@ export async function listFlorists(params?: {
   status?: string;
   regionCode?: string;
   capabilities?: string[];
+  photoGrade?: string;
+  isRecommended?: boolean;
 }) {
   const sp = new URLSearchParams();
   if (params?.page) sp.set('page', String(params.page));
@@ -45,6 +47,8 @@ export async function listFlorists(params?: {
   if (params?.status) sp.set('status', params.status);
   if (params?.regionCode) sp.set('regionCode', params.regionCode);
   if (params?.capabilities?.length) sp.set('capabilities', params.capabilities.join(','));
+  if (params?.photoGrade) sp.set('photoGrade', params.photoGrade);
+  if (params?.isRecommended) sp.set('isRecommended', 'true');
   const qs = sp.toString();
   return api<FloristListResponse>(`/admin/partners/florists${qs ? `?${qs}` : ''}`);
 }

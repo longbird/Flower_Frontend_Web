@@ -39,7 +39,7 @@ interface BackupStatusResponse {
 
 function StatusBadge({ status }: { status: 'ok' | 'warning' | 'error' }) {
   const config = {
-    ok: { label: '정상', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+    ok: { label: '정상', className: 'bg-[#E8F0E0] text-[#5B7A3D] border-[#D1E0C4]' },
     warning: { label: '경고', className: 'bg-amber-100 text-amber-700 border-amber-200' },
     error: { label: '실패', className: 'bg-red-100 text-red-700 border-red-200' },
   };

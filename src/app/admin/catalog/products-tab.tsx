@@ -120,7 +120,7 @@ export function ProductsTab() {
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5B7A3D] mx-auto" />
         <p className="text-sm text-slate-400 mt-3">로딩 중...</p>
       </div>
     );
@@ -140,7 +140,7 @@ export function ProductsTab() {
             onClick={() => { setSelectedCategory(''); setPage(1); }}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               selectedCategory === ''
-                ? 'bg-emerald-600 text-white'
+                ? 'bg-[#5B7A3D] text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -152,7 +152,7 @@ export function ProductsTab() {
               onClick={() => { setSelectedCategory(cat.code); setPage(1); }}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 selectedCategory === cat.code
-                  ? 'bg-emerald-600 text-white'
+                  ? 'bg-[#5B7A3D] text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -172,7 +172,7 @@ export function ProductsTab() {
           {photos.map((photo) => (
             <div
               key={photo.id}
-              className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer"
+              className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md hover:ring-2 hover:ring-[#5B7A3D]/40 transition-all cursor-pointer"
               onClick={() => setSelectedPhoto(photo)}
             >
               {/* Image */}
@@ -218,7 +218,7 @@ export function ProductsTab() {
                   {photo.floristName ?? '—'}
                 </p>
                 {photo.sellingPrice != null && (
-                  <p className="text-base font-bold text-emerald-700 mt-1">
+                  <p className="text-base font-bold text-[#5B7A3D] mt-1">
                     {formatPrice(photo.sellingPrice)}
                   </p>
                 )}
