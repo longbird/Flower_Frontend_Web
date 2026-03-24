@@ -75,23 +75,27 @@ export const MESSAGE_TYPES = [
 export type MessageType = (typeof MESSAGE_TYPES)[number]['value'];
 
 // ─── 경조사어 프리셋 ────────────────────────────────────
-export const CONDOLENCE_PRESETS = [
-  '축 결혼',
-  '축 개업',
-  '축 승진',
-  '축 취임',
-  '축 당선',
-  '축하합니다',
-  '삼가 고인의 명복을 빕니다',
-  '사랑합니다',
-  '생일 축하합니다',
-  '쾌유를 빕니다',
-  '축 이사',
-  '축 출산',
-  '입학을 축하합니다',
-  '졸업을 축하합니다',
-  '어버이날 감사합니다',
-] as const;
+export const CONDOLENCE_PRESETS = {
+  celebration: [
+    '축 결혼', '축 화혼', '축 발전', '축 개업', '축 영전', '축 취임',
+    '축 승진', '축 개소식', '축 이전', '축 개원', '축 당선',
+    '축 취항', '축 준공', '축하합니다',
+    '祝結婚', '祝華婚', '祝發展', '祝開業', '祝榮轉', '祝就任',
+    '祝昇進', '祝 開所式',
+  ],
+  condolence: [
+    '근조', '삼가 고인의 명복을 빕니다', '추모', '삼가 故人의 冥福을 빕니다',
+    '謹弔', '弔花', '盛花', '追慕',
+  ],
+  life: [
+    '축 생일', '축 생신', '축 수연', '축 회갑', '축 고희', '축 입주',
+    '가화만사성', '축 출산', '축 돌', '축 백일',
+    '축 입학', '축 졸업', '축 합격', '축 성년',
+    '쾌유를 빕니다', '사랑합니다',
+    '祝生日', '祝生展', '祝壽筵', '祝回甲', '祝古稀', '祝入住',
+    '家和萬事成',
+  ],
+} as const;
 
 // ─── 카드 메시지 카테고리 ────────────────────────────────
 export const CARD_MESSAGE_CATEGORIES = [
@@ -130,6 +134,10 @@ const optionItemSchema = z.object({
 
 // ─── 주문 등록 Zod 스키마 ────────────────────────────────
 export const orderRegisterSchema = z.object({
+  // ⓪ 수주화원
+  floristId: z.number().optional(),
+  floristName: z.string().optional(),
+
   // ① 상품
   productCategory: z.string().min(1, '상품을 선택해주세요'),
   productDetail: z.string().optional(),
