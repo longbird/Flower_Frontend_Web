@@ -57,6 +57,49 @@ export async function fetchRecommendedPhotos(
   }
 }
 
+/** SMS 인증번호 발송 */
+export async function sendPhoneVerification(
+  slug: string,
+  phone: string
+): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/public/branch/${slug}/verify/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      return { ok: false, message: json.message || '인증번호 발송에 실패했습니다.' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, message: '네트워크 오류가 발생했습니다.' };
+  }
+}
+
+/** SMS 인증번호 확인 */
+export async function verifyPhoneCode(
+  slug: string,
+  phone: string,
+  code: string
+): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/public/branch/${slug}/verify/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, code }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      return { ok: false, message: json.message || '인증번호가 올바르지 않습니다.' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, message: '네트워크 오류가 발생했습니다.' };
+  }
+}
+
 /** 상담 요청 등록 (인증 불필요) */
 export async function submitConsultRequest(
   slug: string,

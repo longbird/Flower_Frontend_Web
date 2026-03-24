@@ -929,6 +929,7 @@ export function RoseHomePage({ branch, slug, products, onProductClick }: BranchT
         <ProductDetailModal
           product={selectedProduct}
           slug={slug}
+          branch={branch}
           onClose={() => setSelectedProduct(null)}
         />
       )}

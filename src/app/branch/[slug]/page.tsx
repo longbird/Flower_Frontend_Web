@@ -102,6 +102,7 @@ export default function BranchHomePage() {
         <ProductDetailModal
           product={selectedProduct}
           slug={slug}
+          branch={branch ?? undefined}
           onClose={() => setSelectedProduct(null)}
         />
       )}
