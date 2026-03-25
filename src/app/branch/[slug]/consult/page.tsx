@@ -1,11 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchBranchInfo, fetchBranchProducts, submitConsultRequest } from '@/lib/branch/api';
-import type { BranchInfo, BranchProduct, ConsultRequestForm } from '@/lib/branch/types';
+import {
+  fetchBranchInfo,
+  fetchRecommendedPhotos,
+  submitConsultRequest,
+  sendPhoneVerification,
+  verifyPhoneCode,
+} from '@/lib/branch/api';
+import type { BranchInfo, RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
+import { CONDOLENCE_PRESETS } from '@/lib/types/order-register';
+
+// ─── Types ───────────────────────────────────────────────
+type DateOption = 'today' | 'tomorrow' | 'custom';
+type TimeOption = 'morning' | 'afternoon' | 'custom';
+
+// ─── Helpers ─────────────────────────────────────────────
+function todayString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function tomorrowString(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, '');
@@ -14,73 +37,254 @@ function formatPhone(value: string): string {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
 }
 
-function formatPrice(price: number) {
+function formatPrice(price: number): string {
   return price.toLocaleString('ko-KR') + '원';
 }
 
+function photoUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const RAW = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  return RAW ? `/api/proxy${url}` : url;
+}
+
+function formatDateLabel(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+  const w = weekdays[d.getDay()];
+  return `${m}월 ${day}일 (${w})`;
+}
+
+function openDaumPostcode(onComplete: (address: string) => void) {
+  const daum = (window as any).daum;
+  const run = () => {
+    new (window as any).daum.Postcode({
+      oncomplete(data: any) {
+        onComplete(data.roadAddress || data.jibunAddress || data.address);
+      },
+    }).open();
+  };
+  if (daum?.Postcode) {
+    run();
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+  script.onload = run;
+  document.head.appendChild(script);
+}
+
+// ─── Sub-components ──────────────────────────────────────
+function SectionTitle({ icon, title }: { icon: string; title: string }) {
+  return (
+    <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-1.5">
+      <span>{icon}</span>
+      <span>{title}</span>
+    </h3>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────
 export default function ConsultPage() {
   const params = useParams();
   const slug = params.slug as string;
 
+  // Data
   const [branch, setBranch] = useState<BranchInfo | null>(null);
-  const [products, setProducts] = useState<BranchProduct[]>([]);
+  const [photos, setPhotos] = useState<RecommendedPhoto[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Form state
+  const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
+
+  const [dateOption, setDateOption] = useState<DateOption>('today');
+  const [customDate, setCustomDate] = useState('');
+  const [timeOption, setTimeOption] = useState<TimeOption>('morning');
+  const [customTime, setCustomTime] = useState('');
+
+  const [senderName, setSenderName] = useState('');
+  const [senderPhone, setSenderPhone] = useState('');
+
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [addressDetail, setAddressDetail] = useState('');
+
+  const [ribbonLeft, setRibbonLeft] = useState('');
+  const [ribbonRight, setRibbonRight] = useState('');
+  const [showPresets, setShowPresets] = useState(false);
+  const [presetTab, setPresetTab] = useState<'celebration' | 'condolence' | 'life'>('celebration');
+
+  const [memo, setMemo] = useState('');
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+
+  // Phone verification
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [verifyCountdown, setVerifyCountdown] = useState(0);
+  const [verifyError, setVerifyError] = useState('');
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Submission
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [privacyConsent, setPrivacyConsent] = useState(false);
 
-  const [form, setForm] = useState<ConsultRequestForm>({
-    customerName: '',
-    customerPhone: '',
-    productCode: '',
-    productName: '',
-    desiredDate: '',
-    message: '',
-  });
-
+  // ─── Load data ──────────────────────────────────────────
   useEffect(() => {
     if (!slug) return;
     async function load() {
-      const [b, p] = await Promise.all([
+      const [b, photosRes] = await Promise.all([
         fetchBranchInfo(slug),
-        fetchBranchProducts(slug),
+        fetchRecommendedPhotos(slug, { size: 40 }),
       ]);
       setBranch(b);
-      setProducts(p);
+      setPhotos(photosRes.data);
       setLoading(false);
     }
     load();
   }, [slug]);
 
-  const handleProductSelect = (sku: string) => {
-    const product = products.find((p) => p.sku === sku);
-    setForm((prev) => ({
-      ...prev,
-      productCode: sku,
-      productName: product?.name || '',
-    }));
-  };
+  // ─── Countdown timer ───────────────────────────────────
+  useEffect(() => {
+    if (verifyCountdown <= 0) {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      return;
+    }
+    countdownRef.current = setInterval(() => {
+      setVerifyCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [verifyCountdown > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const selectedProduct = products.find((p) => p.sku === form.productCode);
+  // ─── Derived ────────────────────────────────────────────
+  const selectedPhoto = photos.find((p) => p.id === selectedPhotoId) ?? null;
+  const totalPrice = selectedPhoto?.sellingPrice ?? 0;
+
+  const resolvedDate =
+    dateOption === 'today'
+      ? todayString()
+      : dateOption === 'tomorrow'
+        ? tomorrowString()
+        : customDate;
+
+  const resolvedTime =
+    timeOption === 'morning'
+      ? '오전'
+      : timeOption === 'afternoon'
+        ? '오후'
+        : customTime;
+
+  const needsPhoneVerification = branch?.requirePhoneVerification === true;
+
+  // ─── Handlers ───────────────────────────────────────────
+  const handleSendVerification = useCallback(async () => {
+    const digits = senderPhone.replace(/\D/g, '');
+    if (digits.length < 10) {
+      setVerifyError('올바른 연락처를 입력해 주세요.');
+      return;
+    }
+    setVerifyError('');
+    const result = await sendPhoneVerification(slug, digits);
+    if (result.ok) {
+      setVerificationSent(true);
+      setVerifyCountdown(180);
+    } else {
+      setVerifyError(result.message || '인증번호 발송에 실패했습니다.');
+    }
+  }, [slug, senderPhone]);
+
+  const handleVerifyCode = useCallback(async () => {
+    const digits = senderPhone.replace(/\D/g, '');
+    if (!verificationCode.trim()) {
+      setVerifyError('인증번호를 입력해 주세요.');
+      return;
+    }
+    setVerifyError('');
+    const result = await verifyPhoneCode(slug, digits, verificationCode.trim());
+    if (result.ok) {
+      setPhoneVerified(true);
+      setVerifyCountdown(0);
+    } else {
+      setVerifyError(result.message || '인증번호가 올바르지 않습니다.');
+    }
+  }, [slug, senderPhone, verificationCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!form.customerName.trim()) {
-      setError('이름을 입력해 주세요.');
+    if (!senderName.trim()) {
+      setError('주문자 이름을 입력해 주세요.');
       return;
     }
-    if (!form.customerPhone.trim() || form.customerPhone.replace(/\D/g, '').length < 10) {
-      setError('올바른 연락처를 입력해 주세요.');
+    if (!senderPhone.trim() || senderPhone.replace(/\D/g, '').length < 10) {
+      setError('주문자 연락처를 입력해 주세요.');
       return;
+    }
+    if (needsPhoneVerification && !phoneVerified) {
+      setError('전화번호 인증을 완료해 주세요.');
+      return;
+    }
+    if (!recipientName.trim()) {
+      setError('받는분 이름을 입력해 주세요.');
+      return;
+    }
+    if (!recipientPhone.trim() || recipientPhone.replace(/\D/g, '').length < 10) {
+      setError('받는분 연락처를 입력해 주세요.');
+      return;
+    }
+    if (!address.trim()) {
+      setError('배송 주소를 입력해 주세요.');
+      return;
+    }
+    if (!privacyConsent) {
+      setError('개인정보 수집에 동의해 주세요.');
+      return;
+    }
+
+    const dateLabel =
+      dateOption === 'today'
+        ? `오늘 (${formatDateLabel(todayString())})`
+        : dateOption === 'tomorrow'
+          ? `내일 (${formatDateLabel(tomorrowString())})`
+          : formatDateLabel(customDate);
+
+    const fullAddress = addressDetail ? `${address} ${addressDetail}` : address;
+
+    const messageParts = [
+      `[주문자] ${senderName} / ${senderPhone}`,
+      `[배송일시] ${dateLabel} ${resolvedTime}`,
+      `[받는분] ${recipientName} / ${recipientPhone}`,
+      `[배송장소] ${fullAddress}`,
+    ];
+    if (ribbonLeft || ribbonRight) {
+      messageParts.push(`[리본문구] ${ribbonLeft} / ${ribbonRight}`);
+    }
+    if (memo) {
+      messageParts.push(`[요청사항] ${memo}`);
     }
 
     setSubmitting(true);
     const result = await submitConsultRequest(slug, {
-      ...form,
-      customerPhone: form.customerPhone.replace(/\D/g, ''),
+      customerName: senderName,
+      customerPhone: senderPhone.replace(/\D/g, ''),
+      productCode: selectedPhoto ? String(selectedPhoto.id) : '',
+      productName: selectedPhoto?.name || '',
+      desiredDate: resolvedDate,
+      message: messageParts.join('\n'),
     });
     setSubmitting(false);
 
@@ -91,12 +295,13 @@ export default function ConsultPage() {
     }
   };
 
+  // ─── Loading ────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f0] md:bg-white">
         <div className="text-center">
           <div className="w-10 h-10 mx-auto mb-4 border-2 border-[var(--branch-green)] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[var(--branch-text-muted)] text-sm">로딩 중...</p>
+          <p className="text-gray-400 text-sm">로딩 중...</p>
         </div>
       </div>
     );
@@ -104,36 +309,47 @@ export default function ConsultPage() {
 
   if (!branch) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f0] md:bg-white">
         <div className="text-center">
-          <svg className="w-16 h-16 mx-auto mb-6 text-[var(--branch-text-muted)] opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="w-16 h-16 mx-auto mb-6 text-gray-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
-          <h1 className="text-2xl font-bold text-[var(--branch-text)] mb-3">페이지를 찾을 수 없습니다</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">페이지를 찾을 수 없습니다</h1>
         </div>
       </div>
     );
   }
 
+  const theme = getTheme(branch.homepageDesign);
+  const themeStyle = {
+    ...themeToStyle(theme),
+    fontFamily: theme.fontFamily,
+  } as React.CSSProperties;
+
+  // ─── Success screen ─────────────────────────────────────
   if (submitted) {
-    const submittedTheme = getTheme(branch.homepageDesign);
-    const submittedStyle = {
-      ...themeToStyle(submittedTheme),
-      fontFamily: submittedTheme.fontFamily,
-    } as React.CSSProperties;
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-white" style={submittedStyle}>
-        <div className="max-w-md mx-auto text-center bg-white rounded-2xl p-10 shadow-lg border border-[var(--branch-border)]">
+      <div className="min-h-screen flex items-center justify-center px-4 bg-[#f5f5f0] md:bg-white" style={themeStyle}>
+        <div className="max-w-md mx-auto text-center bg-white rounded-2xl p-10 shadow-lg border border-gray-100">
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[var(--branch-green-light)] flex items-center justify-center">
             <svg className="w-8 h-8 text-[var(--branch-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-[var(--branch-text)] mb-4">
-            상담 요청이 완료되었습니다
-          </h1>
-          <p className="text-[var(--branch-text-secondary)] text-sm mb-8 leading-relaxed">
-            빠른 시간 내에 연락드리겠습니다.<br />
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">주문 요청이 완료되었습니다</h1>
+          <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+            빠른 시간 내에 연락드리겠습니다.
+            <br />
             감사합니다.
           </p>
           <Link
@@ -147,251 +363,545 @@ export default function ConsultPage() {
     );
   }
 
-  // Get tomorrow as min date for desired_date
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
+  // ─── Input classes ──────────────────────────────────────
+  const inputClass =
+    'w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 focus:outline-none transition-colors text-sm';
 
-  const theme = getTheme(branch.homepageDesign);
-  const themeStyle = {
-    ...themeToStyle(theme),
-    fontFamily: theme.fontFamily,
-  } as React.CSSProperties;
+  const toggleBase =
+    'px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors cursor-pointer';
+  const toggleSelected =
+    'bg-[var(--branch-green)] text-white border-[var(--branch-green)]';
+  const toggleUnselected =
+    'bg-white text-gray-600 border-gray-200 hover:border-gray-300';
 
+  // ─── Render ─────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white" style={themeStyle}>
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-[var(--branch-border)]">
-        <div className="max-w-6xl mx-auto flex items-center justify-between h-14 md:h-16 px-4 md:px-8">
-          <Link href={`/branch/${slug}`} className="branch-serif text-lg md:text-xl font-bold text-[var(--branch-text)] truncate">
-            {branch.name}
+    <div
+      className="min-h-screen bg-[#f5f5f0] md:bg-gray-50"
+      style={themeStyle}
+    >
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-white border-b border-gray-100">
+        <div className="flex items-center h-14 px-4 md:max-w-2xl md:mx-auto">
+          <Link
+            href={`/branch/${slug}`}
+            className="flex items-center gap-1 text-gray-500 hover:text-gray-900 transition-colors mr-3"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
           </Link>
-          {branch.phone && (
-            <a
-              href={`tel:${branch.phone}`}
-              className="inline-flex items-center gap-1.5 text-sm text-[var(--branch-text-secondary)] hover:text-[var(--branch-text)] transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              <span className="hidden sm:inline">{branch.phone}</span>
-            </a>
-          )}
+          <h1 className="text-base font-bold text-gray-900 truncate">{branch.name}</h1>
         </div>
       </header>
 
-      {/* Main Content - Split Layout */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+      {/* Form body */}
+      <form
+        onSubmit={handleSubmit}
+        className="pb-28 md:pb-0 md:max-w-2xl md:mx-auto md:my-8"
+      >
+        <div className="space-y-3 p-4 md:p-0 md:space-y-4">
 
-          {/* Left Column - Product Info */}
-          <div className="lg:w-2/5">
-            <div className="bg-white rounded-2xl border border-[var(--branch-border)] overflow-hidden lg:sticky lg:top-24">
-              {/* Premium Collection Badge */}
-              <div className="p-6 pb-0">
-                <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--branch-green-light)] text-[var(--branch-green)] text-xs font-semibold tracking-wide uppercase">
-                  Premium Collection
-                </span>
+          {/* ── Product Picker ──────────────────────────── */}
+          {photos.length > 0 && (
+            <section className="bg-white rounded-2xl p-5 shadow-sm">
+              <SectionTitle icon="🌸" title="상품 선택" />
+
+              {/* Horizontal scroll picker */}
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                {photos.map((photo) => {
+                  const isSelected = selectedPhotoId === photo.id;
+                  return (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => setSelectedPhotoId(isSelected ? null : photo.id)}
+                      className={`flex-shrink-0 w-[88px] rounded-xl border-2 p-1.5 transition-all ${
+                        isSelected
+                          ? 'border-[var(--branch-green)] bg-[var(--branch-green-light)]'
+                          : 'border-gray-100 bg-white hover:border-gray-200'
+                      }`}
+                    >
+                      <div className="w-16 h-16 mx-auto rounded-lg overflow-hidden bg-gray-50">
+                        {photo.imageUrl ? (
+                          <img
+                            src={photoUrl(photo.imageUrl)}
+                            alt={photo.name || '상품'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-700 font-medium mt-1.5 truncate text-center">
+                        {photo.name || '상품'}
+                      </p>
+                      {photo.sellingPrice != null && photo.sellingPrice > 0 && (
+                        <p className="text-[11px] text-[var(--branch-green)] font-bold text-center">
+                          {formatPrice(photo.sellingPrice)}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Product image */}
-              <div className="p-6">
-                <div className="aspect-square rounded-xl bg-[var(--branch-bg-alt)] flex items-center justify-center overflow-hidden">
-                  {selectedProduct?.imageUrl ? (
-                    <img
-                      src={selectedProduct.imageUrl.startsWith('http') ? selectedProduct.imageUrl : `/api/proxy${selectedProduct.imageUrl}`}
-                      alt={selectedProduct.name}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <div className="text-center p-8">
-                      <svg className="w-16 h-16 mx-auto text-[var(--branch-green)] opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-[var(--branch-text-muted)] text-sm mt-3">
-                        {selectedProduct ? selectedProduct.name : '상품을 선택해 주세요'}
+              {/* Selected product card */}
+              {selectedPhoto && (
+                <div className="mt-4 flex gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                  <div className="w-24 h-24 rounded-xl overflow-hidden bg-white flex-shrink-0">
+                    {selectedPhoto.imageUrl ? (
+                      <img
+                        src={photoUrl(selectedPhoto.imageUrl)}
+                        alt={selectedPhoto.name || '선택 상품'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-gray-900 truncate">
+                      {selectedPhoto.name || '선택 상품'}
+                    </h4>
+                    {selectedPhoto.sellingPrice != null && selectedPhoto.sellingPrice > 0 && (
+                      <p className="text-lg font-bold text-[var(--branch-green)] mt-1">
+                        {formatPrice(selectedPhoto.sellingPrice)}
                       </p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--branch-green-light)] text-[var(--branch-green)] text-[10px] font-medium">
+                        당일배송 가능
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--branch-green-light)] text-[var(--branch-green)] text-[10px] font-medium">
+                        리본 무료작성
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--branch-green-light)] text-[var(--branch-green)] text-[10px] font-medium">
+                        실물사진 제공
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ── 배송일시 ────────────────────────────────── */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <SectionTitle icon="📅" title="배송일시" />
+            <div className="md:grid md:grid-cols-2 md:gap-6">
+              {/* Date */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-2">배송일</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDateOption('today')}
+                    className={`flex-1 ${toggleBase} ${dateOption === 'today' ? toggleSelected : toggleUnselected}`}
+                  >
+                    오늘
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDateOption('tomorrow')}
+                    className={`flex-1 ${toggleBase} ${dateOption === 'tomorrow' ? toggleSelected : toggleUnselected}`}
+                  >
+                    내일
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDateOption('custom')}
+                    className={`flex-1 ${toggleBase} ${dateOption === 'custom' ? toggleSelected : toggleUnselected}`}
+                  >
+                    날짜 선택
+                  </button>
+                </div>
+                {dateOption === 'custom' && (
+                  <input
+                    type="date"
+                    value={customDate}
+                    onChange={(e) => setCustomDate(e.target.value)}
+                    min={todayString()}
+                    className={`mt-2 ${inputClass}`}
+                  />
+                )}
+              </div>
+
+              {/* Time */}
+              <div className="mt-4 md:mt-0">
+                <label className="block text-xs font-medium text-gray-500 mb-2">배송시간</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTimeOption('morning')}
+                    className={`flex-1 ${toggleBase} ${timeOption === 'morning' ? toggleSelected : toggleUnselected}`}
+                  >
+                    오전
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeOption('afternoon')}
+                    className={`flex-1 ${toggleBase} ${timeOption === 'afternoon' ? toggleSelected : toggleUnselected}`}
+                  >
+                    오후
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeOption('custom')}
+                    className={`flex-1 ${toggleBase} ${timeOption === 'custom' ? toggleSelected : toggleUnselected}`}
+                  >
+                    시간 지정
+                  </button>
+                </div>
+                {timeOption === 'custom' && (
+                  <input
+                    type="time"
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    className={`mt-2 ${inputClass}`}
+                  />
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* ── 주문자 정보 ─────────────────────────────── */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <SectionTitle icon="👤" title="주문자 정보" />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  이름 <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  placeholder="홍길동"
+                  className={inputClass}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  연락처 <span className="text-red-400">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    value={senderPhone}
+                    onChange={(e) => {
+                      setSenderPhone(formatPhone(e.target.value));
+                      if (phoneVerified) {
+                        setPhoneVerified(false);
+                        setVerificationSent(false);
+                        setVerificationCode('');
+                        setVerifyCountdown(0);
+                      }
+                    }}
+                    placeholder="010-1234-5678"
+                    className={`flex-1 ${inputClass}`}
+                    required
+                  />
+                  {needsPhoneVerification && !phoneVerified && (
+                    <button
+                      type="button"
+                      onClick={handleSendVerification}
+                      disabled={verifyCountdown > 0}
+                      className="flex-shrink-0 px-4 py-3 rounded-xl bg-[var(--branch-green)] text-white text-sm font-medium hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      {verifyCountdown > 0
+                        ? `${Math.floor(verifyCountdown / 60)}:${String(verifyCountdown % 60).padStart(2, '0')}`
+                        : verificationSent
+                          ? '재발송'
+                          : '인증번호 발송'}
+                    </button>
+                  )}
+                  {needsPhoneVerification && phoneVerified && (
+                    <div className="flex-shrink-0 flex items-center gap-1 px-3 text-green-600 text-sm font-medium">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      인증완료
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Product info */}
-              {selectedProduct && (
-                <div className="px-6 pb-4">
-                  <h3 className="text-lg font-bold text-[var(--branch-text)]">{selectedProduct.name}</h3>
-                  <p className="text-lg font-bold text-[var(--branch-green)] mt-1">{formatPrice(selectedProduct.price)}</p>
+              {/* Verification code input */}
+              {needsPhoneVerification && verificationSent && !phoneVerified && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">인증번호</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="6자리 인증번호"
+                      maxLength={6}
+                      className={`flex-1 ${inputClass}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyCode}
+                      className="flex-shrink-0 px-4 py-3 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors whitespace-nowrap"
+                    >
+                      인증확인
+                    </button>
+                  </div>
+                  {verifyCountdown > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      남은 시간: {Math.floor(verifyCountdown / 60)}:{String(verifyCountdown % 60).padStart(2, '0')}
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* Divider + Features */}
-              <div className="mx-6 border-t border-[var(--branch-border)]" />
-              <div className="p-6 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[var(--branch-green-light)] flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-[var(--branch-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                    </svg>
-                  </div>
-                  <span className="text-sm text-[var(--branch-text)]">시즌 큐레이션 플라워</span>
+              {verifyError && (
+                <p className="text-xs text-red-500">{verifyError}</p>
+              )}
+            </div>
+          </section>
+
+          {/* ── 받는분 정보 ─────────────────────────────── */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <SectionTitle icon="🎁" title="받는분 정보" />
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                    이름 <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="받는분 이름"
+                    className={inputClass}
+                    required
+                  />
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[var(--branch-green-light)] flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-[var(--branch-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <span className="text-sm text-[var(--branch-text)]">친환경 포장 제공</span>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                    연락처 <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={recipientPhone}
+                    onChange={(e) => setRecipientPhone(formatPhone(e.target.value))}
+                    placeholder="010-1234-5678"
+                    className={inputClass}
+                    required
+                  />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  배송 주소 <span className="text-red-400">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={address}
+                    readOnly
+                    placeholder="주소를 검색해 주세요"
+                    className={`flex-1 ${inputClass} bg-gray-50 cursor-pointer`}
+                    onClick={() => openDaumPostcode(setAddress)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openDaumPostcode(setAddress)}
+                    className="flex-shrink-0 px-4 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition-colors whitespace-nowrap"
+                  >
+                    주소검색
+                  </button>
+                </div>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  value={addressDetail}
+                  onChange={(e) => setAddressDetail(e.target.value)}
+                  placeholder="상세 주소 (건물명, 동/호수, 층 등)"
+                  className={inputClass}
+                />
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Right Column - Form */}
-          <div className="lg:w-3/5">
-            <div className="bg-[var(--branch-bg-alt)] rounded-2xl p-6 md:p-8 lg:p-10">
-              <div className="mb-8">
-                <h1 className="text-2xl md:text-3xl font-bold text-[var(--branch-text)]">상담 및 주문 요청</h1>
-                <p className="text-[var(--branch-text-secondary)] text-sm mt-2 leading-relaxed">
-                  아래 정보를 입력해 주시면 담당 플로리스트가 빠른 시간 내에 연락드리겠습니다.
-                </p>
+          {/* ── 리본 문구 ───────────────────────────────── */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <SectionTitle icon="🎀" title="리본 문구" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">좌측 (보내는분)</label>
+                <input
+                  type="text"
+                  value={ribbonLeft}
+                  onChange={(e) => setRibbonLeft(e.target.value)}
+                  placeholder="예: 주식회사 OO 대표 홍길동"
+                  className={inputClass}
+                />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">우측 (경조사어)</label>
+                <input
+                  type="text"
+                  value={ribbonRight}
+                  onChange={(e) => setRibbonRight(e.target.value)}
+                  placeholder="예: 축 개업"
+                  className={inputClass}
+                />
+              </div>
+            </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Name + Phone - 2 col on desktop */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-[var(--branch-text)] mb-2 font-medium">
-                      성함 <span className="text-[var(--branch-green)]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={form.customerName}
-                      onChange={(e) => setForm((prev) => ({ ...prev, customerName: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--branch-border)] bg-white text-[var(--branch-text)] placeholder-[var(--branch-text-muted)] focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors"
-                      placeholder="홍길동"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-[var(--branch-text)] mb-2 font-medium">
-                      연락처 <span className="text-[var(--branch-green)]">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={form.customerPhone}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          customerPhone: formatPhone(e.target.value),
-                        }))
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--branch-border)] bg-white text-[var(--branch-text)] placeholder-[var(--branch-text-muted)] focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors"
-                      placeholder="010-1234-5678"
-                      required
-                    />
-                  </div>
-                </div>
+            <button
+              type="button"
+              onClick={() => setShowPresets(!showPresets)}
+              className="mt-3 text-sm text-[var(--branch-green)] font-medium hover:underline flex items-center gap-1"
+            >
+              <span>{showPresets ? '▾' : '▸'}</span>
+              <span>샘플 문구 보기</span>
+            </button>
 
-                {/* Product selection */}
-                {products.length > 0 && (
-                  <div>
-                    <label className="block text-sm text-[var(--branch-text)] mb-2 font-medium">
-                      관심 상품
-                    </label>
-                    <select
-                      value={form.productCode}
-                      onChange={(e) => handleProductSelect(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--branch-border)] bg-white text-[var(--branch-text)] focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23666666%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_12px_center]"
+            {showPresets && (
+              <div className="mt-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                {/* Tabs */}
+                <div className="flex gap-1 mb-3">
+                  {(
+                    [
+                      { key: 'celebration', label: '축하' },
+                      { key: 'condolence', label: '근조' },
+                      { key: 'life', label: '생활' },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setPresetTab(tab.key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        presetTab === tab.key
+                          ? 'bg-[var(--branch-green)] text-white'
+                          : 'bg-white text-gray-500 hover:bg-gray-100'
+                      }`}
                     >
-                      <option value="">선택해 주세요 (선택사항)</option>
-                      {products.map((p) => (
-                        <option key={p.sku} value={p.sku}>
-                          {p.name} - {p.price.toLocaleString('ko-KR')}원
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Desired date */}
-                <div>
-                  <label className="block text-sm text-[var(--branch-text)] mb-2 font-medium">
-                    희망 배송일
-                  </label>
-                  <input
-                    type="date"
-                    value={form.desiredDate}
-                    onChange={(e) => setForm((prev) => ({ ...prev, desiredDate: e.target.value }))}
-                    min={minDate}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--branch-border)] bg-white text-[var(--branch-text)] focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors"
-                  />
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Message */}
-                <div>
-                  <label className="block text-sm text-[var(--branch-text)] mb-2 font-medium">
-                    상세 요청 사항
-                  </label>
-                  <textarea
-                    value={form.message}
-                    onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--branch-border)] bg-white text-[var(--branch-text)] placeholder-[var(--branch-text-muted)] focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors resize-none"
-                    placeholder="배달 주소, 원하는 꽃 종류, 예산, 카드 문구 등을 자유롭게 적어 주세요."
-                  />
+                {/* Preset items */}
+                <div className="flex flex-wrap gap-1.5">
+                  {CONDOLENCE_PRESETS[presetTab].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setRibbonRight(preset)}
+                      className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                        ribbonRight === preset
+                          ? 'bg-[var(--branch-green)] text-white'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:border-[var(--branch-green)] hover:text-[var(--branch-green)]'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
                 </div>
+              </div>
+            )}
+          </section>
 
-                {/* Privacy consent */}
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="privacy-consent"
-                    checked={privacyConsent}
-                    onChange={(e) => setPrivacyConsent(e.target.checked)}
-                    className="mt-1 w-4 h-4 rounded border-[var(--branch-border)] text-[var(--branch-green)] focus:ring-[var(--branch-green)] accent-[var(--branch-green)]"
-                  />
-                  <label htmlFor="privacy-consent" className="text-sm text-[var(--branch-text-secondary)] leading-relaxed cursor-pointer">
-                    상담 및 주문 처리를 위해 개인정보(성함, 연락처)를 수집 및 이용하는 것에 동의합니다.
-                  </label>
-                </div>
+          {/* ── 요청사항 ────────────────────────────────── */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <SectionTitle icon="📝" title="요청사항" />
+            <textarea
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              rows={3}
+              placeholder="배송 관련 요청사항을 입력해 주세요. (예: 경비실에 맡겨주세요)"
+              className={`${inputClass} resize-none`}
+            />
+          </section>
 
-                {/* Error */}
-                {error && (
-                  <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-                    {error}
-                  </div>
-                )}
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={submitting || !privacyConsent}
-                  className="w-full py-4 bg-[var(--branch-green)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-green-hover)] transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? '전송 중...' : '상담 요청하기'}
-                </button>
-
-                {/* Note */}
-                <p className="text-xs text-[var(--branch-text-muted)] text-center leading-relaxed">
-                  요청하신 정보는 담당 플로리스트 확인 후 30분 이내로 연락 드립니다.
-                </p>
-              </form>
-            </div>
-
-            {/* Back link */}
-            <div className="mt-6">
-              <Link
-                href={`/branch/${slug}`}
-                className="inline-flex items-center text-[var(--branch-text-secondary)] hover:text-[var(--branch-green)] transition-colors text-sm"
+          {/* ── 개인정보 동의 ───────────────────────────── */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="privacy-consent"
+                checked={privacyConsent}
+                onChange={(e) => setPrivacyConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[var(--branch-green)] focus:ring-[var(--branch-green)] accent-[var(--branch-green)]"
+              />
+              <label
+                htmlFor="privacy-consent"
+                className="text-sm text-gray-500 leading-relaxed cursor-pointer"
               >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                이전으로
-              </Link>
+                주문 처리를 위해 개인정보(성함, 연락처, 주소)를 수집 및 이용하는 것에 동의합니다.
+              </label>
+            </div>
+          </section>
+
+          {/* ── Error ───────────────────────────────────── */}
+          {error && (
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* ── PC Submit (md:static) ──────────────────── */}
+          <div className="hidden md:block bg-white rounded-b-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                {totalPrice > 0 && (
+                  <>
+                    <span className="text-xs text-gray-400">총 금액</span>
+                    <p className="text-xl font-bold text-gray-900">{formatPrice(totalPrice)}</p>
+                  </>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={submitting || !privacyConsent}
+                className="px-10 py-3.5 bg-[var(--branch-green)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? '전송 중...' : '결제하기'}
+              </button>
             </div>
           </div>
+        </div>
+      </form>
+
+      {/* ── Mobile Bottom Sticky Bar ──────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-between px-5 py-3.5 safe-area-bottom">
+          <div>
+            {totalPrice > 0 && (
+              <>
+                <span className="text-[10px] text-gray-400">총 금액</span>
+                <p className="text-lg font-bold text-gray-900 -mt-0.5">{formatPrice(totalPrice)}</p>
+              </>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              const form = document.querySelector('form');
+              if (form) form.requestSubmit();
+            }}
+            disabled={submitting || !privacyConsent}
+            className="px-8 py-3 bg-[var(--branch-green)] text-white rounded-full text-base font-bold hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {submitting ? '전송 중...' : '결제하기'}
+          </button>
         </div>
       </div>
     </div>
