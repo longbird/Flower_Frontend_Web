@@ -16,7 +16,31 @@ import { CONDOLENCE_PRESETS } from '@/lib/types/order-register';
 
 // ─── Types ───────────────────────────────────────────────
 type DateOption = 'today' | 'tomorrow' | 'custom';
-type TimeOption = 'morning' | 'afternoon' | 'custom';
+type TimePeriod = 'morning' | 'afternoon';
+
+const MORNING_HOUR_OPTIONS = [
+  { value: '', label: '시간 선택' },
+  { value: '08', label: '오전 8시' },
+  { value: '09', label: '오전 9시' },
+  { value: '10', label: '오전 10시' },
+  { value: '11', label: '오전 11시' },
+];
+
+const AFTERNOON_HOUR_OPTIONS = [
+  { value: '', label: '시간 선택' },
+  { value: '12', label: '오후 12시' },
+  { value: '13', label: '오후 1시' },
+  { value: '14', label: '오후 2시' },
+  { value: '15', label: '오후 3시' },
+  { value: '16', label: '오후 4시' },
+  { value: '17', label: '오후 5시' },
+  { value: '18', label: '오후 6시' },
+  { value: '19', label: '오후 7시' },
+  { value: '20', label: '오후 8시' },
+  { value: '21', label: '오후 9시' },
+];
+
+const MINUTE_OPTIONS = ['00', '10', '20', '30', '40', '50'];
 
 // ─── Helpers ─────────────────────────────────────────────
 function todayString(): string {
@@ -102,8 +126,15 @@ export default function ConsultPage() {
 
   const [dateOption, setDateOption] = useState<DateOption>('today');
   const [customDate, setCustomDate] = useState('');
-  const [timeOption, setTimeOption] = useState<TimeOption>('morning');
-  const [customTime, setCustomTime] = useState('');
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>(() => {
+    const h = (new Date().getHours() + 1) % 24;
+    return h < 12 ? 'morning' : 'afternoon';
+  });
+  const [selectedHour, setSelectedHour] = useState(() => {
+    const h = (new Date().getHours() + 1) % 24;
+    return h < 8 ? '08' : h > 21 ? '' : String(h).padStart(2, '0');
+  });
+  const [selectedMinute, setSelectedMinute] = useState('00');
 
   const [senderName, setSenderName] = useState('');
   const [senderPhone, setSenderPhone] = useState('');
@@ -180,12 +211,17 @@ export default function ConsultPage() {
         ? tomorrowString()
         : customDate;
 
-  const resolvedTime =
-    timeOption === 'morning'
-      ? '오전'
-      : timeOption === 'afternoon'
-        ? '오후'
-        : customTime;
+  const resolvedTime = (() => {
+    if (selectedHour) {
+      const h = Number(selectedHour);
+      const displayHour = h > 12 ? h - 12 : h;
+      const prefix = timePeriod === 'morning' ? '오전' : '오후';
+      return selectedMinute && selectedMinute !== '00'
+        ? `${prefix} ${displayHour}시 ${selectedMinute}분`
+        : `${prefix} ${displayHour}시`;
+    }
+    return timePeriod === 'morning' ? '오전' : '오후';
+  })();
 
   const needsPhoneVerification = branch?.requirePhoneVerification === true;
 
@@ -365,7 +401,9 @@ export default function ConsultPage() {
 
   // ─── Input classes ──────────────────────────────────────
   const inputClass =
-    'w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 focus:outline-none transition-colors text-sm';
+    'w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 focus:outline-none transition-colors text-sm bg-white';
+  const selectClass =
+    'px-4 py-3 rounded-xl border border-gray-200 text-gray-900 focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 focus:outline-none transition-colors text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400';
 
   const toggleBase =
     'px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors cursor-pointer';
@@ -538,37 +576,41 @@ export default function ConsultPage() {
               {/* Time */}
               <div className="mt-4 md:mt-0">
                 <label className="block text-xs font-medium text-gray-500 mb-2">배송시간</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setTimeOption('morning')}
-                    className={`flex-1 ${toggleBase} ${timeOption === 'morning' ? toggleSelected : toggleUnselected}`}
+                <div className="grid grid-cols-[1fr_100px] gap-2">
+                  <select
+                    value={selectedHour}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedHour(val);
+                      if (val) {
+                        setTimePeriod(Number(val) < 12 ? 'morning' : 'afternoon');
+                      }
+                    }}
+                    className={selectClass}
                   >
-                    오전
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTimeOption('afternoon')}
-                    className={`flex-1 ${toggleBase} ${timeOption === 'afternoon' ? toggleSelected : toggleUnselected}`}
+                    <option value="">시간 선택</option>
+                    <optgroup label="오전">
+                      {MORNING_HOUR_OPTIONS.filter((h) => h.value).map((h) => (
+                        <option key={h.value} value={h.value}>{h.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="오후">
+                      {AFTERNOON_HOUR_OPTIONS.filter((h) => h.value).map((h) => (
+                        <option key={h.value} value={h.value}>{h.label}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                  <select
+                    value={selectedMinute}
+                    onChange={(e) => setSelectedMinute(e.target.value)}
+                    className={selectClass}
+                    disabled={!selectedHour}
                   >
-                    오후
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTimeOption('custom')}
-                    className={`flex-1 ${toggleBase} ${timeOption === 'custom' ? toggleSelected : toggleUnselected}`}
-                  >
-                    시간 지정
-                  </button>
+                    {MINUTE_OPTIONS.map((m) => (
+                      <option key={m} value={m}>{m}분</option>
+                    ))}
+                  </select>
                 </div>
-                {timeOption === 'custom' && (
-                  <input
-                    type="time"
-                    value={customTime}
-                    onChange={(e) => setCustomTime(e.target.value)}
-                    className={`mt-2 ${inputClass}`}
-                  />
-                )}
               </div>
             </div>
           </section>
