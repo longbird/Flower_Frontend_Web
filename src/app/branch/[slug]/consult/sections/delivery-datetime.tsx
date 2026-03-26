@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import type { DeliveryPurpose } from '@/lib/branch/types';
 import {
   todayString,
@@ -45,6 +46,8 @@ export function DeliveryDatetime({
   preEventHour, setPreEventHour,
   preEventMinute, setPreEventMinute,
 }: Props) {
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
   const resolvedDate =
     dateOption === 'today'
       ? todayString()
@@ -53,6 +56,14 @@ export function DeliveryDatetime({
         : customDate;
 
   const showPreEvent = deliveryPurpose !== '까지';
+
+  const handleCustomClick = () => {
+    setDateOption('custom');
+    // 다음 렌더 후 date picker 자동 열기
+    setTimeout(() => {
+      try { dateInputRef.current?.showPicker(); } catch { dateInputRef.current?.focus(); }
+    }, 50);
+  };
 
   return (
     <section className="bg-white rounded-2xl p-5 shadow-sm">
@@ -63,27 +74,37 @@ export function DeliveryDatetime({
 
       {/* 날짜 선택 */}
       <div className="flex gap-2 mb-3">
-        {(['today', 'tomorrow', 'custom'] as const).map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => setDateOption(opt)}
-            className={`flex-1 ${toggleBase} ${dateOption === opt ? toggleSelected : toggleUnselected}`}
-          >
-            {opt === 'today' ? '오늘 배송' : opt === 'tomorrow' ? '내일 배송' : '날짜 선택'}
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => setDateOption('today')}
+          className={`flex-1 ${toggleBase} ${dateOption === 'today' ? toggleSelected : toggleUnselected}`}
+        >
+          오늘 배송
+        </button>
+        <button
+          type="button"
+          onClick={() => setDateOption('tomorrow')}
+          className={`flex-1 ${toggleBase} ${dateOption === 'tomorrow' ? toggleSelected : toggleUnselected}`}
+        >
+          내일 배송
+        </button>
+        <button
+          type="button"
+          onClick={handleCustomClick}
+          className={`flex-1 relative ${toggleBase} ${dateOption === 'custom' ? toggleSelected : toggleUnselected}`}
+        >
+          {dateOption === 'custom' && customDate ? formatDateWithDay(customDate) : '날짜 선택'}
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={customDate}
+            onChange={(e) => { setCustomDate(e.target.value); setDateOption('custom'); }}
+            min={todayString()}
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            tabIndex={-1}
+          />
+        </button>
       </div>
-
-      {dateOption === 'custom' && (
-        <input
-          type="date"
-          value={customDate}
-          onChange={(e) => setCustomDate(e.target.value)}
-          min={todayString()}
-          className={`mb-3 ${inputClass}`}
-        />
-      )}
 
       {/* 날짜 + 요일 표시 */}
       {resolvedDate && (

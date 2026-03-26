@@ -73,8 +73,9 @@ function ConsultPageInner() {
   const [memo, setMemo] = useState('');
 
   // Invoice
-  const [invoiceType, setInvoiceType] = useState<InvoiceType>('INVOICE');
+  const [invoiceType, setInvoiceType] = useState<InvoiceType>('NONE');
   const [businessRegFile, setBusinessRegFile] = useState<File | null>(null);
+  const [cashReceiptPhone, setCashReceiptPhone] = useState('');
 
   // Privacy
   const [privacyConsent, setPrivacyConsent] = useState(false);
@@ -140,8 +141,28 @@ function ConsultPageInner() {
       formData.append('productName', product.name || '');
     }
     formData.append('desiredDate', resolvedDate);
+    formData.append('deliveryPurpose', deliveryPurpose);
+    formData.append('invoiceType', invoiceType);
+    if (invoiceType === 'CASH_RECEIPT') {
+      formData.append('cashReceiptPhone', (cashReceiptPhone || senderPhone).replace(/\D/g, ''));
+    }
+    // 받는분 정보
+    formData.append('recipientName', recipientName);
+    formData.append('recipientPhone', recipientPhone.replace(/\D/g, ''));
+    formData.append('address', fullAddress);
+    // 배송 시간
+    if (selectedHour) {
+      formData.append('deliveryTime', `${selectedHour}:${selectedMinute}`);
+    }
+    // 리본
+    if (ribbonLeft || ribbonRight) {
+      formData.append('ribbonText', `${ribbonLeft} / ${ribbonRight}`);
+    }
+    if (memo) {
+      formData.append('memo', memo);
+    }
 
-    // Build message
+    // Build message (사람이 읽기 위한 요약, 별도 필드와 병행)
     const resolvedTime = selectedHour
       ? `${selectedHour}시 ${selectedMinute}분 ${deliveryPurpose}`
       : '';
@@ -162,7 +183,12 @@ function ConsultPageInner() {
     if (memo) {
       messageParts.push(`[요청사항] ${memo}`);
     }
-    messageParts.push(`[증빙] ${invoiceType === 'INVOICE' ? '계산서 발행' : '현금영수증 발행'}`);
+    if (invoiceType === 'INVOICE') {
+      messageParts.push(`[증빙] 계산서 발행`);
+    } else if (invoiceType === 'CASH_RECEIPT') {
+      const receiptPhone = cashReceiptPhone || senderPhone;
+      messageParts.push(`[증빙] 현금영수증 발행 (${receiptPhone})`);
+    }
 
     formData.append('message', messageParts.join('\n'));
 
@@ -316,8 +342,16 @@ function ConsultPageInner() {
           <MemoSection memo={memo} setMemo={setMemo} />
 
           <InvoiceSelection
-            invoiceType={invoiceType} setInvoiceType={setInvoiceType}
+            invoiceType={invoiceType}
+            setInvoiceType={(v) => {
+              setInvoiceType(v);
+              if (v === 'CASH_RECEIPT' && !cashReceiptPhone) {
+                setCashReceiptPhone(senderPhone);
+              }
+            }}
             businessRegFile={businessRegFile} setBusinessRegFile={setBusinessRegFile}
+            senderPhone={senderPhone}
+            cashReceiptPhone={cashReceiptPhone} setCashReceiptPhone={setCashReceiptPhone}
           />
 
           <PrivacyConsent checked={privacyConsent} setChecked={setPrivacyConsent} />

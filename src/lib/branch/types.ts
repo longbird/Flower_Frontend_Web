@@ -62,6 +62,17 @@ export interface ConsultRequest {
   productCode?: string;
   productName?: string;
   desiredDate?: string;
+  deliveryPurpose?: string;
+  deliveryTime?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  address?: string;
+  ribbonText?: string;
+  memo?: string;
+  invoiceType?: string;
+  cashReceiptPhone?: string;
+  ribbonImagePath?: string;
+  businessRegPath?: string;
   message?: string;
   status: 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   createdAt: string;
@@ -72,7 +83,7 @@ export interface ConsultRequest {
 export type DeliveryPurpose = '까지' | '예식' | '장례' | '행사';
 
 /** 증빙 타입 */
-export type InvoiceType = 'INVOICE' | 'CASH_RECEIPT';
+export type InvoiceType = 'NONE' | 'INVOICE' | 'CASH_RECEIPT';
 
 /** 상담 요청 생성 폼 */
 export interface ConsultRequestForm {

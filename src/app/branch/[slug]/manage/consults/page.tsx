@@ -368,6 +368,30 @@ function ConsultCard({
   const displayName = consult.customerName || ordererParts[0] || '주문자';
   const displayPhone = consult.customerPhone || ordererParts[1] || '';
 
+  // 구조화 필드 우선, message 파싱 fallback
+  const detail = {
+    orderer: consult.customerName && consult.customerPhone
+      ? `${consult.customerName} / ${formatPhone(consult.customerPhone)}`
+      : parsed?.orderer,
+    recipient: consult.recipientName
+      ? `${consult.recipientName}${consult.recipientPhone ? ` / ${formatPhone(consult.recipientPhone)}` : ''}`
+      : parsed?.recipient,
+    deliveryTime: consult.desiredDate
+      ? `${consult.desiredDate}${consult.deliveryTime ? ` ${consult.deliveryTime}` : ''}${consult.deliveryPurpose ? ` ${consult.deliveryPurpose}` : ''}`
+      : parsed?.deliveryTime,
+    address: consult.address || parsed?.address,
+    eventTime: parsed?.eventTime,
+    ribbon: consult.ribbonText || parsed?.ribbon,
+    memo: consult.memo || parsed?.memo,
+    invoice: consult.invoiceType
+      ? consult.invoiceType === 'INVOICE'
+        ? '계산서 발행'
+        : consult.invoiceType === 'CASH_RECEIPT'
+          ? `현금영수증 발행 (${formatPhone(consult.cashReceiptPhone)})`
+          : null
+      : parsed?.invoice,
+  };
+
   // Match against recommended photos first, then branch products as fallback
   let matchedProduct: RecommendedPhoto | null = null;
   let productImgSrc = '';
@@ -486,8 +510,8 @@ function ConsultCard({
         </div>
       </div>
 
-      {/* Parsed Order Details (expandable) */}
-      {parsed && !parsed.raw && (
+      {/* Order Details (expandable) — 구조화 필드 우선, message 파싱 fallback */}
+      {(detail.orderer || detail.recipient || detail.address || detail.invoice) && (
         <>
           <button
             onClick={() => setExpanded(!expanded)}
@@ -502,16 +526,16 @@ function ConsultCard({
           {expanded && (
             <div className="px-5 pb-4 border-t border-[var(--branch-rose-light)]/30 bg-[var(--branch-cream)]/30">
               <div className="divide-y divide-[var(--branch-rose-light)]/20">
-                {parsed.orderer && <InfoRow icon={<IconPerson />} label="주문자">{parsed.orderer}</InfoRow>}
-                {parsed.recipient && <InfoRow icon={<IconPerson />} label="받는분">{parsed.recipient}</InfoRow>}
-                {parsed.deliveryTime && <InfoRow icon={<IconCalendar />} label="배송일시">{parsed.deliveryTime}</InfoRow>}
-                {parsed.address && <InfoRow icon={<IconMapPin />} label="배송장소"><span className="break-all">{parsed.address}</span></InfoRow>}
-                {parsed.eventTime && <InfoRow icon={<IconClock />} label="행사시간">{parsed.eventTime}</InfoRow>}
-                {parsed.ribbon && <InfoRow icon={<IconRibbon />} label="리본문구">{parsed.ribbon}</InfoRow>}
-                {parsed.memo && <InfoRow icon={<IconClipboard />} label="요청사항">{parsed.memo}</InfoRow>}
-                {parsed.invoice && (
+                {detail.orderer && <InfoRow icon={<IconPerson />} label="주문자">{detail.orderer}</InfoRow>}
+                {detail.recipient && <InfoRow icon={<IconPerson />} label="받는분">{detail.recipient}</InfoRow>}
+                {detail.deliveryTime && <InfoRow icon={<IconCalendar />} label="배송일시">{detail.deliveryTime}</InfoRow>}
+                {detail.address && <InfoRow icon={<IconMapPin />} label="배송장소"><span className="break-all">{detail.address}</span></InfoRow>}
+                {detail.eventTime && <InfoRow icon={<IconClock />} label="행사시간">{detail.eventTime}</InfoRow>}
+                {detail.ribbon && <InfoRow icon={<IconRibbon />} label="리본문구">{detail.ribbon}</InfoRow>}
+                {detail.memo && <InfoRow icon={<IconClipboard />} label="요청사항">{detail.memo}</InfoRow>}
+                {detail.invoice && (
                   <InfoRow icon={<IconReceipt />} label="증빙">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--branch-white)] border border-[var(--branch-rose-light)] text-xs">{parsed.invoice}</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--branch-white)] border border-[var(--branch-rose-light)] text-xs">{detail.invoice}</span>
                   </InfoRow>
                 )}
               </div>
@@ -520,17 +544,10 @@ function ConsultCard({
         </>
       )}
 
-      {/* Fallback: raw message */}
+      {/* Fallback: raw message (태그 없는 옛 데이터) */}
       {parsed?.raw && (
         <div className="px-5 pb-4">
           <div className="p-3 rounded-xl bg-[var(--branch-cream)] text-sm text-[var(--branch-text)] leading-relaxed whitespace-pre-wrap">{parsed.raw}</div>
-        </div>
-      )}
-
-      {/* No message */}
-      {!parsed && !consult.message && (
-        <div className="px-5 pb-4">
-          <p className="text-xs text-[var(--branch-text-light)] italic">메시지 없음</p>
         </div>
       )}
     </div>
