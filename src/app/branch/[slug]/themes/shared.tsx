@@ -84,6 +84,7 @@ export function StarRating({ count = 5 }: { count?: number }) {
   );
 }
 
+// @deprecated: Use /branch/[slug]/consult?productId=X page instead. Kept for backward compatibility.
 // ─── Product Detail Modal (모든 테마 공용) ──────────────────────
 
 export function ProductDetailModal({

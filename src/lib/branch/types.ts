@@ -68,6 +68,12 @@ export interface ConsultRequest {
   updatedAt?: string;
 }
 
+/** 배송 용도 */
+export type DeliveryPurpose = '까지' | '예식' | '장례' | '행사';
+
+/** 증빙 타입 */
+export type InvoiceType = 'INVOICE' | 'CASH_RECEIPT';
+
 /** 상담 요청 생성 폼 */
 export interface ConsultRequestForm {
   customerName: string;

@@ -100,6 +100,36 @@ export async function verifyPhoneCode(
   }
 }
 
+/** 추천 상품 단건 조회 (목록에서 ID 필터) */
+export async function fetchRecommendedPhotoById(
+  slug: string,
+  photoId: number
+): Promise<RecommendedPhoto | null> {
+  // TODO: 백엔드에 GET /public/branch/{slug}/recommended-photos/{id} 추가 시 교체
+  const res = await fetchRecommendedPhotos(slug, { size: 200 });
+  return res.data.find((p) => p.id === photoId) ?? null;
+}
+
+/** 주문 요청 등록 — FormData (파일 포함) */
+export async function submitOrderRequest(
+  slug: string,
+  data: FormData
+): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/public/branch/${slug}/consult`, {
+      method: 'POST',
+      body: data,
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      return { ok: false, message: json.message || '요청에 실패했습니다.' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, message: '네트워크 오류가 발생했습니다.' };
+  }
+}
+
 /** 상담 요청 등록 (인증 불필요) */
 export async function submitConsultRequest(
   slug: string,

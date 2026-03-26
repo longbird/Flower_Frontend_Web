@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { fetchBranchInfo, fetchRecommendedPhotos } from '@/lib/branch/api';
 import type { BranchInfo, RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
 import { GreenHomePage } from './themes/green';
-import { ProductDetailModal } from './themes/shared';
 import { RoseHomePage } from './themes/rose';
 import { NavyHomePage } from './themes/navy';
 
@@ -49,7 +48,7 @@ export default function BranchHomePage() {
   const [products, setProducts] = useState<PaginatedResponse<RecommendedPhoto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<RecommendedPhoto | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!slug) return;
@@ -96,16 +95,10 @@ export default function BranchHomePage() {
         branch={branch}
         slug={slug}
         products={products!}
-        onProductClick={setSelectedProduct}
+        onProductClick={(product: RecommendedPhoto) => {
+          router.push(`/branch/${slug}/consult?productId=${product.id}`);
+        }}
       />
-      {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          slug={slug}
-          branch={branch ?? undefined}
-          onClose={() => setSelectedProduct(null)}
-        />
-      )}
     </div>
   );
 }

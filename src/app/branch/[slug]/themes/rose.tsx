@@ -12,7 +12,6 @@ import {
   gradeLabel,
   StarRating,
   CATEGORY_ORDER,
-  ProductDetailModal,
 } from './shared';
 
 // ─── Ornamental Divider ─────────────────────────────────────────
@@ -896,13 +895,6 @@ function RoseFooter({ branch, slug }: { branch: BranchInfo; slug: string }) {
 // ─── Main Page Component ────────────────────────────────────────
 
 export function RoseHomePage({ branch, slug, products, onProductClick }: BranchThemeProps) {
-  const [selectedProduct, setSelectedProduct] = useState<RecommendedPhoto | null>(null);
-
-  const handleProductClick = (product: RecommendedPhoto) => {
-    setSelectedProduct(product);
-    onProductClick(product);
-  };
-
   return (
     <>
       <StickyHeader branch={branch} slug={slug} />
@@ -910,29 +902,20 @@ export function RoseHomePage({ branch, slug, products, onProductClick }: BranchT
       <HeroSection branch={branch} products={products.data} slug={slug} />
 
       {products.data.length > 0 && (
-        <FeaturedCarousel products={products.data} onProductClick={handleProductClick} />
+        <FeaturedCarousel products={products.data} onProductClick={onProductClick} />
       )}
 
       {products.data.length > 0 && (
         <ProductsSection
           slug={slug}
           initialData={products}
-          onProductClick={handleProductClick}
+          onProductClick={onProductClick}
         />
       )}
 
       <ServicePromise />
       <CustomerReviews />
       <RoseFooter branch={branch} slug={slug} />
-
-      {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          slug={slug}
-          branch={branch}
-          onClose={() => setSelectedProduct(null)}
-        />
-      )}
     </>
   );
 }

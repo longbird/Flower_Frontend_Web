@@ -12,7 +12,6 @@ import {
   gradeLabel,
   StarRating,
   CATEGORY_ORDER,
-  ProductDetailModal,
 } from './shared';
 
 // ─── Constants ────────────────────────────────────────────────────
@@ -766,13 +765,6 @@ function NavyFooter({ branch, slug }: { branch: BranchThemeProps['branch']; slug
 // ─── Main Export ────────────────────────────────────────────────────
 
 export function NavyHomePage({ branch, slug, products, onProductClick }: BranchThemeProps) {
-  const [selectedProduct, setSelectedProduct] = useState<RecommendedPhoto | null>(null);
-
-  const handleProductClick = (product: RecommendedPhoto) => {
-    setSelectedProduct(product);
-    onProductClick(product);
-  };
-
   return (
     <div className="min-h-screen bg-[var(--branch-bg)]">
       <NavyHeader branchName={branch.name} phone={branch.phone} slug={slug} />
@@ -781,13 +773,13 @@ export function NavyHomePage({ branch, slug, products, onProductClick }: BranchT
         branch={branch}
         products={products.data}
         slug={slug}
-        onProductClick={handleProductClick}
+        onProductClick={onProductClick}
       />
 
       {products.data.length > 0 && (
         <FeaturedSection
           products={products.data}
-          onProductClick={handleProductClick}
+          onProductClick={onProductClick}
         />
       )}
 
@@ -795,22 +787,13 @@ export function NavyHomePage({ branch, slug, products, onProductClick }: BranchT
         <ProductsSection
           slug={slug}
           initialData={products}
-          onProductClick={handleProductClick}
+          onProductClick={onProductClick}
         />
       )}
 
       <TrustStepsSection />
       <ReviewSection />
       <NavyFooter branch={branch} slug={slug} />
-
-      {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          slug={slug}
-          branch={branch}
-          onClose={() => setSelectedProduct(null)}
-        />
-      )}
     </div>
   );
 }
