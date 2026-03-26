@@ -20,9 +20,11 @@ export default function BranchManageLayout({
   const { isLoggedIn, user, logout, loadSession } = useBranchAuthStore();
   const [branchName, setBranchName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     loadSession();
+    setMounted(true);
   }, [loadSession]);
 
   // Auth guard for non-login pages
@@ -43,6 +45,15 @@ export default function BranchManageLayout({
   // Login page bypass — render children only
   if (isLoginPage) {
     return <>{children}</>;
+  }
+
+  // Wait for client mount before rendering (prevents hydration mismatch)
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--branch-cream)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--branch-accent)]" />
+      </div>
+    );
   }
 
   if (!isLoggedIn) return null;
