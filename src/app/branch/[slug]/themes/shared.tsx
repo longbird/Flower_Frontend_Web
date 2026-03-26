@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { BranchInfo, RecommendedPhoto } from '@/lib/branch/types';
-import { CustomerOrderForm } from './customer-order-form';
 
 // ─── Utility Functions ──────────────────────────────────────────
 
@@ -84,52 +83,104 @@ export function StarRating({ count = 5 }: { count?: number }) {
   );
 }
 
-// @deprecated: Use /branch/[slug]/consult?productId=X page instead. Kept for backward compatibility.
-// ─── Product Detail Modal (모든 테마 공용) ──────────────────────
+// ─── Product Detail Modal (상품 상세 + 주문 버튼) ──────────────
 
 export function ProductDetailModal({
   product,
   slug,
   branch,
   onClose,
+  onOrder,
 }: {
   product: RecommendedPhoto;
   slug: string;
   branch?: BranchInfo;
   onClose: () => void;
+  onOrder?: (product: RecommendedPhoto) => void;
 }) {
-  const [submitted, setSubmitted] = useState(false);
+  const [fullImage, setFullImage] = useState(false);
   const displayName = product.name || (product.category ? categoryLabel(product.category) : '상품');
+  const imgSrc = product.imageUrl ? photoUrl(product.imageUrl) : '';
 
-  if (submitted) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--branch-green-light)] flex items-center justify-center">
-            <svg className="w-8 h-8 text-[var(--branch-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-lg md:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Product image */}
+        {imgSrc && (
+          <div
+            className="w-full aspect-square bg-gray-100 cursor-pointer"
+            onClick={() => setFullImage(true)}
+          >
+            <img src={imgSrc} alt={displayName} className="w-full h-full object-cover" />
           </div>
-          <h2 className="text-xl font-bold text-[var(--branch-text)] mb-3">주문 요청이 완료되었습니다</h2>
-          <p className="text-[var(--branch-text-secondary)] text-sm mb-6 leading-relaxed">
-            <strong>{displayName}</strong> 상품에 대해<br />빠른 시간 내에 연락드리겠습니다.
-          </p>
-          <button onClick={onClose} className="px-8 py-3 bg-[var(--branch-green)] text-white rounded-full font-medium hover:bg-[var(--branch-green-hover)] transition-colors">
-            확인
+        )}
+
+        {/* Product info */}
+        <div className="p-5">
+          <h2 className="text-lg font-bold text-gray-900">{displayName}</h2>
+          {product.sellingPrice != null && product.sellingPrice > 0 && (
+            <p className="text-xl font-bold text-gray-900 mt-1">
+              {formatPrice(product.sellingPrice)}
+            </p>
+          )}
+
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2 mt-3">
+            <Badge label="당일배송 가능" />
+            <Badge label="리본 무료작성" />
+            <Badge label="실물사진 제공" />
+          </div>
+
+          {/* Category & Grade */}
+          <div className="flex gap-2 mt-3">
+            {product.category && (
+              <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-lg">
+                {categoryLabel(product.category)}
+              </span>
+            )}
+            {product.grade && (
+              <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-lg">
+                {gradeLabel(product.grade)}
+              </span>
+            )}
+          </div>
+
+          {/* Order button */}
+          <button
+            onClick={() => onOrder ? onOrder(product) : onClose()}
+            className="w-full mt-5 py-3.5 bg-[var(--branch-green)] text-white rounded-full text-base font-bold hover:bg-[var(--branch-green-hover)] transition-colors"
+          >
+            주문하기
           </button>
         </div>
       </div>
-    );
-  }
 
+      {/* Full image viewer */}
+      {fullImage && imgSrc && (
+        <FullImageViewer src={imgSrc} onClose={() => setFullImage(false)} />
+      )}
+    </div>
+  );
+}
+
+function Badge({ label }: { label: string }) {
   return (
-    <CustomerOrderForm
-      product={product}
-      slug={slug}
-      branch={branch}
-      onClose={onClose}
-      onSuccess={() => setSubmitted(true)}
-    />
+    <span className="inline-flex items-center gap-0.5 text-xs text-[var(--branch-green)] font-medium">
+      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+      </svg>
+      {label}
+    </span>
   );
 }

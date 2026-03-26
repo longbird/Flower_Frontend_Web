@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import Link from 'next/link';
 import { fetchRecommendedPhotos } from '@/lib/branch/api';
 import type { RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
 import type { BranchThemeProps } from './types';
@@ -105,12 +104,6 @@ function NavyHeader({ branchName, phone, slug }: { branchName: string; phone?: s
                 {phone}
               </a>
             )}
-            <Link
-              href={`/branch/${slug}/consult`}
-              className="inline-flex items-center px-5 py-2 rounded-sm bg-[var(--branch-star)] text-[var(--branch-green)] text-sm font-semibold hover:brightness-110 transition-all"
-            >
-              상담 요청
-            </Link>
           </div>
         </div>
       </div>
@@ -184,12 +177,6 @@ function HeroSection({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </a>
-              <Link
-                href={`/branch/${slug}/consult`}
-                className="inline-flex items-center px-7 py-3.5 border border-white/30 text-white text-sm font-medium rounded-sm hover:bg-white/10 transition-colors"
-              >
-                전화 상담
-              </Link>
             </div>
           </div>
 
@@ -694,11 +681,6 @@ function NavyFooter({ branch, slug }: { branch: BranchThemeProps['branch']; slug
               <li>
                 <a href="#products" className="hover:text-white transition-colors">전체 상품</a>
               </li>
-              <li>
-                <Link href={`/branch/${slug}/consult`} className="hover:text-white transition-colors">
-                  상담 요청
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -742,7 +724,7 @@ function NavyFooter({ branch, slug }: { branch: BranchThemeProps['branch']; slug
               </div>
             ) : (
               <p className="text-sm">
-                전화 또는 상담 요청을 통해<br />결제 방법을 안내받으실 수 있습니다.
+                전화로 문의하시면<br />결제 방법을 안내받으실 수 있습니다.
               </p>
             )}
           </div>

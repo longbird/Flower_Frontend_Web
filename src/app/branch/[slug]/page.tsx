@@ -8,6 +8,7 @@ import { getTheme, themeToStyle } from '@/lib/branch/themes';
 import { GreenHomePage } from './themes/green';
 import { RoseHomePage } from './themes/rose';
 import { NavyHomePage } from './themes/navy';
+import { ProductDetailModal } from './themes/shared';
 
 // ─── Utility screens ──────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export default function BranchHomePage() {
   const [products, setProducts] = useState<PaginatedResponse<RecommendedPhoto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<RecommendedPhoto | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -95,10 +97,20 @@ export default function BranchHomePage() {
         branch={branch}
         slug={slug}
         products={products!}
-        onProductClick={(product: RecommendedPhoto) => {
-          router.push(`/branch/${slug}/consult?productId=${product.id}`);
-        }}
+        onProductClick={setSelectedProduct}
       />
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          slug={slug}
+          branch={branch ?? undefined}
+          onClose={() => setSelectedProduct(null)}
+          onOrder={(product) => {
+            setSelectedProduct(null);
+            router.push(`/branch/${slug}/consult?productId=${product.id}`);
+          }}
+        />
+      )}
     </div>
   );
 }

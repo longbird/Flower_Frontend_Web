@@ -85,15 +85,7 @@ function StickyHeader({ branch, slug }: { branch: BranchInfo; slug: string }) {
             <span className="hidden md:block h-px w-8 bg-[var(--branch-border)]" />
           </div>
 
-          {/* Right: consult CTA */}
-          <div className="flex-1 flex justify-end">
-            <Link
-              href={`/branch/${slug}/consult`}
-              className="inline-flex items-center px-4 py-2 rounded-full border border-[var(--branch-green)] text-[var(--branch-green)] text-xs md:text-sm font-medium hover:bg-[var(--branch-green)] hover:text-white transition-colors"
-            >
-              상담 요청
-            </Link>
-          </div>
+          <div className="flex-1" />
         </div>
       </div>
 
@@ -165,12 +157,6 @@ function HeroSection({
               >
                 상품 둘러보기
               </a>
-              <Link
-                href={`/branch/${slug}/consult`}
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-full border border-[var(--branch-border)] text-[var(--branch-text-secondary)] text-sm font-medium hover:border-[var(--branch-green)] hover:text-[var(--branch-green)] transition-colors"
-              >
-                전화 상담
-              </Link>
             </div>
 
             {/* Decorative botanical SVG below buttons */}
@@ -673,15 +659,6 @@ function ProductsSection({
           </div>
         )}
 
-        {/* CTA */}
-        <div className="text-center mt-12">
-          <Link
-            href={`/branch/${slug}/consult`}
-            className="inline-flex items-center justify-center px-8 py-3.5 bg-[var(--branch-green)] text-white rounded-full text-sm font-medium hover:bg-[var(--branch-green-hover)] transition-colors"
-          >
-            주문 상담 요청하기
-          </Link>
-        </div>
       </div>
     </section>
   );
@@ -861,10 +838,6 @@ function RoseFooter({ branch, slug }: { branch: BranchInfo; slug: string }) {
           <a href="#products" className="hover:text-white transition-colors">
             상품 보기
           </a>
-          <span className="text-white/15">|</span>
-          <Link href={`/branch/${slug}/consult`} className="hover:text-white transition-colors">
-            상담 요청
-          </Link>
         </div>
 
         {/* Account info */}

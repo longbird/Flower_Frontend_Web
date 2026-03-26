@@ -35,12 +35,6 @@ function StickyHeader({ branch, slug }: { branch: BranchInfo; slug: string }) {
               {branch.phone}
             </a>
           )}
-          <Link
-            href={`/branch/${slug}/consult`}
-            className="inline-flex items-center px-4 py-2 rounded-full bg-[var(--branch-green)] text-white text-sm font-medium hover:bg-[var(--branch-green-hover)] transition-colors"
-          >
-            상담 요청
-          </Link>
         </div>
       </div>
     </header>
@@ -82,12 +76,6 @@ function HeroSection({ branch, products, slug }: { branch: BranchInfo; products:
             >
               지금 쇼핑하기
             </a>
-            <Link
-              href={`/branch/${slug}/consult`}
-              className="inline-flex items-center px-6 py-3 rounded-full bg-transparent border-2 border-white text-white text-sm font-medium hover:bg-white/10 transition-colors"
-            >
-              상담 요청
-            </Link>
           </div>
         </div>
       </div>
@@ -448,14 +436,6 @@ function ProductsSection({
           </div>
         )}
 
-        <div className="text-center mt-12">
-          <Link
-            href={`/branch/${slug}/consult`}
-            className="inline-flex items-center justify-center px-10 py-4 bg-[var(--branch-green)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-green-hover)] transition-colors shadow-lg"
-          >
-            주문 상담 요청하기
-          </Link>
-        </div>
       </div>
     </section>
   );
@@ -569,7 +549,6 @@ function Footer({ branch, slug }: { branch: BranchInfo; slug: string }) {
             <h4 className="text-sm font-semibold text-white mb-3">바로가기</h4>
             <div className="space-y-2">
               <a href="#products" className="block text-sm text-white/50 hover:text-white transition-colors">상품 보기</a>
-              <Link href={`/branch/${slug}/consult`} className="block text-sm text-white/50 hover:text-white transition-colors">상담 요청</Link>
             </div>
           </div>
 
