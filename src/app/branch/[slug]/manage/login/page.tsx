@@ -14,12 +14,22 @@ export default function BranchLoginPage() {
   const { isLoggedIn, login, loadSession } = useBranchAuthStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     loadSession();
-  }, [loadSession]);
+    try {
+      const saved = localStorage.getItem(`branch_login_${slug}`);
+      if (saved) {
+        const { username: u, password: p } = JSON.parse(saved);
+        if (u) setUsername(u);
+        if (p) setPassword(p);
+        setRememberMe(true);
+      }
+    } catch {}
+  }, [loadSession, slug]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -40,6 +50,15 @@ export default function BranchLoginPage() {
     try {
       const res = await branchAdminLogin(username, password);
       login(res.accessToken, res.refreshToken, res.admin);
+      // 로그인 정보 저장/삭제
+      try {
+        const key = `branch_login_${slug}`;
+        if (rememberMe) {
+          localStorage.setItem(key, JSON.stringify({ username, password }));
+        } else {
+          localStorage.removeItem(key);
+        }
+      } catch {}
       router.replace(`/branch/${slug}/manage/consults`);
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
@@ -113,6 +132,16 @@ export default function BranchLoginPage() {
                 autoComplete="current-password"
               />
             </div>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-[var(--branch-rose-light)] text-[var(--branch-accent)] focus:ring-[var(--branch-accent)]/20"
+              />
+              <span className="text-sm text-[var(--branch-text-light)]">로그인 정보 저장</span>
+            </label>
 
             <button
               type="submit"

@@ -105,6 +105,24 @@ export async function updateMyBranchInfo(body: {
   });
 }
 
+/** snake_case → camelCase 변환 (상담 요청 응답용) */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapConsultRequest(raw: any): ConsultRequest {
+  return {
+    id: raw.id,
+    branchId: raw.branchId ?? raw.branch_id,
+    customerName: raw.customerName ?? raw.customer_name ?? '',
+    customerPhone: raw.customerPhone ?? raw.customer_phone ?? '',
+    productCode: raw.productCode ?? raw.product_code,
+    productName: raw.productName ?? raw.product_name,
+    desiredDate: raw.desiredDate ?? raw.desired_date,
+    message: raw.message,
+    status: raw.status ?? 'NEW',
+    createdAt: raw.createdAt ?? raw.created_at ?? '',
+    updatedAt: raw.updatedAt ?? raw.updated_at,
+  };
+}
+
 /** 상담 요청 목록 조회 */
 export async function fetchConsultRequests(params?: {
   status?: string;
@@ -116,13 +134,17 @@ export async function fetchConsultRequests(params?: {
   if (params?.page) sp.set('page', String(params.page));
   if (params?.size) sp.set('size', String(params.size));
   const qs = sp.toString();
-  return branchApi<{
+  const res = await branchApi<{
     ok: boolean;
-    data: ConsultRequest[];
+    data: unknown[];
     total: number;
     page: number;
     size: number;
   }>(`/branch/consults${qs ? `?${qs}` : ''}`);
+  return {
+    ...res,
+    data: (res.data || []).map(mapConsultRequest),
+  };
 }
 
 /** 상담 요청 상태 변경 */
