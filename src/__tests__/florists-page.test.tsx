@@ -7,6 +7,7 @@ const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush, back: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/admin/florists',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('sonner', () => ({

@@ -47,9 +47,9 @@ describe('Admin Login Page', () => {
         <AdminLoginPage />
       </Wrapper>
     );
-    expect(screen.getByText('달려라 꽃배달')).toBeInTheDocument();
-    expect(screen.getByLabelText('아이디')).toBeInTheDocument();
-    expect(screen.getByLabelText('비밀번호')).toBeInTheDocument();
+    expect(screen.getByText('달려라 꽃배달 관리자')).toBeInTheDocument();
+    expect(screen.getByLabelText('아이디 (ID)')).toBeInTheDocument();
+    expect(screen.getByLabelText('비밀번호 (PASSWORD)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument();
   });
 
@@ -71,8 +71,8 @@ describe('Admin Login Page', () => {
       </Wrapper>
     );
 
-    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'admin' } });
-    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'password' } });
+    fireEvent.change(screen.getByLabelText('아이디 (ID)'), { target: { value: 'admin' } });
+    fireEvent.change(screen.getByLabelText('비밀번호 (PASSWORD)'), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: '로그인' }));
 
     await waitFor(() => {
@@ -90,8 +90,8 @@ describe('Admin Login Page', () => {
       </Wrapper>
     );
 
-    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'wrong' } });
-    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'wrong' } });
+    fireEvent.change(screen.getByLabelText('아이디 (ID)'), { target: { value: 'wrong' } });
+    fireEvent.change(screen.getByLabelText('비밀번호 (PASSWORD)'), { target: { value: 'wrong' } });
     fireEvent.click(screen.getByRole('button', { name: '로그인' }));
 
     await waitFor(() => {
