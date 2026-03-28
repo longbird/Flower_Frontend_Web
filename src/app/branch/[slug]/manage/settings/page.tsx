@@ -23,6 +23,7 @@ export default function BranchSettingsPage() {
   const [virtualAccountBank, setVirtualAccountBank] = useState('');
   const [virtualAccountNumber, setVirtualAccountNumber] = useState('');
   const [homepageDesign, setHomepageDesign] = useState('green');
+  const [enableOnlinePayment, setEnableOnlinePayment] = useState(false);
 
   const loadInfo = useCallback(async () => {
     try {
@@ -39,6 +40,7 @@ export default function BranchSettingsPage() {
         setVirtualAccountBank(res.data.virtualAccountBank || '');
         setVirtualAccountNumber(res.data.virtualAccountNumber || '');
         setHomepageDesign(res.data.homepageDesign || 'green');
+        setEnableOnlinePayment(res.data.enableOnlinePayment ?? false);
       }
     } catch {
       setMessage({ type: 'error', text: '정보를 불러오는데 실패했습니다.' });
@@ -65,6 +67,7 @@ export default function BranchSettingsPage() {
         virtualAccountBank,
         virtualAccountNumber,
         homepageDesign,
+        enableOnlinePayment,
       });
       if (res.ok && res.data) {
         setInfo(res.data);
@@ -265,6 +268,39 @@ export default function BranchSettingsPage() {
             홈페이지 하단에 표시됩니다.
           </p>
         </div>
+      </div>
+
+      {/* 온라인 결제 설정 */}
+      <div className="mt-6 bg-[var(--branch-white)] rounded-2xl border border-[var(--branch-rose-light)] p-5">
+        <h2 className="text-lg font-semibold text-[var(--branch-text)] mb-4">온라인 결제 설정</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-[var(--branch-text)]">온라인 결제 활성화</p>
+            <p className="text-xs text-[var(--branch-text-light)] mt-0.5">
+              활성화하면 고객이 주문 시 카드/계좌이체/간편결제로 즉시 결제할 수 있습니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEnableOnlinePayment(!enableOnlinePayment)}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              enableOnlinePayment ? 'bg-[var(--branch-accent)]' : 'bg-gray-200'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                enableOnlinePayment ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        {enableOnlinePayment && (
+          <div className="mt-3 px-3 py-2 rounded-lg bg-blue-50 border border-blue-200">
+            <p className="text-xs text-blue-700">
+              Toss Payments를 통해 결제가 처리됩니다. 비활성화 시 &ldquo;주문 요청&rdquo; 방식으로 전환됩니다.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 홈페이지 디자인 */}

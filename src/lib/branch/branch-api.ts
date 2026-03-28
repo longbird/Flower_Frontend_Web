@@ -80,6 +80,7 @@ export interface MyBranchInfo {
   defaultSurcharge?: number;
   allowFloristSearch?: boolean;
   homepageDesign?: string;
+  enableOnlinePayment?: boolean;
 }
 
 export async function fetchMyBranchInfo() {
@@ -98,6 +99,7 @@ export async function updateMyBranchInfo(body: {
   virtualAccountNumber?: string;
   defaultSurcharge?: number;
   homepageDesign?: string;
+  enableOnlinePayment?: boolean;
 }) {
   return branchApi<{ ok: boolean; data: MyBranchInfo }>('/branch/me', {
     method: 'PATCH',

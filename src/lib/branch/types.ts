@@ -12,6 +12,8 @@ export interface BranchInfo {
   homepageDesign?: string;
   /** 주문 시 전화번호 인증 필수 여부 (지사별 설정) */
   requirePhoneVerification?: boolean;
+  /** 온라인 결제 사용 여부 (지사별 설정) */
+  enableOnlinePayment?: boolean;
 }
 
 /** 지사 상품 (가격 오버라이드 포함) */

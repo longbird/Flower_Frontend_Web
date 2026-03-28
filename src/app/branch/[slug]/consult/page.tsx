@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   fetchBranchInfo,
@@ -26,11 +26,13 @@ import { RibbonText } from './sections/ribbon-text';
 import { MemoSection } from './sections/memo-section';
 import { InvoiceSelection } from './sections/invoice-selection';
 import { PrivacyConsent } from './sections/privacy-consent';
+import { usePaymentStore } from '@/lib/branch/payment-store';
 
 // ─── Inner component (needs useSearchParams inside Suspense) ──
 function ConsultPageInner() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const slug = params.slug as string;
   const productId = searchParams.get('productId');
 
@@ -104,6 +106,8 @@ function ConsultPageInner() {
   // ─── Derived ──────────────────────────────────────────
   const totalPrice = product?.sellingPrice ?? 0;
   const needsPhoneVerification = branch?.requirePhoneVerification === true;
+  const isPaymentEnabled = branch?.enableOnlinePayment === true;
+  const buttonText = isPaymentEnabled ? '결제하기' : '주문 요청';
 
   const resolvedDate =
     dateOption === 'today'
@@ -133,6 +137,50 @@ function ConsultPageInner() {
 
     const fullAddress = addressDetail ? `${address} ${addressDetail}` : address;
 
+    // ─── 온라인 결제 모드: 결제 페이지로 이동 ──────────────
+    if (isPaymentEnabled && product) {
+      const resolvedTime = selectedHour
+        ? `${selectedHour}시 ${selectedMinute}분 ${deliveryPurpose}`
+        : '';
+      const msgParts = [
+        `[주문자] ${senderName} / ${senderPhone}`,
+        `[배송일시] ${resolvedDate} ${resolvedTime}`,
+        `[받는분] ${recipientName} / ${recipientPhone}`,
+        `[배송장소] ${fullAddress}`,
+      ];
+      if (ribbonLeft || ribbonRight) msgParts.push(`[리본문구] ${ribbonLeft} / ${ribbonRight}`);
+      if (memo) msgParts.push(`[요청사항] ${memo}`);
+
+      usePaymentStore.getState().setOrderData(
+        {
+          slug,
+          customerName: senderName,
+          customerPhone: senderPhone.replace(/\D/g, ''),
+          productId: product.id,
+          productName: product.name || '',
+          productPrice: totalPrice,
+          desiredDate: resolvedDate,
+          deliveryPurpose,
+          deliveryTime: selectedHour ? `${selectedHour}:${selectedMinute}` : '',
+          recipientName,
+          recipientPhone: recipientPhone.replace(/\D/g, ''),
+          address: fullAddress,
+          ribbonText: (ribbonLeft || ribbonRight) ? `${ribbonLeft} / ${ribbonRight}` : '',
+          memo: memo || '',
+          invoiceType,
+          cashReceiptPhone: invoiceType === 'CASH_RECEIPT'
+            ? (cashReceiptPhone || senderPhone).replace(/\D/g, '')
+            : '',
+          message: msgParts.join('\n'),
+        },
+        ribbonImage,
+        invoiceType === 'INVOICE' ? businessRegFile : null,
+      );
+      router.push(`/branch/${slug}/payment`);
+      return;
+    }
+
+    // ─── 주문 요청 모드 (기존 로직) ──────────────────────
     const formData = new FormData();
     formData.append('customerName', senderName);
     formData.append('customerPhone', senderPhone.replace(/\D/g, ''));
@@ -379,7 +427,7 @@ function ConsultPageInner() {
                 disabled={submitting || !privacyConsent}
                 className="px-10 py-3.5 bg-[var(--branch-green)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? '전송 중...' : '결제하기'}
+                {submitting ? '전송 중...' : buttonText}
               </button>
             </div>
           </div>
@@ -406,7 +454,7 @@ function ConsultPageInner() {
             disabled={submitting || !privacyConsent}
             className="px-8 py-3 bg-[var(--branch-green)] text-white rounded-full text-base font-bold hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? '전송 중...' : '결제하기'}
+            {submitting ? '전송 중...' : buttonText}
           </button>
         </div>
       </div>
