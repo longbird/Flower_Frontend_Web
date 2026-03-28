@@ -44,7 +44,11 @@ export default function PaymentPage() {
   useEffect(() => {
     if (!orderData || !branch || initRef.current) return;
     if (!TOSS_CLIENT_KEY) {
-      setError('결제 설정이 완료되지 않았습니다.');
+      setError('결제 설정이 완료되지 않았습니다. (클라이언트 키 없음)');
+      return;
+    }
+    if (!orderData.productPrice || orderData.productPrice <= 0) {
+      setError('결제 금액이 올바르지 않습니다.');
       return;
     }
 
@@ -52,25 +56,42 @@ export default function PaymentPage() {
 
     async function initWidgets() {
       try {
+        console.log('[Payment] Loading SDK with key:', TOSS_CLIENT_KEY.slice(0, 15) + '...');
         const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+        console.log('[Payment] SDK loaded, creating widgets...');
+
         const widgets = tossPayments.widgets({ customerKey: ANONYMOUS });
         widgetsRef.current = widgets;
+        console.log('[Payment] Widgets created, setting amount:', Math.floor(orderData!.productPrice));
 
         await widgets.setAmount({
           currency: 'KRW',
-          value: orderData!.productPrice,
+          value: Math.floor(orderData!.productPrice),
         });
+        console.log('[Payment] Amount set, rendering payment methods...');
 
         await widgets.renderPaymentMethods({
           selector: '#payment-methods',
         });
+        console.log('[Payment] Payment methods rendered, rendering agreement...');
 
         await widgets.renderAgreement({
           selector: '#payment-agreement',
         });
-      } catch (err) {
-        console.error('Toss SDK init error:', err);
-        setError('결제 모듈을 불러오는데 실패했습니다.');
+        console.log('[Payment] All widgets rendered successfully');
+      } catch (err: unknown) {
+        console.error('[Payment] SDK init error (full):', err);
+        console.error('[Payment] Error type:', typeof err);
+        if (err && typeof err === 'object') {
+          console.error('[Payment] Error keys:', Object.keys(err));
+          console.error('[Payment] Error JSON:', JSON.stringify(err, null, 2));
+        }
+        const message = err instanceof Error
+          ? err.message
+          : (typeof err === 'object' && err !== null && 'message' in err)
+            ? String((err as Record<string, unknown>).message)
+            : JSON.stringify(err);
+        setError(`결제 모듈 초기화 실패: ${message}`);
       }
     }
 
