@@ -217,10 +217,10 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
             {branch.partnershipEmail && <div><dt className="text-slate-400 text-xs">제휴문의</dt><dd>{branch.partnershipEmail}</dd></div>}
             {branch.address && <div><dt className="text-slate-400 text-xs">주소</dt><dd>{branch.address}</dd></div>}
             <div>
-              <dt className="text-slate-400 text-xs">가상계좌</dt>
+              <dt className="text-slate-400 text-xs">입금계좌</dt>
               <dd>
                 {branch.virtualAccountBank && branch.virtualAccountNumber
-                  ? `${branch.virtualAccountBank} ${branch.virtualAccountNumber}`
+                  ? `${branch.virtualAccountBank} ${branch.virtualAccountNumber}${branch.virtualAccountHolder ? ` (${branch.virtualAccountHolder})` : ''}`
                   : <span className="text-slate-300">-</span>}
               </dd>
             </div>
