@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getTossClient, TossPaymentError } from '@/lib/payments/toss-client';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -18,34 +19,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const secretKey = process.env.TOSS_SECRET_KEY;
-  if (!secretKey) {
-    console.error('TOSS_SECRET_KEY is not configured');
+  try {
+    const client = getTossClient();
+    const payment = await client.confirmPayment({ paymentKey, orderId, amount });
+
+    // TODO: 백엔드 DB에 결제 데이터 저장 (재시도 포함)
+    // const saved = await savePaymentToBackend({
+    //   paymentKey, orderId, amount, status: payment.status,
+    // })
+
+    return NextResponse.json({ ok: true, data: payment });
+  } catch (error) {
+    if (error instanceof TossPaymentError) {
+      return NextResponse.json(
+        { ok: false, code: error.code, message: error.message },
+        { status: error.status },
+      );
+    }
+    console.error('Payment confirm error:', error);
     return NextResponse.json(
-      { ok: false, code: 'SERVER_ERROR', message: '결제 설정이 완료되지 않았습니다.' },
+      { ok: false, code: 'SERVER_ERROR', message: '결제 확인 중 오류가 발생했습니다.' },
       { status: 500 },
     );
   }
-
-  const basicAuth = Buffer.from(`${secretKey}:`).toString('base64');
-
-  const tossRes = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${basicAuth}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ paymentKey, orderId, amount }),
-  });
-
-  const tossData = await tossRes.json();
-
-  if (!tossRes.ok) {
-    return NextResponse.json(
-      { ok: false, code: tossData.code, message: tossData.message },
-      { status: tossRes.status },
-    );
-  }
-
-  return NextResponse.json({ ok: true, data: tossData });
 }
