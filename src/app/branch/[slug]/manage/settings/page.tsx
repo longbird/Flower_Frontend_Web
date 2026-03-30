@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
 import { fetchMyBranchInfo, updateMyBranchInfo, type MyBranchInfo } from '@/lib/branch/branch-api';
 import { getAllThemes, type BranchTheme } from '@/lib/branch/themes';
 
@@ -11,7 +12,6 @@ export default function BranchSettingsPage() {
   const [info, setInfo] = useState<MyBranchInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Form state
   const [businessRegistrationNo, setBusinessRegistrationNo] = useState('');
@@ -49,7 +49,7 @@ export default function BranchSettingsPage() {
         setEnableOnlinePayment(res.data.enableOnlinePayment ?? false);
       }
     } catch {
-      setMessage({ type: 'error', text: '정보를 불러오는데 실패했습니다.' });
+      toast.error('정보를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,6 @@ export default function BranchSettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      setMessage(null);
       const res = await updateMyBranchInfo({
         businessRegistrationNo,
         ownerName,
@@ -80,12 +79,11 @@ export default function BranchSettingsPage() {
       });
       if (res.ok && res.data) {
         setInfo(res.data);
-        setMessage({ type: 'success', text: '저장되었습니다.' });
-        setTimeout(() => setMessage(null), 3000);
+        toast.success('저장되었습니다.');
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '저장에 실패했습니다.';
-      setMessage({ type: 'error', text: errorMessage });
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -112,18 +110,6 @@ export default function BranchSettingsPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl font-semibold text-[var(--branch-text)] mb-6">기본 정보 설정</h1>
-
-      {message && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-xl text-sm ${
-            message.type === 'success'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
 
       <div className="bg-[var(--branch-white)] rounded-2xl border border-[var(--branch-rose-light)] p-5 space-y-5">
         {/* 지사명 (읽기전용) */}
