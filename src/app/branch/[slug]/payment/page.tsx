@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
+import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk';
 import { fetchBranchInfo } from '@/lib/branch/api';
 import type { BranchInfo } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
@@ -60,13 +60,16 @@ export default function PaymentPage() {
       }
 
       const tossPayments = await loadTossPayments(clientKey);
-      const payment = tossPayments.payment({ customerKey: 'ANONYMOUS' });
+      const widgets = tossPayments.widgets({ customerKey: ANONYMOUS });
       const orderId = generateOrderId(slug);
       const origin = window.location.origin;
 
-      await payment.requestPayment({
-        method: 'CARD',
-        amount: { currency: 'KRW', value: Math.floor(orderData.productPrice) },
+      await widgets.setAmount({
+        currency: 'KRW',
+        value: Math.floor(orderData.productPrice),
+      });
+
+      await widgets.requestPayment({
         orderId,
         orderName: orderData.productName,
         customerName: orderData.customerName,
@@ -76,7 +79,8 @@ export default function PaymentPage() {
       });
     } catch (err) {
       console.error('Payment request error:', err);
-      setError('결제 요청 중 오류가 발생했습니다.');
+      const message = err instanceof Error ? err.message : '결제 요청 중 오류가 발생했습니다.';
+      setError(message);
       setPaying(false);
     }
   };
@@ -98,18 +102,22 @@ export default function PaymentPage() {
 
     try {
       const orderId = generateOrderId(slug);
+      const requestBody: Record<string, unknown> = {
+        amount: Math.floor(orderData.productPrice),
+        orderId,
+        orderName: orderData.productName,
+        customerName: vaDepositorName.trim(),
+        bank: vaBank,
+        validHours: 24,
+      };
+      if (orderData.customerPhone) {
+        requestBody.customerMobilePhone = orderData.customerPhone;
+      }
+
       const res = await fetch('/api/payments/virtual-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: Math.floor(orderData.productPrice),
-          orderId,
-          orderName: orderData.productName,
-          customerName: vaDepositorName.trim(),
-          bank: vaBank,
-          validHours: 24,
-          customerMobilePhone: orderData.customerPhone,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await res.json();

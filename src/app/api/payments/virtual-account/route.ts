@@ -8,13 +8,13 @@ const VALID_BANKS = [
 ] as const;
 
 const schema = z.object({
-  amount: z.number().int().min(100, '최소 결제 금액은 100원입니다.'),
-  orderId: z.string().min(6).max(64),
-  orderName: z.string().min(1).max(100),
-  customerName: z.string().min(1).max(100),
+  amount: z.number({ error: '결제 금액이 필요합니다.' }).int().min(100, '최소 결제 금액은 100원입니다.'),
+  orderId: z.string().min(6, '주문번호가 올바르지 않습니다.').max(64),
+  orderName: z.string().min(1, '상품명이 필요합니다.').max(100),
+  customerName: z.string().min(1, '입금자명을 입력해주세요.').max(100),
   bank: z.enum(VALID_BANKS, { error: '지원하지 않는 은행입니다.' }),
   validHours: z.number().int().min(1).max(2160).optional(),
-  customerMobilePhone: z.string().optional(),
+  customerMobilePhone: z.string().min(1).optional(),
 });
 
 export async function POST(request: NextRequest) {
