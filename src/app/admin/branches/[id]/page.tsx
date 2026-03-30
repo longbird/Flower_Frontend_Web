@@ -62,10 +62,8 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
 
   const [showEditHomepage, setShowEditHomepage] = useState(false);
   const [homepageForm, setHomepageForm] = useState({
-    code: '', phone: '', address: '',
-    ownerName: '', email: '', businessRegistrationNo: '',
-    ecommerceLicenseNo: '', partnershipEmail: '',
-    virtualAccountBank: '', virtualAccountNumber: '', virtualAccountHolder: '',
+    code: '', phone: '',
+    virtualAccountBank: '', virtualAccountNumber: '',
   });
 
   const { data: branch, isLoading } = useQuery({
@@ -110,33 +108,27 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     setHomepageForm({
       code: branch.code || '',
       phone: branch.phone || '',
-      address: branch.address || '',
-      ownerName: branch.ownerName || '',
-      email: branch.email || '',
-      businessRegistrationNo: branch.businessRegistrationNo || '',
-      ecommerceLicenseNo: branch.ecommerceLicenseNo || '',
-      partnershipEmail: branch.partnershipEmail || '',
       virtualAccountBank: branch.virtualAccountBank || '',
       virtualAccountNumber: branch.virtualAccountNumber || '',
-      virtualAccountHolder: branch.virtualAccountHolder || '',
     });
     setShowEditHomepage(true);
   };
 
   const handleUpdateHomepage = () => {
-    updateHomepageMutation.mutate({
+    const body: Record<string, unknown> = {
       code: homepageForm.code.trim() || undefined,
       phone: homepageForm.phone.trim() || undefined,
-      address: homepageForm.address.trim() || undefined,
-      ownerName: homepageForm.ownerName.trim() || undefined,
-      email: homepageForm.email.trim() || undefined,
-      businessRegistrationNo: homepageForm.businessRegistrationNo.trim() || undefined,
-      ecommerceLicenseNo: homepageForm.ecommerceLicenseNo.trim() || undefined,
-      partnershipEmail: homepageForm.partnershipEmail.trim() || undefined,
       virtualAccountBank: homepageForm.virtualAccountBank.trim() || undefined,
       virtualAccountNumber: homepageForm.virtualAccountNumber.trim() || undefined,
-      virtualAccountHolder: homepageForm.virtualAccountHolder.trim() || undefined,
-    });
+    };
+    // 지사 정보 필드 보존 (홈페이지 저장 시 기존값 유지)
+    if (branch) {
+      body.name = branch.name;
+      body.type = branch.type;
+      body.delegationMode = branch.delegationMode;
+      body.isActive = branch.isActive;
+    }
+    updateHomepageMutation.mutate(body);
   };
 
   const openEdit = () => {
@@ -177,6 +169,8 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     if (form.virtualAccountBank.trim()) body.virtualAccountBank = form.virtualAccountBank.trim();
     if (form.virtualAccountNumber.trim()) body.virtualAccountNumber = form.virtualAccountNumber.trim();
     if (form.virtualAccountHolder.trim()) body.virtualAccountHolder = form.virtualAccountHolder.trim();
+    // 홈페이지 관련 필드 보존 (지사 정보 저장 시 기존값 유지)
+    if (branch?.code) body.code = branch.code;
     updateMutation.mutate(body);
   };
 
@@ -438,43 +432,13 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
                 <p className="text-xs text-slate-400 mt-1">URL: {homepageForm.code}.seoulflower.co.kr</p>
               )}
             </div>
-            <div className="border-t border-slate-100 pt-4">
-              <p className="text-xs font-medium text-slate-500 mb-3">사업자 정보</p>
-              <div className="space-y-3">
-                <div>
-                  <Label>대표자명</Label>
-                  <Input value={homepageForm.ownerName} onChange={e => setHomepageForm(f => ({ ...f, ownerName: e.target.value }))} placeholder="홍길동" />
-                </div>
-                <div>
-                  <Label>사업자등록번호</Label>
-                  <Input value={homepageForm.businessRegistrationNo} onChange={e => setHomepageForm(f => ({ ...f, businessRegistrationNo: e.target.value }))} placeholder="000-00-00000" />
-                </div>
-                <div>
-                  <Label>통신판매업신고번호</Label>
-                  <Input value={homepageForm.ecommerceLicenseNo} onChange={e => setHomepageForm(f => ({ ...f, ecommerceLicenseNo: e.target.value }))} placeholder="제2023-경기안산-3299호" />
-                </div>
-              </div>
-            </div>
-            <div className="border-t border-slate-100 pt-4">
-              <p className="text-xs font-medium text-slate-500 mb-3">연락처</p>
-              <div className="space-y-3">
-                <div>
-                  <Label>전화번호</Label>
-                  <Input value={homepageForm.phone} onChange={e => setHomepageForm(f => ({ ...f, phone: e.target.value }))} placeholder="02-1234-5678" />
-                </div>
-                <div>
-                  <Label>이메일</Label>
-                  <Input value={homepageForm.email} onChange={e => setHomepageForm(f => ({ ...f, email: e.target.value }))} placeholder="info@example.com" />
-                </div>
-                <div>
-                  <Label>제휴문의 이메일</Label>
-                  <Input value={homepageForm.partnershipEmail} onChange={e => setHomepageForm(f => ({ ...f, partnershipEmail: e.target.value }))} placeholder="partner@example.com" />
-                </div>
-                <div>
-                  <Label>주소</Label>
-                  <Input value={homepageForm.address} onChange={e => setHomepageForm(f => ({ ...f, address: e.target.value }))} placeholder="서울시 강남구..." />
-                </div>
-              </div>
+            <div>
+              <Label>전화번호</Label>
+              <Input
+                value={homepageForm.phone}
+                onChange={e => setHomepageForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="02-1234-5678"
+              />
             </div>
             <div className="border-t border-slate-100 pt-4">
               <p className="text-xs font-medium text-slate-500 mb-3">가상계좌 정보</p>
@@ -495,14 +459,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
                     placeholder="123-456-789012"
                   />
                 </div>
-              </div>
-              <div>
-                <Label>예금주</Label>
-                <Input
-                  value={homepageForm.virtualAccountHolder}
-                  onChange={e => setHomepageForm(f => ({ ...f, virtualAccountHolder: e.target.value }))}
-                  placeholder="홍길동"
-                />
               </div>
             </div>
           </div>
