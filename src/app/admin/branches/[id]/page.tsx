@@ -39,6 +39,9 @@ interface EditForm {
   partnershipEmail: string;
   phone: string;
   address: string;
+  virtualAccountBank: string;
+  virtualAccountNumber: string;
+  virtualAccountHolder: string;
 }
 
 
@@ -54,6 +57,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     isActive: true, businessRegistrationNo: '',
     ownerName: '', email: '', ecommerceLicenseNo: '',
     partnershipEmail: '', phone: '', address: '',
+    virtualAccountBank: '', virtualAccountNumber: '', virtualAccountHolder: '',
   });
 
   const [showEditHomepage, setShowEditHomepage] = useState(false);
@@ -149,6 +153,9 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       partnershipEmail: branch.partnershipEmail || '',
       phone: branch.phone || '',
       address: branch.address || '',
+      virtualAccountBank: branch.virtualAccountBank || '',
+      virtualAccountNumber: branch.virtualAccountNumber || '',
+      virtualAccountHolder: branch.virtualAccountHolder || '',
     });
     setShowEdit(true);
   };
@@ -167,6 +174,9 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     if (form.partnershipEmail.trim()) body.partnershipEmail = form.partnershipEmail.trim();
     if (form.phone.trim()) body.phone = form.phone.trim();
     if (form.address.trim()) body.address = form.address.trim();
+    if (form.virtualAccountBank.trim()) body.virtualAccountBank = form.virtualAccountBank.trim();
+    if (form.virtualAccountNumber.trim()) body.virtualAccountNumber = form.virtualAccountNumber.trim();
+    if (form.virtualAccountHolder.trim()) body.virtualAccountHolder = form.virtualAccountHolder.trim();
     updateMutation.mutate(body);
   };
 
@@ -345,6 +355,26 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
                 <div>
                   <Label>주소</Label>
                   <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="서울시 강남구..." />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <p className="text-xs font-medium text-slate-500 mb-3">입금 계좌 정보</p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>은행명</Label>
+                    <Input value={form.virtualAccountBank} onChange={e => setForm(f => ({ ...f, virtualAccountBank: e.target.value }))} placeholder="국민은행" />
+                  </div>
+                  <div>
+                    <Label>계좌번호</Label>
+                    <Input value={form.virtualAccountNumber} onChange={e => setForm(f => ({ ...f, virtualAccountNumber: e.target.value }))} placeholder="123-456-789012" />
+                  </div>
+                </div>
+                <div>
+                  <Label>예금주</Label>
+                  <Input value={form.virtualAccountHolder} onChange={e => setForm(f => ({ ...f, virtualAccountHolder: e.target.value }))} placeholder="홍길동" />
                 </div>
               </div>
             </div>
