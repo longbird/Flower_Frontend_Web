@@ -535,50 +535,29 @@ function CustomerReviewsSection() {
 // ─── Footer ──────────────────────────────────────────────────────
 
 function Footer({ branch, slug }: { branch: BranchInfo; slug: string }) {
+  const hasAccount = branch.virtualAccountBank && branch.virtualAccountNumber;
+
   return (
     <footer className="bg-[var(--branch-footer-bg)] text-white/80">
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Brand */}
+        <div className={`grid grid-cols-1 ${hasAccount ? 'md:grid-cols-[1fr_auto]' : ''} gap-8 md:gap-12`}>
+          {/* 왼쪽: 사업자 정보 */}
           <div>
-            <h3 className="branch-serif text-lg font-bold text-white mb-2">{branch.name}</h3>
-            <p className="text-white/50 text-sm">특별한 순간을 꽃으로 전합니다</p>
+            <h3 className="branch-serif text-lg font-bold text-white mb-4">{branch.name}</h3>
+            <BusinessInfoFooter branch={branch} />
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-3">바로가기</h4>
-            <div className="space-y-2">
-              <a href="#products" className="block text-sm text-white/50 hover:text-white transition-colors">상품 보기</a>
+          {/* 오른쪽: 입금 계좌 */}
+          {hasAccount && (
+            <div className="md:text-right">
+              <div className="inline-block py-4 px-6 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-xs text-white/40 tracking-wider mb-1">입금 계좌</p>
+                <p className="text-white font-medium text-sm">{branch.virtualAccountBank}{branch.virtualAccountHolder ? ` (${branch.virtualAccountHolder})` : ''}</p>
+                <p className="text-white/90 text-base font-semibold tracking-wider mt-0.5">{branch.virtualAccountNumber}</p>
+              </div>
             </div>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-3">연락처</h4>
-            <div className="space-y-2 text-sm text-white/50">
-              {branch.address && <p>{branch.address}</p>}
-              {branch.phone && (
-                <a href={`tel:${branch.phone}`} className="block hover:text-white transition-colors">
-                  {branch.phone}
-                </a>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-
-        {branch.virtualAccountBank && branch.virtualAccountNumber && (
-          <div className="mt-8 py-4 px-6 rounded-xl bg-white/5 border border-white/10 max-w-sm">
-            <p className="text-xs text-white/40 tracking-wider mb-1">입금 계좌</p>
-            <p className="text-white font-medium text-sm">{branch.virtualAccountBank}{branch.virtualAccountHolder ? ` (${branch.virtualAccountHolder})` : ''}</p>
-            <p className="text-white/90 text-base font-semibold tracking-wider mt-0.5">{branch.virtualAccountNumber}</p>
-          </div>
-        )}
-      </div>
-
-      {/* 사업자 정보 */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 pt-6">
-        <BusinessInfoFooter branch={branch} />
       </div>
 
       {/* Copyright bar */}

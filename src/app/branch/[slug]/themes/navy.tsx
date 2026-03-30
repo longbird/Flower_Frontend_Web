@@ -657,87 +657,36 @@ function ReviewSection() {
 // ─── Footer (Dark Navy + Gold Accents, 4-column) ───────────────────
 
 function NavyFooter({ branch, slug }: { branch: BranchThemeProps['branch']; slug: string }) {
+  const hasAccount = branch.virtualAccountBank && branch.virtualAccountNumber;
+
   return (
     <footer className="bg-[var(--branch-footer-bg)] text-white/70">
       {/* Gold accent line */}
       <div className="h-[2px] bg-[var(--branch-star)]" />
 
       <div className="max-w-7xl mx-auto px-5 md:px-10 py-12 md:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
-          {/* Column 1: Brand */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <h3 className="text-white font-bold text-lg mb-3">{branch.name}</h3>
-            <p className="text-sm leading-relaxed mb-4">
-              {branch.description || '신선한 꽃을 정성스럽게 준비하여 소중한 마음을 전달해 드립니다.'}
-            </p>
-            <div className="w-10 h-[1px] bg-[var(--branch-star)]/50" />
+        {/* 사업자 정보 (왼쪽) + 입금계좌 (오른쪽) */}
+        <div className={`grid grid-cols-1 ${hasAccount ? 'md:grid-cols-[1fr_auto]' : ''} gap-8 md:gap-12`}>
+          <div>
+            <h3 className="text-white font-bold text-lg mb-4">{branch.name}</h3>
+            <BusinessInfoFooter branch={branch} />
           </div>
 
-          {/* Column 2: Quick links */}
-          <div>
-            <h4 className="text-[var(--branch-star)] text-xs font-semibold tracking-[0.15em] uppercase mb-4">
-              바로가기
-            </h4>
-            <ul className="space-y-2.5 text-sm">
-              <li>
-                <a href="#products" className="hover:text-white transition-colors">전체 상품</a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Contact */}
-          <div>
-            <h4 className="text-[var(--branch-star)] text-xs font-semibold tracking-[0.15em] uppercase mb-4">
-              연락처
-            </h4>
-            <ul className="space-y-2.5 text-sm">
-              {branch.phone && (
-                <li className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[var(--branch-star)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  <a href={`tel:${branch.phone}`} className="hover:text-white transition-colors">{branch.phone}</a>
-                </li>
-              )}
-              {branch.address && (
-                <li className="flex items-start gap-2">
-                  <svg className="w-4 h-4 text-[var(--branch-star)] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span>{branch.address}</span>
-                </li>
-              )}
-            </ul>
-          </div>
-
-          {/* Column 4: Payment info */}
-          <div>
-            <h4 className="text-[var(--branch-star)] text-xs font-semibold tracking-[0.15em] uppercase mb-4">
-              결제 안내
-            </h4>
-            {branch.virtualAccountBank && branch.virtualAccountNumber ? (
-              <div className="text-sm space-y-1">
-                <p className="text-white font-medium">
+          {hasAccount && (
+            <div className="md:text-right">
+              <div className="inline-block py-4 px-6 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-[var(--branch-star)] text-xs font-semibold tracking-[0.15em] uppercase mb-2">입금 계좌</p>
+                <p className="text-white font-medium text-sm">
                   {branch.virtualAccountBank}{branch.virtualAccountHolder ? ` (${branch.virtualAccountHolder})` : ''}
                 </p>
-                <p>{branch.virtualAccountNumber}</p>
+                <p className="text-white/90 text-base font-semibold tracking-wider mt-0.5">{branch.virtualAccountNumber}</p>
               </div>
-            ) : (
-              <p className="text-sm">
-                전화로 문의하시면<br />결제 방법을 안내받으실 수 있습니다.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* 사업자 정보 */}
-        <div className="mt-10">
-          <BusinessInfoFooter branch={branch} />
+            </div>
+          )}
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-6 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-white/40">
             &copy; {new Date().getFullYear()} {branch.name}. All rights reserved.
           </p>
