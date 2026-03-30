@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 
+/** 결제 방법 */
+export type PaymentMethodChoice = 'card' | 'virtual-account';
+
 /** 결제 페이지로 전달할 주문 데이터 */
 export interface OrderPaymentData {
   slug: string;
@@ -19,6 +22,7 @@ export interface OrderPaymentData {
   invoiceType: string;
   cashReceiptPhone: string;
   message: string;
+  paymentMethod?: PaymentMethodChoice;
 }
 
 interface PaymentStore {
