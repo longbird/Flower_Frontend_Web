@@ -53,7 +53,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     code: '', phone: '', address: '',
     ownerName: '', email: '', businessRegistrationNo: '',
     ecommerceLicenseNo: '', partnershipEmail: '',
-    virtualAccountBank: '', virtualAccountNumber: '',
+    virtualAccountBank: '', virtualAccountNumber: '', virtualAccountHolder: '',
   });
 
   const { data: branch, isLoading } = useQuery({
@@ -106,6 +106,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       partnershipEmail: branch.partnershipEmail || '',
       virtualAccountBank: branch.virtualAccountBank || '',
       virtualAccountNumber: branch.virtualAccountNumber || '',
+      virtualAccountHolder: branch.virtualAccountHolder || '',
     });
     setShowEditHomepage(true);
   };
@@ -122,6 +123,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       partnershipEmail: homepageForm.partnershipEmail.trim() || undefined,
       virtualAccountBank: homepageForm.virtualAccountBank.trim() || undefined,
       virtualAccountNumber: homepageForm.virtualAccountNumber.trim() || undefined,
+      virtualAccountHolder: homepageForm.virtualAccountHolder.trim() || undefined,
     });
   };
 
@@ -395,6 +397,14 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
                     placeholder="123-456-789012"
                   />
                 </div>
+              </div>
+              <div>
+                <Label>예금주</Label>
+                <Input
+                  value={homepageForm.virtualAccountHolder}
+                  onChange={e => setHomepageForm(f => ({ ...f, virtualAccountHolder: e.target.value }))}
+                  placeholder="홍길동"
+                />
               </div>
             </div>
           </div>

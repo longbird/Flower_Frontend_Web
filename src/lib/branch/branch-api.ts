@@ -77,6 +77,7 @@ export interface MyBranchInfo {
   serviceAreas?: string;
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
+  virtualAccountHolder?: string;
   defaultSurcharge?: number;
   allowFloristSearch?: boolean;
   homepageDesign?: string;
@@ -99,6 +100,7 @@ export async function updateMyBranchInfo(body: {
   description?: string;
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
+  virtualAccountHolder?: string;
   defaultSurcharge?: number;
   homepageDesign?: string;
   enableOnlinePayment?: boolean;

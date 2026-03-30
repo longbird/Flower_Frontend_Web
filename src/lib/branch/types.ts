@@ -9,6 +9,7 @@ export interface BranchInfo {
   serviceAreas?: string;
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
+  virtualAccountHolder?: string;
   homepageDesign?: string;
   /** 대표자명 */
   ownerName?: string;

@@ -570,7 +570,7 @@ function Footer({ branch, slug }: { branch: BranchInfo; slug: string }) {
         {branch.virtualAccountBank && branch.virtualAccountNumber && (
           <div className="mt-8 py-4 px-6 rounded-xl bg-white/5 border border-white/10 max-w-sm">
             <p className="text-xs text-white/40 tracking-wider mb-1">입금 계좌</p>
-            <p className="text-white font-medium text-sm">{branch.virtualAccountBank}</p>
+            <p className="text-white font-medium text-sm">{branch.virtualAccountBank}{branch.virtualAccountHolder ? ` (${branch.virtualAccountHolder})` : ''}</p>
             <p className="text-white/90 text-base font-semibold tracking-wider mt-0.5">{branch.virtualAccountNumber}</p>
           </div>
         )}

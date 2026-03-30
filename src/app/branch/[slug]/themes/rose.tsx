@@ -847,7 +847,7 @@ function RoseFooter({ branch, slug }: { branch: BranchInfo; slug: string }) {
             <div className="inline-block px-6 py-3 rounded-lg bg-white/5 border border-white/10">
               <p className="text-[10px] text-white/30 tracking-wider uppercase mb-1">입금 계좌</p>
               <p className="text-white/80 text-sm font-medium">
-                {branch.virtualAccountBank} {branch.virtualAccountNumber}
+                {branch.virtualAccountBank} {branch.virtualAccountNumber}{branch.virtualAccountHolder ? ` (${branch.virtualAccountHolder})` : ''}
               </p>
             </div>
           </div>

@@ -22,6 +22,7 @@ export default function BranchSettingsPage() {
   const [description, setDescription] = useState('');
   const [virtualAccountBank, setVirtualAccountBank] = useState('');
   const [virtualAccountNumber, setVirtualAccountNumber] = useState('');
+  const [virtualAccountHolder, setVirtualAccountHolder] = useState('');
   const [homepageDesign, setHomepageDesign] = useState('green');
   const [ecommerceLicenseNo, setEcommerceLicenseNo] = useState('');
   const [partnershipEmail, setPartnershipEmail] = useState('');
@@ -41,6 +42,7 @@ export default function BranchSettingsPage() {
         setDescription(res.data.description || '');
         setVirtualAccountBank(res.data.virtualAccountBank || '');
         setVirtualAccountNumber(res.data.virtualAccountNumber || '');
+        setVirtualAccountHolder(res.data.virtualAccountHolder || '');
         setHomepageDesign(res.data.homepageDesign || 'green');
         setEcommerceLicenseNo(res.data.ecommerceLicenseNo || '');
         setPartnershipEmail(res.data.partnershipEmail || '');
@@ -70,6 +72,7 @@ export default function BranchSettingsPage() {
         description,
         virtualAccountBank,
         virtualAccountNumber,
+        virtualAccountHolder,
         homepageDesign,
         ecommerceLicenseNo,
         partnershipEmail,
@@ -272,24 +275,36 @@ export default function BranchSettingsPage() {
         {/* 입금 계좌 */}
         <div className="border-t border-[var(--branch-rose-light)] pt-5">
           <h3 className="text-sm font-medium text-[var(--branch-text)] mb-3">입금 계좌 정보</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-[var(--branch-text-light)] mb-1">은행명</label>
-              <input
-                type="text"
-                value={virtualAccountBank}
-                onChange={(e) => setVirtualAccountBank(e.target.value)}
-                placeholder="예: 국민은행"
-                className={inputClass}
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-[var(--branch-text-light)] mb-1">은행명</label>
+                <input
+                  type="text"
+                  value={virtualAccountBank}
+                  onChange={(e) => setVirtualAccountBank(e.target.value)}
+                  placeholder="예: 국민은행"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--branch-text-light)] mb-1">계좌번호</label>
+                <input
+                  type="text"
+                  value={virtualAccountNumber}
+                  onChange={(e) => setVirtualAccountNumber(e.target.value)}
+                  placeholder="예: 123-456-789012"
+                  className={inputClass}
+                />
+              </div>
             </div>
             <div>
-              <label className="block text-xs text-[var(--branch-text-light)] mb-1">계좌번호</label>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">예금주</label>
               <input
                 type="text"
-                value={virtualAccountNumber}
-                onChange={(e) => setVirtualAccountNumber(e.target.value)}
-                placeholder="예: 123-456-789012"
+                value={virtualAccountHolder}
+                onChange={(e) => setVirtualAccountHolder(e.target.value)}
+                placeholder="예: 홍길동"
                 className={inputClass}
               />
             </div>

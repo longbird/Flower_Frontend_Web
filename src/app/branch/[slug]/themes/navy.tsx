@@ -719,7 +719,7 @@ function NavyFooter({ branch, slug }: { branch: BranchThemeProps['branch']; slug
             {branch.virtualAccountBank && branch.virtualAccountNumber ? (
               <div className="text-sm space-y-1">
                 <p className="text-white font-medium">
-                  {branch.virtualAccountBank}
+                  {branch.virtualAccountBank}{branch.virtualAccountHolder ? ` (${branch.virtualAccountHolder})` : ''}
                 </p>
                 <p>{branch.virtualAccountNumber}</p>
               </div>
