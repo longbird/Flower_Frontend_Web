@@ -71,7 +71,7 @@ export default function PaymentPage() {
 
       await widgets.requestPayment({
         orderId,
-        orderName: orderData.productName,
+        orderName: orderData.productName || '꽃배달 상품',
         customerName: orderData.customerName,
         customerMobilePhone: orderData.customerPhone,
         successUrl: `${origin}/branch/${slug}/payment/success`,
@@ -105,7 +105,7 @@ export default function PaymentPage() {
       const requestBody: Record<string, unknown> = {
         amount: Math.floor(orderData.productPrice),
         orderId,
-        orderName: orderData.productName,
+        orderName: orderData.productName || '꽃배달 상품',
         customerName: vaDepositorName.trim(),
         bank: vaBank,
         validHours: 24,
@@ -137,7 +137,7 @@ export default function PaymentPage() {
         customerName: va?.customerName ?? '',
         dueDate: va?.dueDate ?? '',
         amount: String(Math.floor(orderData.productPrice)),
-        orderName: orderData.productName,
+        orderName: orderData.productName || '꽃배달 상품',
       });
       router.push(`/branch/${slug}/payment/success?${searchParams.toString()}`);
     } catch {
