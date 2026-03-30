@@ -102,6 +102,8 @@ export async function updateMyBranchInfo(body: {
   defaultSurcharge?: number;
   homepageDesign?: string;
   enableOnlinePayment?: boolean;
+  ecommerceLicenseNo?: string;
+  partnershipEmail?: string;
 }) {
   return branchApi<{ ok: boolean; data: MyBranchInfo }>('/branch/me', {
     method: 'PATCH',
