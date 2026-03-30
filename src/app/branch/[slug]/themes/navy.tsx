@@ -11,6 +11,7 @@ import {
   gradeLabel,
   StarRating,
   CATEGORY_ORDER,
+  BusinessInfoFooter,
 } from './shared';
 
 // ─── Constants ────────────────────────────────────────────────────
@@ -730,8 +731,13 @@ function NavyFooter({ branch, slug }: { branch: BranchThemeProps['branch']; slug
           </div>
         </div>
 
+        {/* 사업자 정보 */}
+        <div className="mt-10">
+          <BusinessInfoFooter branch={branch} />
+        </div>
+
         {/* Bottom bar */}
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mt-6 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-white/40">
             &copy; {new Date().getFullYear()} {branch.name}. All rights reserved.
           </p>

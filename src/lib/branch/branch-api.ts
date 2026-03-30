@@ -81,6 +81,8 @@ export interface MyBranchInfo {
   allowFloristSearch?: boolean;
   homepageDesign?: string;
   enableOnlinePayment?: boolean;
+  ecommerceLicenseNo?: string;
+  partnershipEmail?: string;
 }
 
 export async function fetchMyBranchInfo() {

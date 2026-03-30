@@ -23,6 +23,8 @@ export default function BranchSettingsPage() {
   const [virtualAccountBank, setVirtualAccountBank] = useState('');
   const [virtualAccountNumber, setVirtualAccountNumber] = useState('');
   const [homepageDesign, setHomepageDesign] = useState('green');
+  const [ecommerceLicenseNo, setEcommerceLicenseNo] = useState('');
+  const [partnershipEmail, setPartnershipEmail] = useState('');
   const [enableOnlinePayment, setEnableOnlinePayment] = useState(false);
 
   const loadInfo = useCallback(async () => {
@@ -40,6 +42,8 @@ export default function BranchSettingsPage() {
         setVirtualAccountBank(res.data.virtualAccountBank || '');
         setVirtualAccountNumber(res.data.virtualAccountNumber || '');
         setHomepageDesign(res.data.homepageDesign || 'green');
+        setEcommerceLicenseNo(res.data.ecommerceLicenseNo || '');
+        setPartnershipEmail(res.data.partnershipEmail || '');
         setEnableOnlinePayment(res.data.enableOnlinePayment ?? false);
       }
     } catch {
@@ -67,6 +71,8 @@ export default function BranchSettingsPage() {
         virtualAccountBank,
         virtualAccountNumber,
         homepageDesign,
+        ecommerceLicenseNo,
+        partnershipEmail,
         enableOnlinePayment,
       });
       if (res.ok && res.data) {
@@ -194,6 +200,30 @@ export default function BranchSettingsPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="예: info@example.com"
+                className={inputClass}
+              />
+            </div>
+
+            {/* 통신판매업신고 */}
+            <div>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">통신판매업신고번호</label>
+              <input
+                type="text"
+                value={ecommerceLicenseNo}
+                onChange={(e) => setEcommerceLicenseNo(e.target.value)}
+                placeholder="예: 제2023-경기안산-3299호"
+                className={inputClass}
+              />
+            </div>
+
+            {/* 제휴문의 이메일 */}
+            <div>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">제휴문의 이메일</label>
+              <input
+                type="email"
+                value={partnershipEmail}
+                onChange={(e) => setPartnershipEmail(e.target.value)}
+                placeholder="예: partner@example.com"
                 className={inputClass}
               />
             </div>

@@ -12,6 +12,7 @@ import {
   gradeLabel,
   StarRating,
   CATEGORY_ORDER,
+  BusinessInfoFooter,
 } from './shared';
 
 // ─── Sticky Header ───────────────────────────────────────────────
@@ -573,6 +574,11 @@ function Footer({ branch, slug }: { branch: BranchInfo; slug: string }) {
             <p className="text-white/90 text-base font-semibold tracking-wider mt-0.5">{branch.virtualAccountNumber}</p>
           </div>
         )}
+      </div>
+
+      {/* 사업자 정보 */}
+      <div className="max-w-6xl mx-auto px-4 md:px-8 pt-6">
+        <BusinessInfoFooter branch={branch} />
       </div>
 
       {/* Copyright bar */}

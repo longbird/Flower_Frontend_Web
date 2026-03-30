@@ -12,6 +12,7 @@ import {
   gradeLabel,
   StarRating,
   CATEGORY_ORDER,
+  BusinessInfoFooter,
 } from './shared';
 
 // ─── Ornamental Divider ─────────────────────────────────────────
@@ -853,8 +854,13 @@ function RoseFooter({ branch, slug }: { branch: BranchInfo; slug: string }) {
         )}
       </div>
 
+      {/* 사업자 정보 */}
+      <div className="max-w-5xl mx-auto px-4 md:px-8">
+        <BusinessInfoFooter branch={branch} />
+      </div>
+
       {/* Copyright */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-white/10 mt-6">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-4">
           <p className="text-[11px] text-white/25 text-center tracking-wider">
             &copy; {new Date().getFullYear()} {branch.name}

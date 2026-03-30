@@ -3,6 +3,36 @@
 import { useState } from 'react';
 import type { BranchInfo, RecommendedPhoto } from '@/lib/branch/types';
 
+// ─── Business Info Footer (공통 사업자 정보) ────────────────────
+
+/** 지사 홈페이지 하단 사업자 정보 표시 */
+export function BusinessInfoFooter({ branch }: { branch: BranchInfo }) {
+  const hasBusinessInfo = branch.ownerName || branch.businessRegistrationNo || branch.ecommerceLicenseNo;
+  if (!hasBusinessInfo && !branch.email && !branch.partnershipEmail) return null;
+
+  const items: string[] = [];
+  if (branch.name) items.push(branch.name);
+  if (branch.ownerName) items.push(`대표 : ${branch.ownerName}`);
+  if (branch.businessRegistrationNo) items.push(`사업자등록번호 : ${branch.businessRegistrationNo}`);
+
+  return (
+    <div className="text-[11px] leading-relaxed text-white/40 space-y-0.5">
+      {items.length > 0 && <p>{items.join('  |  ')}</p>}
+      {branch.ecommerceLicenseNo && (
+        <p>통신판매업신고 : {branch.ecommerceLicenseNo}{branch.phone ? `  |  전화 : ${branch.phone}` : ''}</p>
+      )}
+      {(branch.email || branch.partnershipEmail) && (
+        <p>
+          {branch.email && <>이메일 : {branch.email}</>}
+          {branch.email && branch.partnershipEmail && '  |  '}
+          {branch.partnershipEmail && <>제휴문의 : {branch.partnershipEmail}</>}
+        </p>
+      )}
+      {branch.address && <p>주소 : {branch.address}</p>}
+    </div>
+  );
+}
+
 // ─── Utility Functions ──────────────────────────────────────────
 
 export function formatPrice(price: number) {

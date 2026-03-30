@@ -10,6 +10,16 @@ export interface BranchInfo {
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
   homepageDesign?: string;
+  /** 대표자명 */
+  ownerName?: string;
+  /** 이메일 */
+  email?: string;
+  /** 사업자등록번호 */
+  businessRegistrationNo?: string;
+  /** 통신판매업신고번호 */
+  ecommerceLicenseNo?: string;
+  /** 제휴문의 이메일 */
+  partnershipEmail?: string;
   /** 주문 시 전화번호 인증 필수 여부 (지사별 설정) */
   requirePhoneVerification?: boolean;
   /** 온라인 결제 사용 여부 (지사별 설정) */
