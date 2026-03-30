@@ -33,6 +33,12 @@ interface EditForm {
   delegationMode: string;
   isActive: boolean;
   businessRegistrationNo: string;
+  ownerName: string;
+  email: string;
+  ecommerceLicenseNo: string;
+  partnershipEmail: string;
+  phone: string;
+  address: string;
 }
 
 
@@ -46,6 +52,8 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
   const [form, setForm] = useState<EditForm>({
     name: '', type: 'BRANCH', delegationMode: 'NONE',
     isActive: true, businessRegistrationNo: '',
+    ownerName: '', email: '', ecommerceLicenseNo: '',
+    partnershipEmail: '', phone: '', address: '',
   });
 
   const [showEditHomepage, setShowEditHomepage] = useState(false);
@@ -135,6 +143,12 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       delegationMode: branch.delegationMode || 'NONE',
       isActive: branch.isActive ?? true,
       businessRegistrationNo: branch.businessRegistrationNo || '',
+      ownerName: branch.ownerName || '',
+      email: branch.email || '',
+      ecommerceLicenseNo: branch.ecommerceLicenseNo || '',
+      partnershipEmail: branch.partnershipEmail || '',
+      phone: branch.phone || '',
+      address: branch.address || '',
     });
     setShowEdit(true);
   };
@@ -147,6 +161,12 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       isActive: form.isActive,
     };
     if (form.businessRegistrationNo.trim()) body.businessRegistrationNo = form.businessRegistrationNo.trim();
+    if (form.ownerName.trim()) body.ownerName = form.ownerName.trim();
+    if (form.email.trim()) body.email = form.email.trim();
+    if (form.ecommerceLicenseNo.trim()) body.ecommerceLicenseNo = form.ecommerceLicenseNo.trim();
+    if (form.partnershipEmail.trim()) body.partnershipEmail = form.partnershipEmail.trim();
+    if (form.phone.trim()) body.phone = form.phone.trim();
+    if (form.address.trim()) body.address = form.address.trim();
     updateMutation.mutate(body);
   };
 
@@ -179,8 +199,13 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
             <div><dt className="text-slate-400 text-xs">유형</dt><dd>{TYPE_LABELS[branch.type] || branch.type}</dd></div>
             <div><dt className="text-slate-400 text-xs">위임 모드</dt><dd>{DELEGATION_LABELS[branch.delegationMode] || branch.delegationMode || '-'}</dd></div>
             {branch.parentName && <div><dt className="text-slate-400 text-xs">상위 조직</dt><dd>{branch.parentName}</dd></div>}
+            {branch.ownerName && <div><dt className="text-slate-400 text-xs">대표자명</dt><dd>{branch.ownerName}</dd></div>}
             {branch.businessRegistrationNo && <div><dt className="text-slate-400 text-xs">사업자번호</dt><dd>{branch.businessRegistrationNo}</dd></div>}
+            {branch.ecommerceLicenseNo && <div><dt className="text-slate-400 text-xs">통신판매업신고</dt><dd>{branch.ecommerceLicenseNo}</dd></div>}
             <div><dt className="text-slate-400 text-xs">전화번호</dt><dd>{branch.phone || <span className="text-slate-300">-</span>}</dd></div>
+            {branch.email && <div><dt className="text-slate-400 text-xs">이메일</dt><dd>{branch.email}</dd></div>}
+            {branch.partnershipEmail && <div><dt className="text-slate-400 text-xs">제휴문의</dt><dd>{branch.partnershipEmail}</dd></div>}
+            {branch.address && <div><dt className="text-slate-400 text-xs">주소</dt><dd>{branch.address}</dd></div>}
             <div>
               <dt className="text-slate-400 text-xs">가상계좌</dt>
               <dd>
@@ -252,7 +277,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
 
       {/* 수정 다이얼로그 */}
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>지사 정보 수정</DialogTitle>
           </DialogHeader>
@@ -261,26 +286,69 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
               <Label>지사명 *</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
-            <div>
-              <Label>유형 *</Label>
-              <select className={selectClass} value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                <option value="BRANCH">지사</option>
-                <option value="CALL_CENTER">콜센터</option>
-                <option value="HEADQUARTERS">본사</option>
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>유형 *</Label>
+                <select className={selectClass} value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                  <option value="BRANCH">지사</option>
+                  <option value="CALL_CENTER">콜센터</option>
+                  <option value="HEADQUARTERS">본사</option>
+                </select>
+              </div>
+              <div>
+                <Label>위임 모드 *</Label>
+                <select className={selectClass} value={form.delegationMode} onChange={e => setForm(f => ({ ...f, delegationMode: e.target.value }))}>
+                  <option value="NONE">위임 없음</option>
+                  <option value="PARTIAL">부분 위임</option>
+                  <option value="FULL">전체 위임</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <Label>위임 모드 *</Label>
-              <select className={selectClass} value={form.delegationMode} onChange={e => setForm(f => ({ ...f, delegationMode: e.target.value }))}>
-                <option value="NONE">위임 없음</option>
-                <option value="PARTIAL">부분 위임</option>
-                <option value="FULL">전체 위임</option>
-              </select>
+
+            <div className="border-t border-slate-100 pt-4">
+              <p className="text-xs font-medium text-slate-500 mb-3">사업자 정보</p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>대표자명</Label>
+                    <Input value={form.ownerName} onChange={e => setForm(f => ({ ...f, ownerName: e.target.value }))} placeholder="홍길동" />
+                  </div>
+                  <div>
+                    <Label>사업자번호</Label>
+                    <Input value={form.businessRegistrationNo} onChange={e => setForm(f => ({ ...f, businessRegistrationNo: e.target.value }))} placeholder="000-00-00000" />
+                  </div>
+                </div>
+                <div>
+                  <Label>통신판매업신고번호</Label>
+                  <Input value={form.ecommerceLicenseNo} onChange={e => setForm(f => ({ ...f, ecommerceLicenseNo: e.target.value }))} placeholder="제2023-경기안산-3299호" />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label>사업자번호</Label>
-              <Input value={form.businessRegistrationNo} onChange={e => setForm(f => ({ ...f, businessRegistrationNo: e.target.value }))} placeholder="000-00-00000" />
+
+            <div className="border-t border-slate-100 pt-4">
+              <p className="text-xs font-medium text-slate-500 mb-3">연락처</p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>전화번호</Label>
+                    <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="02-1234-5678" />
+                  </div>
+                  <div>
+                    <Label>이메일</Label>
+                    <Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="info@example.com" />
+                  </div>
+                </div>
+                <div>
+                  <Label>제휴문의 이메일</Label>
+                  <Input value={form.partnershipEmail} onChange={e => setForm(f => ({ ...f, partnershipEmail: e.target.value }))} placeholder="partner@example.com" />
+                </div>
+                <div>
+                  <Label>주소</Label>
+                  <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="서울시 강남구..." />
+                </div>
+              </div>
             </div>
+
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />
