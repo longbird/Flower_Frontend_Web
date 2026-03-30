@@ -21,7 +21,8 @@ interface PaymentDetailModalProps {
   onClose: () => void
 }
 
-function formatAmount(amount: number): string {
+function formatAmount(amount: number | undefined | null): string {
+  if (amount == null) return '-'
   return amount.toLocaleString('ko-KR') + '원'
 }
 
@@ -79,8 +80,8 @@ export default function PaymentDetailModal({
           throw new Error(body?.message ?? `조회 실패 (${res.status})`)
         }
 
-        const data: TossPayment = await res.json()
-        setPayment(data)
+        const json = await res.json()
+        setPayment(json.data as TossPayment)
       } catch (err) {
         setError(err instanceof Error ? err.message : '결제 정보를 불러오지 못했습니다')
       } finally {
