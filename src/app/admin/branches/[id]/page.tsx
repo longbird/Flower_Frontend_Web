@@ -62,8 +62,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
 
   const [showEditHomepage, setShowEditHomepage] = useState(false);
   const [homepageForm, setHomepageForm] = useState({
-    code: '', phone: '',
-    virtualAccountBank: '', virtualAccountNumber: '',
+    code: '',
   });
 
   const { data: branch, isLoading } = useQuery({
@@ -107,9 +106,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     if (!branch) return;
     setHomepageForm({
       code: branch.code || '',
-      phone: branch.phone || '',
-      virtualAccountBank: branch.virtualAccountBank || '',
-      virtualAccountNumber: branch.virtualAccountNumber || '',
     });
     setShowEditHomepage(true);
   };
@@ -117,9 +113,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
   const handleUpdateHomepage = () => {
     const body: Record<string, unknown> = {
       code: homepageForm.code.trim() || undefined,
-      phone: homepageForm.phone.trim() || undefined,
-      virtualAccountBank: homepageForm.virtualAccountBank.trim() || undefined,
-      virtualAccountNumber: homepageForm.virtualAccountNumber.trim() || undefined,
     };
     // 지사 정보 필드 보존 (홈페이지 저장 시 기존값 유지)
     if (branch) {
@@ -431,35 +424,6 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
               {homepageForm.code && (
                 <p className="text-xs text-slate-400 mt-1">URL: {homepageForm.code}.seoulflower.co.kr</p>
               )}
-            </div>
-            <div>
-              <Label>전화번호</Label>
-              <Input
-                value={homepageForm.phone}
-                onChange={e => setHomepageForm(f => ({ ...f, phone: e.target.value }))}
-                placeholder="02-1234-5678"
-              />
-            </div>
-            <div className="border-t border-slate-100 pt-4">
-              <p className="text-xs font-medium text-slate-500 mb-3">가상계좌 정보</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>은행명</Label>
-                  <Input
-                    value={homepageForm.virtualAccountBank}
-                    onChange={e => setHomepageForm(f => ({ ...f, virtualAccountBank: e.target.value }))}
-                    placeholder="국민은행"
-                  />
-                </div>
-                <div>
-                  <Label>계좌번호</Label>
-                  <Input
-                    value={homepageForm.virtualAccountNumber}
-                    onChange={e => setHomepageForm(f => ({ ...f, virtualAccountNumber: e.target.value }))}
-                    placeholder="123-456-789012"
-                  />
-                </div>
-              </div>
             </div>
           </div>
           {updateHomepageMutation.isError && (
