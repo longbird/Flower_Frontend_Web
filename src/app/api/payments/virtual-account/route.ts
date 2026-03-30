@@ -12,7 +12,7 @@ const schema = z.object({
   orderId: z.string().min(6).max(64),
   orderName: z.string().min(1).max(100),
   customerName: z.string().min(1).max(100),
-  bank: z.enum(VALID_BANKS, { errorMap: () => ({ message: '지원하지 않는 은행입니다.' }) }),
+  bank: z.enum(VALID_BANKS, { error: '지원하지 않는 은행입니다.' }),
   validHours: z.number().int().min(1).max(2160).optional(),
   customerMobilePhone: z.string().optional(),
 });
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    const firstError = parsed.error.errors[0];
+    const firstError = parsed.error.issues[0];
     return NextResponse.json(
       { ok: false, code: 'VALIDATION_ERROR', message: firstError.message },
       { status: 400 },

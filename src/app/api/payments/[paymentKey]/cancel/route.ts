@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getTossClient, TossPaymentError } from '@/lib/payments/toss-client';
+import type { CancelRequest } from '@/lib/payments/types';
 
 const cancelSchema = z.object({
   cancelReason: z.string().min(1, '취소 사유를 입력해주세요.').max(200),
@@ -38,7 +39,7 @@ export async function POST(
 
   const parsed = cancelSchema.safeParse(body);
   if (!parsed.success) {
-    const firstError = parsed.error.errors[0];
+    const firstError = parsed.error.issues[0];
     return NextResponse.json(
       { ok: false, code: 'VALIDATION_ERROR', message: firstError.message },
       { status: 400 },
@@ -49,7 +50,7 @@ export async function POST(
 
   try {
     const client = getTossClient();
-    const payment = await client.cancelPayment(paymentKey, parsed.data, idempotencyKey);
+    const payment = await client.cancelPayment(paymentKey, parsed.data as CancelRequest, idempotencyKey);
 
     // TODO: 백엔드 주문 상태 변경 API 호출
 

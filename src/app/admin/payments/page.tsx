@@ -41,7 +41,7 @@ export default function PaymentsPage() {
   const [detailPaymentKey, setDetailPaymentKey] = useState<string | null>(null);
   const [cancelPaymentKey, setCancelPaymentKey] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-payments', queryStartDate, queryEndDate, queryStatus],
     queryFn: async () => {
       const token = useAuthStore.getState().accessToken;
@@ -145,6 +145,10 @@ export default function PaymentsPage() {
         <CancelPaymentModal
           paymentKey={cancelPaymentKey}
           onClose={() => setCancelPaymentKey(null)}
+          onSuccess={() => {
+            setCancelPaymentKey(null);
+            refetch();
+          }}
         />
       )}
     </div>
