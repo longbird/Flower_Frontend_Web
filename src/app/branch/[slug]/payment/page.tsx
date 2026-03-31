@@ -6,9 +6,8 @@ import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk';
 import { fetchBranchInfo } from '@/lib/branch/api';
 import type { BranchInfo } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
-import { usePaymentStore, type PaymentMethodChoice } from '@/lib/branch/payment-store';
+import { usePaymentStore } from '@/lib/branch/payment-store';
 import { generateOrderId } from '@/lib/payments/constants';
-import { VIRTUAL_ACCOUNT_BANKS } from '@/lib/payments/constants';
 import { formatPrice } from '../consult/utils';
 
 export default function PaymentPage() {
@@ -21,13 +20,8 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
-
-  // 결제 방법 선택
-  const [method, setMethod] = useState<PaymentMethodChoice>('card');
-
-  // 가상계좌 폼
-  const [vaBank, setVaBank] = useState('');
-  const [vaDepositorName, setVaDepositorName] = useState('');
+  const [widgetReady, setWidgetReady] = useState(false);
+  const widgetsRef = useRef<any>(null);
 
   // 주문 데이터 없으면 홈으로
   useEffect(() => {
@@ -45,112 +39,81 @@ export default function PaymentPage() {
     });
   }, [slug]);
 
-  // 카드결제 (결제창 리다이렉트)
-  const handleCardPayment = async () => {
-    if (!orderData) return;
+  // 결제 위젯 초기화
+  useEffect(() => {
+    if (!orderData || loading) return;
+
+    const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+    if (!clientKey) {
+      setError('결제 설정이 완료되지 않았습니다.');
+      return;
+    }
+
+    async function initWidget() {
+      try {
+        const tossPayments = await loadTossPayments(clientKey!);
+        const widgets = tossPayments.widgets({ customerKey: ANONYMOUS });
+        widgetsRef.current = widgets;
+
+        await widgets.setAmount({
+          currency: 'KRW',
+          value: Math.floor(orderData!.productPrice),
+        });
+
+        await widgets.renderPaymentMethods({
+          selector: '#payment-methods',
+        });
+
+        await widgets.renderAgreement({
+          selector: '#payment-agreement',
+        });
+
+        setWidgetReady(true);
+      } catch (err: unknown) {
+        console.error('Widget init error:', err);
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(`결제 위젯 오류: ${msg}`);
+      }
+    }
+
+    initWidget();
+  }, [orderData, loading]);
+
+  // 결제 요청
+  const handlePayment = async () => {
+    if (!widgetsRef.current || !orderData) return;
     setPaying(true);
     setError('');
 
     try {
-      const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-      if (!clientKey) {
-        setError('결제 설정이 완료되지 않았습니다.');
-        setPaying(false);
-        return;
-      }
-
-      const tossPayments = await loadTossPayments(clientKey);
-      const widgets = tossPayments.widgets({ customerKey: ANONYMOUS });
       const orderId = generateOrderId(slug);
       const origin = window.location.origin;
 
-      await widgets.setAmount({
-        currency: 'KRW',
-        value: Math.floor(orderData.productPrice),
-      });
-
-      await widgets.requestPayment({
+      const paymentRequest: Record<string, unknown> = {
         orderId,
         orderName: orderData.productName || '꽃배달 상품',
-        customerName: orderData.customerName,
-        customerMobilePhone: orderData.customerPhone,
         successUrl: `${origin}/branch/${slug}/payment/success`,
         failUrl: `${origin}/branch/${slug}/payment/fail`,
-      });
-    } catch (err) {
-      console.error('Payment request error:', err);
-      const message = err instanceof Error ? err.message : '결제 요청 중 오류가 발생했습니다.';
-      setError(message);
-      setPaying(false);
-    }
-  };
-
-  // 가상계좌 발급
-  const handleVirtualAccount = async () => {
-    if (!orderData) return;
-    if (!vaBank) {
-      setError('은행을 선택해주세요.');
-      return;
-    }
-    if (!vaDepositorName.trim()) {
-      setError('입금자명을 입력해주세요.');
-      return;
-    }
-
-    setPaying(true);
-    setError('');
-
-    try {
-      const orderId = generateOrderId(slug);
-      const requestBody: Record<string, unknown> = {
-        amount: Math.floor(orderData.productPrice),
-        orderId,
-        orderName: orderData.productName || '꽃배달 상품',
-        customerName: vaDepositorName.trim(),
-        bank: vaBank,
-        validHours: 24,
       };
-      if (orderData.customerPhone) {
-        requestBody.customerMobilePhone = orderData.customerPhone;
+      if (orderData.customerName) {
+        paymentRequest.customerName = orderData.customerName;
+      }
+      // customerMobilePhone은 11자리 형식만 전달 (대표번호 제외)
+      const phone = orderData.customerPhone?.replace(/\D/g, '');
+      if (phone && phone.length === 11 && phone.startsWith('01')) {
+        paymentRequest.customerMobilePhone = phone;
       }
 
-      const res = await fetch('/api/payments/virtual-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.message || '가상계좌 발급에 실패했습니다.');
-        setPaying(false);
-        return;
+      await widgetsRef.current.requestPayment(paymentRequest);
+    } catch (err: unknown) {
+      console.error('Payment request error:', err);
+      const errObj = err as Record<string, unknown>;
+      const code = errObj?.code || '';
+      const message = errObj?.message || (err instanceof Error ? err.message : String(err));
+      if (String(code) !== 'USER_CANCEL' && !String(message).includes('USER_CANCEL')) {
+        setError(`결제 오류: ${message}${code ? ` (${code})` : ''}`);
       }
-
-      // 가상계좌 정보와 함께 success 페이지로 이동
-      const va = data.data.virtualAccount;
-      const searchParams = new URLSearchParams({
-        method: 'virtual-account',
-        orderId,
-        bankCode: va?.bankCode ?? '',
-        accountNumber: va?.accountNumber ?? '',
-        customerName: va?.customerName ?? '',
-        dueDate: va?.dueDate ?? '',
-        amount: String(Math.floor(orderData.productPrice)),
-        orderName: orderData.productName || '꽃배달 상품',
-      });
-      router.push(`/branch/${slug}/payment/success?${searchParams.toString()}`);
-    } catch {
-      setError('가상계좌 발급 중 오류가 발생했습니다.');
       setPaying(false);
-    }
-  };
-
-  const handlePayment = () => {
-    if (method === 'card') {
-      handleCardPayment();
-    } else {
-      handleVirtualAccount();
     }
   };
 
@@ -216,73 +179,15 @@ export default function PaymentPage() {
           </div>
         </div>
 
-        {/* 결제 방법 선택 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">결제 방법</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setMethod('card')}
-              className={`p-4 rounded-xl border-2 text-center transition-colors ${
-                method === 'card'
-                  ? 'border-[var(--branch-green)] bg-emerald-50 text-emerald-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              <svg className="w-6 h-6 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-              <span className="text-sm font-medium">카드/간편결제</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMethod('virtual-account')}
-              className={`p-4 rounded-xl border-2 text-center transition-colors ${
-                method === 'virtual-account'
-                  ? 'border-[var(--branch-green)] bg-emerald-50 text-emerald-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              <svg className="w-6 h-6 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <span className="text-sm font-medium">가상계좌</span>
-            </button>
-          </div>
+        {/* 결제 위젯 영역 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div id="payment-methods" className="min-h-[200px]" />
         </div>
 
-        {/* 가상계좌 입력 폼 */}
-        {method === 'virtual-account' && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900">가상계좌 정보</h2>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">입금자명</label>
-              <input
-                type="text"
-                value={vaDepositorName}
-                onChange={(e) => setVaDepositorName(e.target.value)}
-                placeholder="홍길동"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">입금 은행</label>
-              <select
-                value={vaBank}
-                onChange={(e) => setVaBank(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white"
-              >
-                <option value="">은행을 선택해주세요</option>
-                {VIRTUAL_ACCOUNT_BANKS.map((b) => (
-                  <option key={b.code} value={b.code}>{b.name}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-xs text-gray-400">
-              입금 기한: 발급 후 24시간 이내
-            </p>
-          </div>
-        )}
+        {/* 이용약관 위젯 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div id="payment-agreement" />
+        </div>
 
         {error && (
           <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -293,15 +198,10 @@ export default function PaymentPage() {
         {/* 결제 버튼 */}
         <button
           onClick={handlePayment}
-          disabled={paying}
+          disabled={paying || !widgetReady}
           className="w-full py-4 bg-[var(--branch-green)] text-white rounded-2xl text-base font-semibold hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {paying
-            ? '처리 중...'
-            : method === 'card'
-              ? `${formatPrice(orderData.productPrice)} 결제하기`
-              : `${formatPrice(orderData.productPrice)} 가상계좌 발급`
-          }
+          {paying ? '처리 중...' : `${formatPrice(orderData.productPrice)} 결제하기`}
         </button>
       </div>
     </div>

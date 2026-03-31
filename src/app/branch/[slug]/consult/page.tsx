@@ -106,7 +106,7 @@ function ConsultPageInner() {
   // ─── Derived ──────────────────────────────────────────
   const totalPrice = product?.sellingPrice ?? 0;
   const needsPhoneVerification = branch?.requirePhoneVerification === true;
-  const isPaymentEnabled = branch?.enableOnlinePayment === true;
+  const isPaymentEnabled = Boolean(branch?.enableOnlinePayment);
   const buttonText = isPaymentEnabled ? '결제하기' : '주문 요청';
 
   const resolvedDate =
