@@ -105,5 +105,14 @@ export interface ConsultRequestForm {
   productCode?: string;
   productName?: string;
   desiredDate?: string;
+  deliveryPurpose?: string;
+  invoiceType?: string;
+  cashReceiptPhone?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  address?: string;
+  deliveryTime?: string;
+  ribbonText?: string;
+  memo?: string;
   message?: string;
 }

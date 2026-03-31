@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   fetchBranchInfo,
   fetchRecommendedPhotoById,
-  submitOrderRequest,
+  submitConsultRequest,
 } from '@/lib/branch/api';
 import type { BranchInfo, RecommendedPhoto, DeliveryPurpose, InvoiceType } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
@@ -180,37 +180,7 @@ function ConsultPageInner() {
       return;
     }
 
-    // ─── 주문 요청 모드 (기존 로직) ──────────────────────
-    const formData = new FormData();
-    formData.append('customerName', senderName);
-    formData.append('customerPhone', senderPhone.replace(/\D/g, ''));
-    if (product) {
-      formData.append('productCode', String(product.id));
-      formData.append('productName', product.name || '');
-    }
-    formData.append('desiredDate', resolvedDate);
-    formData.append('deliveryPurpose', deliveryPurpose);
-    formData.append('invoiceType', invoiceType);
-    if (invoiceType === 'CASH_RECEIPT') {
-      formData.append('cashReceiptPhone', (cashReceiptPhone || senderPhone).replace(/\D/g, ''));
-    }
-    // 받는분 정보
-    formData.append('recipientName', recipientName);
-    formData.append('recipientPhone', recipientPhone.replace(/\D/g, ''));
-    formData.append('address', fullAddress);
-    // 배송 시간
-    if (selectedHour) {
-      formData.append('deliveryTime', `${selectedHour}:${selectedMinute}`);
-    }
-    // 리본
-    if (ribbonLeft || ribbonRight) {
-      formData.append('ribbonText', `${ribbonLeft} / ${ribbonRight}`);
-    }
-    if (memo) {
-      formData.append('memo', memo);
-    }
-
-    // Build message (사람이 읽기 위한 요약, 별도 필드와 병행)
+    // ─── 주문 요청 모드 (JSON 전송) ──────────────────────
     const resolvedTime = selectedHour
       ? `${selectedHour}시 ${selectedMinute}분 ${deliveryPurpose}`
       : '';
@@ -238,17 +208,28 @@ function ConsultPageInner() {
       messageParts.push(`[증빙] 현금영수증 발행 (${receiptPhone})`);
     }
 
-    formData.append('message', messageParts.join('\n'));
-
-    if (ribbonImage) {
-      formData.append('ribbonImage', ribbonImage);
-    }
-    if (invoiceType === 'INVOICE' && businessRegFile) {
-      formData.append('businessRegistration', businessRegFile);
-    }
+    const jsonBody = {
+      customerName: senderName,
+      customerPhone: senderPhone.replace(/\D/g, ''),
+      productCode: product ? String(product.id) : undefined,
+      productName: product ? (product.name || '') : undefined,
+      desiredDate: resolvedDate,
+      deliveryPurpose,
+      invoiceType,
+      cashReceiptPhone: invoiceType === 'CASH_RECEIPT'
+        ? (cashReceiptPhone || senderPhone).replace(/\D/g, '')
+        : undefined,
+      recipientName,
+      recipientPhone: recipientPhone.replace(/\D/g, ''),
+      address: fullAddress,
+      deliveryTime: selectedHour ? `${selectedHour}:${selectedMinute}` : undefined,
+      ribbonText: (ribbonLeft || ribbonRight) ? `${ribbonLeft} / ${ribbonRight}` : undefined,
+      memo: memo || undefined,
+      message: messageParts.join('\n'),
+    };
 
     setSubmitting(true);
-    const result = await submitOrderRequest(slug, formData);
+    const result = await submitConsultRequest(slug, jsonBody);
     setSubmitting(false);
 
     if (result.ok) {

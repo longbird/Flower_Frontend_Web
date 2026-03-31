@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import {
   fetchBranchProducts,
   updateBranchProduct,
@@ -9,6 +10,8 @@ import {
   updateMyBranchInfo,
   type BranchProductSetting,
 } from '@/lib/branch/branch-api';
+import { fetchRecommendedPhotos } from '@/lib/branch/api';
+import type { RecommendedPhoto } from '@/lib/branch/types';
 
 function formatPrice(price: number) {
   return price.toLocaleString('ko-KR') + '원';
@@ -292,7 +295,10 @@ function BulkSurchargeModal({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function BranchManageProductsPage() {
+  const params = useParams();
+  const slug = params.slug as string;
   const [products, setProducts] = useState<BranchProductSetting[]>([]);
+  const [recommendedPhotos, setRecommendedPhotos] = useState<RecommendedPhoto[]>([]);
   const [defaultSurcharge, setDefaultSurcharge] = useState(0);
   const [loading, setLoading] = useState(true);
   const [editProduct, setEditProduct] = useState<BranchProductSetting | null>(null);
@@ -305,18 +311,20 @@ export default function BranchManageProductsPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [productsRes, branchRes] = await Promise.all([
+      const [productsRes, branchRes, photosRes] = await Promise.all([
         fetchBranchProducts(),
         fetchMyBranchInfo(),
+        fetchRecommendedPhotos(slug, { page: 1, size: 200 }),
       ]);
       setProducts(productsRes.data || []);
       setDefaultSurcharge(branchRes.data?.defaultSurcharge || 0);
+      setRecommendedPhotos(photosRes.data || []);
     } catch {
       // handled by auth
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [slug]);
 
   useEffect(() => {
     loadData();
@@ -353,14 +361,12 @@ export default function BranchManageProductsPage() {
     );
   }
 
-  const filtered = products.filter((p) => {
+  const filtered = recommendedPhotos.filter((p) => {
     if (filterCategory && p.category !== filterCategory) return false;
-    if (filterName && !p.name.toLowerCase().includes(filterName.toLowerCase())) return false;
-    if (filterVisibility === 'visible' && !p.isVisible) return false;
-    if (filterVisibility === 'hidden' && p.isVisible) return false;
+    if (filterName && !(p.name || '').toLowerCase().includes(filterName.toLowerCase())) return false;
     return true;
   });
-  const usedCategories = [...new Set(products.map((p) => p.category).filter(Boolean))] as string[];
+  const usedCategories = [...new Set(recommendedPhotos.map((p) => p.category).filter(Boolean))] as string[];
 
   return (
     <div>
@@ -388,11 +394,11 @@ export default function BranchManageProductsPage() {
         </div>
       )}
 
-      {products.length === 0 ? (
+      {recommendedPhotos.length === 0 ? (
         <div className="text-center py-16 bg-[var(--branch-white)] rounded-2xl border border-[var(--branch-rose-light)]">
           <div className="text-4xl mb-3 opacity-40">🌷</div>
-          <p className="text-[var(--branch-text-light)] font-light">등록된 상품이 없습니다.</p>
-          <p className="text-xs text-[var(--branch-text-light)] mt-1">본사에서 상품을 등록하면 이곳에 표시됩니다.</p>
+          <p className="text-[var(--branch-text-light)] font-light">추천 상품이 없습니다.</p>
+          <p className="text-xs text-[var(--branch-text-light)] mt-1">본사에서 추천 상품을 등록하면 이곳에 표시됩니다.</p>
         </div>
       ) : (
         <>
@@ -409,15 +415,6 @@ export default function BranchManageProductsPage() {
                   <option key={cat} value={cat}>{CATEGORY_LABELS[cat] || cat}</option>
                 ))}
               </select>
-              <select
-                value={filterVisibility}
-                onChange={(e) => setFilterVisibility(e.target.value as '' | 'visible' | 'hidden')}
-                className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-sm text-[var(--branch-text)] focus:outline-none focus:border-[var(--branch-accent)]"
-              >
-                <option value="">전체 상태</option>
-                <option value="visible">노출중</option>
-                <option value="hidden">숨김</option>
-              </select>
             </div>
             <div className="flex gap-2 mt-2">
               <input
@@ -427,9 +424,9 @@ export default function BranchManageProductsPage() {
                 onChange={(e) => setFilterName(e.target.value)}
                 className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-[var(--branch-rose-light)] bg-[var(--branch-cream)] text-sm text-[var(--branch-text)] placeholder:text-[var(--branch-text-light)]/60 focus:outline-none focus:border-[var(--branch-accent)]"
               />
-              {(filterCategory || filterName || filterVisibility) && (
+              {(filterCategory || filterName) && (
                 <button
-                  onClick={() => { setFilterCategory(''); setFilterName(''); setFilterVisibility(''); }}
+                  onClick={() => { setFilterCategory(''); setFilterName(''); }}
                   className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium text-[var(--branch-text-light)] border border-[var(--branch-rose-light)] hover:bg-[var(--branch-rose-light)]/50"
                 >
                   초기화
@@ -439,112 +436,63 @@ export default function BranchManageProductsPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="p-4 rounded-2xl bg-[var(--branch-white)] border border-[var(--branch-rose-light)]">
-              <p className="text-xs text-[var(--branch-text-light)]">전체 상품</p>
-              <p className="text-2xl font-bold text-[var(--branch-text)] mt-1">{products.length}</p>
+              <p className="text-xs text-[var(--branch-text-light)]">추천 상품</p>
+              <p className="text-2xl font-bold text-[var(--branch-text)] mt-1">{recommendedPhotos.length}</p>
             </div>
             <div className="p-4 rounded-2xl bg-[var(--branch-white)] border border-[var(--branch-rose-light)]">
-              <p className="text-xs text-[var(--branch-text-light)]">노출 상품</p>
-              <p className="text-2xl font-bold text-[var(--branch-accent)] mt-1">
-                {products.filter((p) => p.isVisible).length}
-              </p>
-            </div>
-            <div className="p-4 rounded-2xl bg-[var(--branch-white)] border border-[var(--branch-rose-light)]">
-              <p className="text-xs text-[var(--branch-text-light)]">추가금 설정</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">
-                {products.filter((p) => p.surcharge > 0).length}
-              </p>
+              <p className="text-xs text-[var(--branch-text-light)]">카테고리</p>
+              <p className="text-2xl font-bold text-[var(--branch-accent)] mt-1">{usedCategories.length}</p>
             </div>
           </div>
 
-          {(filterCategory || filterName || filterVisibility) && (
+          {(filterCategory || filterName) && (
             <p className="text-xs text-[var(--branch-text-light)] mb-3">
               검색 결과 <span className="font-semibold text-[var(--branch-accent)]">{filtered.length}</span>개
             </p>
           )}
 
-          {/* Product List */}
+          {/* Recommended Product List */}
           <div className="space-y-3">
-            {filtered.map((product) => {
-              const isToggling = togglingIds.has(product.id);
-              const effectiveSurcharge = product.surcharge > 0 ? product.surcharge : defaultSurcharge;
-              const displayPrice = (product.sellingPrice ?? product.basePrice) + effectiveSurcharge;
-              return (
-                <div
-                  key={product.id}
-                  className={`bg-[var(--branch-white)] rounded-2xl border border-[var(--branch-rose-light)] overflow-hidden transition-opacity ${
-                    !product.isVisible ? 'opacity-60' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-3 p-4">
-                    {/* Image */}
-                    <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--branch-rose-light)]">
-                      {product.imageUrl ? (
-                        <img src={productImageUrl(product.imageUrl)} alt={product.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl opacity-40">🌸</div>
+            {filtered.map((photo) => (
+              <div
+                key={photo.id}
+                className="bg-[var(--branch-white)] rounded-2xl border border-[var(--branch-rose-light)] overflow-hidden"
+              >
+                <div className="flex items-center gap-3 p-4">
+                  <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--branch-rose-light)]">
+                    {photo.imageUrl ? (
+                      <img src={productImageUrl(photo.imageUrl)} alt={photo.name || '상품'} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-2xl opacity-40">🌸</div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-[var(--branch-text)] truncate">{photo.name || '상품'}</h3>
+                      {photo.category && (
+                        <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-[var(--branch-rose-light)] text-[var(--branch-text-light)] text-[10px]">
+                          {CATEGORY_LABELS[photo.category] || photo.category}
+                        </span>
                       )}
                     </div>
-
-                    {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-[var(--branch-text)] truncate">{product.name}</h3>
-                        {product.category && (
-                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-[var(--branch-rose-light)] text-[var(--branch-text-light)] text-[10px]">
-                            {CATEGORY_LABELS[product.category] || product.category}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1">
+                      {photo.sellingPrice != null && photo.sellingPrice > 0 && (
                         <span className="text-base font-bold text-[var(--branch-accent)]">
-                          {formatPrice(displayPrice)}
+                          {formatPrice(photo.sellingPrice)}
                         </span>
-                        {effectiveSurcharge > 0 && (
-                          <span className="text-xs text-amber-600 font-medium">
-                            (+{formatPrice(effectiveSurcharge)})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => setEditProduct(product)}
-                        className="p-2 rounded-xl text-[var(--branch-text-light)] hover:text-[var(--branch-accent)] hover:bg-[var(--branch-accent)]/10 transition-colors"
-                        title="가격 설정"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleToggleVisibility(product)}
-                        disabled={isToggling}
-                        className="inline-flex items-center justify-center"
-                        title={product.isVisible ? '숨기기' : '노출하기'}
-                      >
-                        <span
-                          role="switch"
-                          aria-checked={product.isVisible}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            product.isVisible ? 'bg-[var(--branch-accent)]' : 'bg-slate-300'
-                          } ${isToggling ? 'opacity-50' : ''}`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              product.isVisible ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                          />
+                      )}
+                      {photo.floristName && (
+                        <span className="text-xs text-[var(--branch-text-light)]">
+                          {photo.floristName}
                         </span>
-                      </button>
+                      )}
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </>
       )}
