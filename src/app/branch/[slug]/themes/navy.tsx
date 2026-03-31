@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchRecommendedPhotos } from '@/lib/branch/api';
 import type { RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
 import type { BranchThemeProps } from './types';
@@ -321,14 +321,23 @@ function ProductsSection({
   const [page, setPage] = useState(initialData.page);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [categories, setCategories] = useState<string[]>(['ALL']);
 
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    allProducts.forEach((p) => {
-      if (p.category) cats.add(p.category);
-    });
-    return ['ALL', ...CATEGORY_ORDER.filter((c) => cats.has(c))];
-  }, [allProducts]);
+  useEffect(() => {
+    async function loadCategories() {
+      const result = await fetchRecommendedPhotos(slug, { page: 1, size: 200 });
+      const cats = new Set<string>();
+      for (const p of result.data) {
+        if (p.category) cats.add(p.category);
+      }
+      if (cats.size > 0) {
+        const sorted = CATEGORY_ORDER.filter((c) => cats.has(c));
+        const rest = Array.from(cats).filter((c) => !CATEGORY_ORDER.includes(c));
+        setCategories(['ALL', ...sorted, ...rest]);
+      }
+    }
+    loadCategories();
+  }, [slug]);
 
   const filteredProducts = useMemo(() => {
     if (selectedCategory === 'ALL') return allProducts;

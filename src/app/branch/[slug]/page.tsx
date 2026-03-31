@@ -6,6 +6,7 @@ import { fetchBranchInfo, fetchRecommendedPhotos } from '@/lib/branch/api';
 import type { BranchInfo, RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
 import { GreenHomePage } from './themes/green';
+import { GreenLandingHomePage } from './themes/green-landing';
 import { RoseHomePage } from './themes/rose';
 import { NavyHomePage } from './themes/navy';
 import { ProductDetailModal } from './themes/shared';
@@ -85,6 +86,7 @@ export default function BranchHomePage() {
 
   const ThemeComponent = (() => {
     switch (theme.key) {
+      case 'green-landing': return GreenLandingHomePage;
       case 'rose': return RoseHomePage;
       case 'navy': return NavyHomePage;
       default: return GreenHomePage;

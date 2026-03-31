@@ -10,7 +10,6 @@ import {
   photoUrl,
   categoryLabel,
   gradeLabel,
-  StarRating,
   CATEGORY_ORDER,
   BusinessInfoFooter,
 } from './shared';
@@ -18,13 +17,32 @@ import {
 // ─── Sticky Header ───────────────────────────────────────────────
 
 function StickyHeader({ branch, slug }: { branch: BranchInfo; slug: string }) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 20);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-[var(--branch-border)]">
+    <header
+      className="sticky top-0 z-40 border-b transition-all duration-300"
+      style={{
+        backgroundColor: scrolled ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(8px)',
+        boxShadow: scrolled ? '0 1px 8px rgba(0,0,0,0.06)' : 'none',
+        borderColor: scrolled ? 'var(--branch-border)' : 'transparent',
+        transitionTimingFunction: 'var(--ease-out-quart)',
+      }}
+    >
       <div className="max-w-6xl mx-auto flex items-center justify-between h-14 md:h-16 px-4 md:px-8">
         <h1 className="branch-serif text-lg md:text-xl font-bold text-[var(--branch-text)] truncate">
           {branch.name}
         </h1>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           {branch.phone && (
             <a
               href={`tel:${branch.phone}`}
@@ -36,13 +54,19 @@ function StickyHeader({ branch, slug }: { branch: BranchInfo; slug: string }) {
               {branch.phone}
             </a>
           )}
+          <Link
+            href={`/branch/${slug}/consult`}
+            className="inline-flex items-center px-4 py-1.5 rounded-full bg-[var(--branch-green)] text-white text-sm font-medium hover:bg-[var(--branch-green-hover)] transition-colors"
+          >
+            주문/상담
+          </Link>
         </div>
       </div>
     </header>
   );
 }
 
-// ─── Hero Section ────────────────────────────────────────────────
+// ─── Hero Section (Landing) ─────────────────────────────────────
 
 function HeroSection({ branch, products, slug }: { branch: BranchInfo; products: RecommendedPhoto[]; slug: string }) {
   const heroImage = products.length > 0 && products[0].imageUrl
@@ -50,131 +74,116 @@ function HeroSection({ branch, products, slug }: { branch: BranchInfo; products:
     : '';
 
   return (
-    <section className="mx-4 md:mx-8 mt-4">
-      <div className="relative overflow-hidden rounded-2xl bg-[var(--branch-text)]" style={{ minHeight: '400px' }}>
-        {heroImage && (
-          <img
-            src={heroImage}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-50"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-        <div className="relative z-10 flex flex-col justify-end h-full min-h-[400px] md:min-h-[500px] p-8 md:p-12 lg:p-16">
-          <span className="inline-flex self-start items-center px-3 py-1 rounded-full bg-[var(--branch-green)] text-white text-xs font-medium mb-4 tracking-wide">
-            {branch.name}
-          </span>
-          <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-3" style={{ whiteSpace: 'pre-line' }}>
-            {'특별한 순간,\n꽃으로 마음을 전하세요'}
-          </h2>
-          <p className="text-white/70 text-sm md:text-base max-w-lg mb-8 leading-relaxed">
-            {branch.description || '신선한 꽃을 정성스럽게 준비하여 소중한 마음을 전달해 드립니다.'}
-          </p>
-          <div className="flex flex-wrap gap-3">
+    <section className="relative overflow-hidden bg-[var(--branch-text)]" style={{ minHeight: '50vh' }}>
+      {heroImage && (
+        <img
+          src={heroImage}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover opacity-45"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/20" />
+
+      <div className="relative z-10 flex flex-col justify-center items-center text-center min-h-[50vh] px-6 py-16 md:py-24">
+        {/* Decorative line */}
+        <div className="w-10 h-[2px] bg-[var(--branch-green-light)] mb-6 branch-animate-fade-up" />
+
+        <h2
+          className="font-bold text-white leading-tight mb-4 branch-animate-fade-up branch-stagger-1"
+          style={{ fontSize: 'var(--type-hero)' }}
+        >
+          소중한 마음을,{' '}
+          <span className="branch-serif">꽃</span>으로 전합니다
+        </h2>
+
+        <p className="text-white/70 text-sm md:text-base max-w-md mb-8 leading-relaxed branch-animate-fade-up branch-stagger-2">
+          {branch.description || '신선한 꽃을 정성스럽게 준비하여 소중한 마음을 전달해 드립니다.'}
+        </p>
+
+        <div className="flex flex-wrap justify-center gap-3 branch-animate-fade-up branch-stagger-3">
+          <Link
+            href={`/branch/${slug}/consult`}
+            className="inline-flex items-center px-7 py-3 rounded-full bg-[var(--branch-green)] text-white text-sm font-semibold hover:bg-[var(--branch-green-hover)] transition-colors duration-300"
+          >
+            주문 / 상담 신청
+          </Link>
+          {branch.phone && (
             <a
-              href="#products"
-              className="inline-flex items-center px-6 py-3 rounded-full bg-[var(--branch-green)] text-white text-sm font-medium hover:bg-[var(--branch-green-hover)] transition-colors"
+              href={`tel:${branch.phone}`}
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-full border border-white/30 text-white text-sm font-medium hover:bg-white/10 transition-colors duration-300"
             >
-              지금 쇼핑하기
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              전화 주문
             </a>
-          </div>
+          )}
         </div>
       </div>
     </section>
   );
 }
 
-// ─── Best Sellers Section ────────────────────────────────────────
+// ─── Trust Badges Section ────────────────────────────────────────
 
-function BestSellersSection({ products, onProductClick }: { products: RecommendedPhoto[]; onProductClick: (p: RecommendedPhoto) => void }) {
-  const bestProducts = products.slice(0, 4);
-  if (bestProducts.length === 0) return null;
-
-  const main = bestProducts[0];
-  const side = bestProducts.slice(1, 3);
-  const featured = bestProducts[3];
+function TrustBadgesSection() {
+  const badges = [
+    {
+      icon: (
+        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      title: '3시간 이내 배송',
+      desc: '서울 전 지역 신속 배달',
+    },
+    {
+      icon: (
+        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+      title: '실물 사진 제공',
+      desc: '제작 완료 후 실물 사진 전송',
+    },
+    {
+      icon: (
+        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      title: '리본 문구 무료',
+      desc: '축하/근조 리본 무료 작성',
+    },
+    {
+      icon: (
+        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+        </svg>
+      ),
+      title: '전국 배달 가능',
+      desc: '전국 어디든 안전하게 배송',
+    },
+  ];
 
   return (
-    <section className="py-12 md:py-16 px-4 md:px-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="branch-serif text-3xl md:text-4xl font-bold text-[var(--branch-text)] italic">Best Sellers</h2>
-            <p className="text-[var(--branch-text-muted)] text-sm mt-1">가장 인기 있는 상품을 만나보세요</p>
-          </div>
-          <a href="#products" className="text-[var(--branch-green)] text-sm font-medium hover:underline hidden sm:inline-flex items-center gap-1">
-            전체보기
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          </a>
-        </div>
-
-        {/* 3-card asymmetric grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-          {/* Main large card */}
-          <div
-            className="col-span-2 md:col-span-1 md:row-span-2 relative rounded-2xl overflow-hidden cursor-pointer group"
-            style={{ minHeight: '360px' }}
-            onClick={() => onProductClick(main)}
-          >
-            <div className="absolute inset-0 bg-[var(--branch-bg-alt)]">
-              {main.imageUrl && (
-                <img src={photoUrl(main.imageUrl)} alt={main.name || '상품'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              )}
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[var(--branch-green)] text-white text-xs font-semibold">BEST</span>
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              {main.name && <p className="text-white font-semibold text-base mb-1 line-clamp-1">{main.name}</p>}
-              {main.sellingPrice != null && <p className="text-white/80 text-sm">{formatPrice(main.sellingPrice)}</p>}
-            </div>
-          </div>
-
-          {/* Two side cards stacked */}
-          {side.map((item) => (
+    <section className="py-10 md:py-14 px-4 md:px-8 bg-[var(--branch-bg-alt)]">
+      <div className="max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+          {badges.map((badge, i) => (
             <div
-              key={item.id}
-              className="relative rounded-2xl overflow-hidden cursor-pointer group"
-              style={{ minHeight: '170px' }}
-              onClick={() => onProductClick(item)}
+              key={i}
+              className={`flex flex-col items-center text-center branch-animate-fade-up branch-stagger-${i + 1}`}
             >
-              <div className="absolute inset-0 bg-[var(--branch-bg-alt)]">
-                {item.imageUrl && (
-                  <img src={photoUrl(item.imageUrl)} alt={item.name || '상품'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                )}
+              <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-[var(--branch-green)] mb-3 shadow-sm">
+                {badge.icon}
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                {item.name && <p className="text-white font-medium text-sm mb-0.5 line-clamp-1">{item.name}</p>}
-                {item.sellingPrice != null && <p className="text-white/80 text-xs">{formatPrice(item.sellingPrice)}</p>}
-              </div>
+              <h3 className="text-sm font-semibold text-[var(--branch-text)] mb-1">{badge.title}</h3>
+              <p className="text-xs text-[var(--branch-text-muted)] leading-relaxed">{badge.desc}</p>
             </div>
           ))}
         </div>
-
-        {/* Featured wide card */}
-        {featured && (
-          <div
-            className="relative rounded-2xl overflow-hidden cursor-pointer group"
-            style={{ height: '200px' }}
-            onClick={() => onProductClick(featured)}
-          >
-            <div className="absolute inset-0 bg-[var(--branch-bg-alt)]">
-              {featured.imageUrl && (
-                <img src={photoUrl(featured.imageUrl)} alt={featured.name || '상품'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              )}
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between">
-              <div>
-                {featured.name && <p className="text-white font-semibold text-lg mb-1">{featured.name}</p>}
-                {featured.sellingPrice != null && <p className="text-white/80 text-sm">{formatPrice(featured.sellingPrice)}</p>}
-              </div>
-              <div>
-                <StarRating count={5} />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );
@@ -185,23 +194,31 @@ function BestSellersSection({ products, onProductClick }: { products: Recommende
 function ProductCard({
   product,
   onClick,
+  index,
 }: {
   product: RecommendedPhoto;
   onClick: () => void;
+  index?: number;
 }) {
   const imgSrc = product.imageUrl ? photoUrl(product.imageUrl) : '';
+  const staggerClass = index != null && index < 8 ? `branch-stagger-${index + 1}` : '';
 
   return (
     <div
-      className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      className={`group bg-white rounded-2xl overflow-hidden border border-transparent hover:border-[var(--branch-green-light)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer branch-animate-fade-up ${staggerClass}`}
+      style={{ transitionTimingFunction: 'var(--ease-out-quart)' }}
       onClick={onClick}
+      tabIndex={0}
+      role="button"
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
       <div className="aspect-[3/4] bg-[var(--branch-bg-alt)] flex items-center justify-center overflow-hidden relative">
         {imgSrc ? (
           <img
             src={imgSrc}
             alt={product.name || '상품'}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-500"
+            style={{ transitionTimingFunction: 'var(--ease-out-quart)' }}
           />
         ) : (
           <div className="text-center p-4">
@@ -229,7 +246,7 @@ function ProductCard({
           <h3 className="text-sm font-medium text-[var(--branch-text)] mb-1 line-clamp-2">{product.name}</h3>
         )}
         {product.sellingPrice != null && (
-          <span className="text-base font-bold text-[var(--branch-green)]">
+          <span className="text-base font-bold text-[var(--branch-green)] branch-price">
             {formatPrice(product.sellingPrice)}
           </span>
         )}
@@ -255,6 +272,7 @@ function ProductsSection({
   const [page, setPage] = useState(1);
   const [photosData, setPhotosData] = useState<PaginatedResponse<RecommendedPhoto>>(initialData);
   const [loadingPage, setLoadingPage] = useState(false);
+  const [fadeKey, setFadeKey] = useState(0);
   const [categoryList, setCategoryList] = useState<string[]>(['전체']);
 
   useEffect(() => {
@@ -273,7 +291,6 @@ function ProductsSection({
     loadCategories();
   }, [slug]);
 
-  // Fetch from server when page, category, or area changes
   useEffect(() => {
     const category = selectedCategory === '전체' ? undefined : selectedCategory;
     const serviceArea = activeArea || undefined;
@@ -282,12 +299,12 @@ function ProductsSection({
       setLoadingPage(true);
       const result = await fetchRecommendedPhotos(slug, { page, size: 40, category, serviceArea });
       setPhotosData(result);
+      setFadeKey((k) => k + 1);
       setLoadingPage(false);
     }
     loadPage();
   }, [slug, page, selectedCategory, activeArea]);
 
-  // Reset page to 1 when category changes
   const handleCategoryChange = (cat: string) => {
     setSelectedCategory(cat);
     setPage(1);
@@ -305,7 +322,6 @@ function ProductsSection({
   };
 
   const filteredProducts = photosData.data;
-
   const totalPages = Math.ceil(photosData.total / photosData.size);
 
   if (initialData.data.length === 0) return null;
@@ -313,6 +329,17 @@ function ProductsSection({
   return (
     <section id="products" className="py-12 md:py-16 px-4 md:px-8">
       <div className="max-w-6xl mx-auto">
+        {/* Section header */}
+        <div className="text-center mb-8">
+          <h2
+            className="font-bold text-[var(--branch-text)]"
+            style={{ fontSize: 'var(--type-section)' }}
+          >
+            상품 둘러보기
+          </h2>
+          <p className="text-[var(--branch-text-muted)] text-sm mt-1">원하시는 상품을 선택하고 주문해 보세요</p>
+        </div>
+
         <div className="mb-8 space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
             {categoryList.length > 2 && (
@@ -336,9 +363,9 @@ function ProductsSection({
                       <button
                         key={cat}
                         onClick={() => handleCategoryChange(cat)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                           isActive
-                            ? 'bg-[var(--branch-green)] text-white shadow-md'
+                            ? 'bg-[var(--branch-green)] text-white shadow-md ring-2 ring-[var(--branch-green)]/20'
                             : 'bg-white text-[var(--branch-text-secondary)] hover:bg-[var(--branch-bg-alt)] border border-[var(--branch-border)]'
                         }`}
                       >
@@ -410,12 +437,13 @@ function ProductsSection({
             <p className="text-sm">해당 조건에 맞는 상품이 없습니다.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredProducts.map((product) => (
+          <div key={fadeKey} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            {filteredProducts.map((product, idx) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 onClick={() => onProductClick(product)}
+                index={idx}
               />
             ))}
           </div>
@@ -430,7 +458,7 @@ function ProductsSection({
             >
               이전
             </button>
-            <span className="text-sm text-[var(--branch-text-muted)]">
+            <span className="text-sm text-[var(--branch-text-muted)] branch-price">
               {page} / {totalPages}
             </span>
             <button
@@ -442,97 +470,6 @@ function ProductsSection({
             </button>
           </div>
         )}
-
-      </div>
-    </section>
-  );
-}
-
-// ─── Premium Delivery Section ────────────────────────────────────
-
-function PremiumDeliverySection() {
-  return (
-    <section className="py-12 md:py-16 px-4 md:px-8 bg-[var(--branch-bg-alt)]">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          {/* Left content */}
-          <div className="flex-1">
-            <span className="text-[var(--branch-green)] text-xs font-semibold tracking-[0.2em] uppercase mb-3 block">
-              Premium Logistics
-            </span>
-            <h2 className="text-2xl md:text-3xl font-bold text-[var(--branch-text)] leading-tight mb-4" style={{ whiteSpace: 'pre-line' }}>
-              {'서울 전 지역 3시간 이내\n안전 신선 배송 시스템'}
-            </h2>
-            <p className="text-[var(--branch-text-secondary)] text-sm leading-relaxed mb-6">
-              전문 배송 시스템을 통해 주문하신 꽃을 최상의 상태로 안전하게 배송해 드립니다. 꽃의 신선도를 유지하기 위한 특수 포장과 온도 관리를 제공합니다.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white">
-                <span className="w-2 h-2 rounded-full bg-[var(--branch-green)]" />
-                <span className="text-sm font-medium text-[var(--branch-text)]">전문 신선 배송 시스템</span>
-              </div>
-              <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white">
-                <span className="w-2 h-2 rounded-full bg-[var(--branch-green)]" />
-                <span className="text-sm font-medium text-[var(--branch-text)]">실시간 배송 추적</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right decorative */}
-          <div className="flex-1 max-w-sm w-full">
-            <div className="aspect-square rounded-2xl bg-white border-2 border-[var(--branch-green-light)] flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-4 rounded-xl bg-[var(--branch-green-light)] opacity-30" />
-              <div className="relative text-center p-8">
-                <svg className="w-16 h-16 mx-auto mb-4 text-[var(--branch-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-                </svg>
-                <p className="text-[var(--branch-green)] font-bold text-lg">3시간 이내</p>
-                <p className="text-[var(--branch-text-muted)] text-sm mt-1">안전 배송 보장</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Customer Reviews Section ────────────────────────────────────
-
-function CustomerReviewsSection() {
-  const reviews = [
-    { name: '김지민', product: '프리미엄 꽃다발', text: '특별한 날에 주문했는데 정말 아름다운 꽃다발이었어요. 신선하고 향기도 좋았습니다. 배송도 빠르고 정확해서 감동이었어요.' },
-    { name: '이준호', product: '축하 화환', text: '개업 축하 화환을 보냈는데 사진보다 실물이 더 예뻤다고 합니다. 다음에도 꼭 여기서 주문할 거에요. 강력 추천합니다!' },
-    { name: '박서연', product: '생일 꽃바구니', text: '어머니 생신에 보내드렸는데 너무 좋아하셨어요. 꽃이 싱싱하고 구성도 알차서 만족스러웠습니다. 감사합니다.' },
-  ];
-
-  return (
-    <section className="py-12 md:py-16 px-4 md:px-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <h2 className="branch-serif text-3xl md:text-4xl font-bold text-[var(--branch-text)] italic">Customer Reviews</h2>
-          <p className="text-[var(--branch-text-muted)] text-sm mt-2">고객님들의 소중한 후기</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {reviews.map((review, i) => (
-            <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-[var(--branch-border)]">
-              <StarRating count={5} />
-              <p className="text-[var(--branch-text)] text-sm leading-relaxed mt-4 mb-5">
-                &ldquo;{review.text}&rdquo;
-              </p>
-              <div className="flex items-center gap-3 pt-4 border-t border-[var(--branch-border)]">
-                <div className="w-10 h-10 rounded-full bg-[var(--branch-green-light)] flex items-center justify-center text-[var(--branch-green)] text-sm font-bold">
-                  {review.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--branch-text)]">{review.name} 님</p>
-                  <p className="text-xs text-[var(--branch-text-muted)]">{review.product} 구매</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -545,28 +482,28 @@ function Footer({ branch, slug }: { branch: BranchInfo; slug: string }) {
 
   return (
     <footer className="bg-[var(--branch-footer-bg)] text-white/80">
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-12">
+      {/* Brand accent line */}
+      <div className="h-[3px] bg-[var(--branch-green)]" />
+
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-14 md:py-16">
         <div className={`grid grid-cols-1 ${hasAccount ? 'md:grid-cols-[1fr_auto]' : ''} gap-8 md:gap-12`}>
-          {/* 왼쪽: 사업자 정보 */}
           <div>
             <h3 className="branch-serif text-lg font-bold text-white mb-4">{branch.name}</h3>
             <BusinessInfoFooter branch={branch} />
           </div>
 
-          {/* 오른쪽: 입금 계좌 */}
           {hasAccount && (
             <div className="md:text-right">
               <div className="inline-block py-4 px-6 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-xs text-white/40 tracking-wider mb-1">입금 계좌</p>
                 <p className="text-white font-medium text-sm">{branch.virtualAccountBank}{branch.virtualAccountHolder ? ` (${branch.virtualAccountHolder})` : ''}</p>
-                <p className="text-white/90 text-base font-semibold tracking-wider mt-0.5">{branch.virtualAccountNumber}</p>
+                <p className="text-white/90 text-base font-semibold tracking-wider mt-0.5 branch-price">{branch.virtualAccountNumber}</p>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Copyright bar */}
       <div className="border-t border-white/10">
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-4">
           <p className="text-xs text-white/30 text-center">
@@ -580,18 +517,12 @@ function Footer({ branch, slug }: { branch: BranchInfo; slug: string }) {
 
 // ─── Green Theme Main Component ──────────────────────────────────
 
-export function GreenHomePage({ branch, slug, products, onProductClick }: BranchThemeProps) {
+export function GreenLandingHomePage({ branch, slug, products, onProductClick }: BranchThemeProps) {
   return (
     <>
       <StickyHeader branch={branch} slug={slug} />
       <HeroSection branch={branch} products={products.data} slug={slug} />
-
-      {products.data.length > 0 && (
-        <BestSellersSection
-          products={products.data}
-          onProductClick={onProductClick}
-        />
-      )}
+      <TrustBadgesSection />
 
       {products.data.length > 0 && (
         <ProductsSection
@@ -601,8 +532,6 @@ export function GreenHomePage({ branch, slug, products, onProductClick }: Branch
         />
       )}
 
-      <PremiumDeliverySection />
-      <CustomerReviewsSection />
       <Footer branch={branch} slug={slug} />
     </>
   );

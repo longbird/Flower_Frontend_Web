@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { fetchRecommendedPhotos } from '@/lib/branch/api';
 import type { BranchInfo, RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
@@ -430,16 +430,23 @@ function ProductsSection({
   const [page, setPage] = useState(1);
   const [photosData, setPhotosData] = useState<PaginatedResponse<RecommendedPhoto>>(initialData);
   const [loadingPage, setLoadingPage] = useState(false);
+  const [categoryList, setCategoryList] = useState<string[]>(['전체']);
 
-  const categoryList = useMemo(() => {
-    const cats = new Set<string>();
-    for (const p of initialData.data) {
-      if (p.category) cats.add(p.category);
+  useEffect(() => {
+    async function loadCategories() {
+      const result = await fetchRecommendedPhotos(slug, { page: 1, size: 200 });
+      const cats = new Set<string>();
+      for (const p of result.data) {
+        if (p.category) cats.add(p.category);
+      }
+      if (cats.size > 0) {
+        const sorted = CATEGORY_ORDER.filter((c) => cats.has(c));
+        const rest = Array.from(cats).filter((c) => !CATEGORY_ORDER.includes(c));
+        setCategoryList(['전체', ...sorted, ...rest]);
+      }
     }
-    const sorted = CATEGORY_ORDER.filter((c) => cats.has(c));
-    const rest = Array.from(cats).filter((c) => !CATEGORY_ORDER.includes(c));
-    return ['전체', ...sorted, ...rest];
-  }, [initialData]);
+    loadCategories();
+  }, [slug]);
 
   useEffect(() => {
     const category = selectedCategory === '전체' ? undefined : selectedCategory;

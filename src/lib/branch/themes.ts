@@ -1,6 +1,6 @@
 /** 지사 홈페이지 테마 정의 */
 
-export type ThemeKey = 'green' | 'rose' | 'navy';
+export type ThemeKey = 'green' | 'green-landing' | 'rose' | 'navy';
 
 export interface BranchTheme {
   key: ThemeKey;
@@ -24,14 +24,38 @@ const greenTheme: BranchTheme = {
     '--branch-green-hover': '#2D5420',
     '--branch-green-light': '#E8F0E3',
     '--branch-bg': '#FFFFFF',
-    '--branch-bg-alt': '#F5F5F5',
+    '--branch-bg-alt': '#F5F5F2',
     '--branch-white': '#FFFFFF',
-    '--branch-text': '#1A1A1A',
-    '--branch-text-secondary': '#666666',
-    '--branch-text-muted': '#999999',
-    '--branch-border': '#E5E5E5',
+    '--branch-text': '#1C1C18',
+    '--branch-text-secondary': '#5F5F58',
+    '--branch-text-muted': '#94948C',
+    '--branch-border': '#E5E3DE',
     '--branch-star': '#3D6B2E',
-    '--branch-footer-bg': '#1A1A1A',
+    '--branch-footer-bg': '#1C1F18',
+    '--branch-serif-font': "'Playfair Display', Georgia, serif",
+  },
+};
+
+const greenLandingTheme: BranchTheme = {
+  key: 'green-landing',
+  name: 'Green Landing',
+  description: '랜딩 페이지 스타일 그린 톤',
+  fontFamily: "'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  headingFontFamily: "'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  serifFontFamily: "'Playfair Display', Georgia, serif",
+  variables: {
+    '--branch-green': '#3D6B2E',
+    '--branch-green-hover': '#2D5420',
+    '--branch-green-light': '#E8F0E3',
+    '--branch-bg': '#FFFFFF',
+    '--branch-bg-alt': '#F5F5F2',
+    '--branch-white': '#FFFFFF',
+    '--branch-text': '#1C1C18',
+    '--branch-text-secondary': '#5F5F58',
+    '--branch-text-muted': '#94948C',
+    '--branch-border': '#E5E3DE',
+    '--branch-star': '#3D6B2E',
+    '--branch-footer-bg': '#1C1F18',
     '--branch-serif-font': "'Playfair Display', Georgia, serif",
   },
 };
@@ -86,6 +110,7 @@ const navyTheme: BranchTheme = {
 
 const themes: Record<ThemeKey, BranchTheme> = {
   green: greenTheme,
+  'green-landing': greenLandingTheme,
   rose: roseTheme,
   navy: navyTheme,
 };
@@ -109,5 +134,5 @@ export function themeToStyle(theme: BranchTheme): React.CSSProperties {
 
 /** 모든 테마 목록 (설정 UI용) */
 export function getAllThemes(): BranchTheme[] {
-  return [greenTheme, roseTheme, navyTheme];
+  return [greenTheme, greenLandingTheme, roseTheme, navyTheme];
 }

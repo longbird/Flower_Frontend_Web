@@ -4,27 +4,42 @@
 
 .branch-homepage {
   font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* ─── Brand Colors ─── */
   --branch-green: #3D6B2E;
   --branch-green-hover: #2D5420;
   --branch-green-light: #E8F0E3;
+
+  /* ─── Warm-tinted Neutrals (not pure gray) ─── */
   --branch-bg: #FFFFFF;
-  --branch-bg-alt: #F5F5F5;
+  --branch-bg-alt: #F5F5F2;
   --branch-white: #FFFFFF;
-  --branch-text: #1A1A1A;
-  --branch-text-secondary: #666666;
-  --branch-text-muted: #999999;
-  --branch-border: #E5E5E5;
+  --branch-text: #1C1C18;
+  --branch-text-secondary: #5F5F58;
+  --branch-text-muted: #94948C;
+  --branch-border: #E5E3DE;
   --branch-star: #3D6B2E;
-  --branch-footer-bg: #1A1A1A;
-  /* 관리 페이지용 변수 */
+  --branch-footer-bg: #1C1F18;
+
+  /* ─── Management Pages ─── */
   --branch-accent: #3D6B2E;
   --branch-rose: #2D5420;
   --branch-rose-light: #E5E5E5;
   --branch-cream: #F5F5F5;
   --branch-text-light: #666666;
+
+  /* ─── Fluid Typography ─── */
+  --type-hero: clamp(2rem, 1.2rem + 2.5vw, 3.5rem);
+  --type-section: clamp(1.5rem, 1rem + 1.5vw, 2.5rem);
+
+  /* ─── Easing ─── */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+
   background-color: var(--branch-bg);
   color: var(--branch-text);
   font-size: 16px;
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -42,4 +57,96 @@
 
 .branch-serif {
   font-family: var(--branch-serif-font, 'Playfair Display', Georgia, serif);
+}
+
+/* ─── Tabular Nums for Price Display ─── */
+.branch-price {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ─── Animation Keyframes ─── */
+
+@keyframes branch-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes branch-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes branch-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes branch-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.branch-animate-fade-up {
+  animation: branch-fade-up 0.6s var(--ease-out-quart) both;
+}
+
+.branch-animate-fade-in {
+  animation: branch-fade-in 0.4s var(--ease-out-quart) both;
+}
+
+.branch-animate-slide-up {
+  animation: branch-slide-up 0.5s var(--ease-out-quart) both;
+}
+
+.branch-animate-scale-in {
+  animation: branch-scale-in 0.4s var(--ease-out-quart) both;
+}
+
+/* ─── Stagger Delay Utilities ─── */
+.branch-stagger-1 { animation-delay: 0.05s; }
+.branch-stagger-2 { animation-delay: 0.1s; }
+.branch-stagger-3 { animation-delay: 0.15s; }
+.branch-stagger-4 { animation-delay: 0.2s; }
+.branch-stagger-5 { animation-delay: 0.25s; }
+.branch-stagger-6 { animation-delay: 0.3s; }
+.branch-stagger-7 { animation-delay: 0.35s; }
+.branch-stagger-8 { animation-delay: 0.4s; }
+
+/* ─── Accessibility: Focus Visible ─── */
+.branch-homepage button:focus-visible,
+.branch-homepage a:focus-visible,
+.branch-homepage input:focus-visible,
+.branch-homepage select:focus-visible {
+  outline: 2px solid var(--branch-green);
+  outline-offset: 2px;
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .branch-homepage,
+  .branch-homepage * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
