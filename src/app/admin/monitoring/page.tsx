@@ -60,9 +60,24 @@ const METHOD_COLORS: Record<string, string> = {
 };
 
 export default function MonitoringPage() {
+  const [apiError, setApiError] = useState<string>('');
+
   const { data: sysInfo, isLoading: sysLoading, dataUpdatedAt } = useQuery({
     queryKey: ['admin-monitoring-system'],
-    queryFn: () => api<SystemInfo>('/admin/monitoring/system-info').catch(() => null),
+    queryFn: async () => {
+      try {
+        setApiError('');
+        return await api<SystemInfo>('/admin/monitoring/system-info');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('403') || msg.includes('Forbidden')) {
+          setApiError('모니터링 접근 권한이 없습니다. (SUPER_ADMIN 또는 CALL_CENTER_ADMIN 역할 필요)');
+        } else {
+          setApiError(`모니터링 데이터 로드 실패: ${msg}`);
+        }
+        return null;
+      }
+    },
     refetchInterval: 30_000,
   });
 
@@ -93,7 +108,13 @@ export default function MonitoringPage() {
         </div>
       </div>
 
-      {sysLoading && <div className="text-center py-8 text-slate-500">로딩 중...</div>}
+      {sysLoading && !apiError && <div className="text-center py-8 text-slate-500">로딩 중...</div>}
+
+      {apiError && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+          {apiError}
+        </div>
+      )}
 
       {sysInfo && (
         <>

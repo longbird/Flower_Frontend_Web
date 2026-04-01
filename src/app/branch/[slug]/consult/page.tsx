@@ -26,7 +26,7 @@ import { RibbonText } from './sections/ribbon-text';
 import { MemoSection } from './sections/memo-section';
 import { InvoiceSelection } from './sections/invoice-selection';
 import { PrivacyConsent } from './sections/privacy-consent';
-import { usePaymentStore } from '@/lib/branch/payment-store';
+import { usePaymentStore, fileToSerializedFile } from '@/lib/branch/payment-store';
 
 // ─── Inner component (needs useSearchParams inside Suspense) ──
 function ConsultPageInner() {
@@ -151,6 +151,19 @@ function ConsultPageInner() {
       if (ribbonLeft || ribbonRight) msgParts.push(`[리본문구] ${ribbonLeft} / ${ribbonRight}`);
       if (memo) msgParts.push(`[요청사항] ${memo}`);
 
+      // File → SerializedFile 변환 (sessionStorage 저장용)
+      const totalFileSize = (ribbonImage?.size || 0) + (businessRegFile?.size || 0);
+      if (totalFileSize > 4 * 1024 * 1024) {
+        setError('첨부파일 합계가 4MB를 초과합니다. 파일 크기를 줄여 주세요.');
+        return;
+      }
+      const serializedRibbon = ribbonImage
+        ? await fileToSerializedFile(ribbonImage)
+        : null;
+      const serializedBizFile = (invoiceType === 'INVOICE' && businessRegFile)
+        ? await fileToSerializedFile(businessRegFile)
+        : null;
+
       usePaymentStore.getState().setOrderData(
         {
           slug,
@@ -173,8 +186,8 @@ function ConsultPageInner() {
             : '',
           message: msgParts.join('\n'),
         },
-        ribbonImage,
-        invoiceType === 'INVOICE' ? businessRegFile : null,
+        serializedRibbon,
+        serializedBizFile,
       );
       router.push(`/branch/${slug}/payment`);
       return;

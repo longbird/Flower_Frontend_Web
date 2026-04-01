@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import type { FloristListResponse } from '@/lib/types/florist';
+import { CAPABILITY_OPTIONS } from '@/app/admin/florists/florist-constants';
+import { ExternalPhotosSection } from '@/components/admin/external-photos-section';
 
 interface DashboardStats {
   totalOrdersToday: number;
@@ -54,17 +56,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   WESTERN: '서양란',
 };
 
-const CAPABILITY_LABELS: Record<string, string> = {
-  FLOWER: '꽃배달',
-  CELEBRATION: '축하화환',
-  CONDOLENCE: '조의화환',
-  ORIENTAL_ORCHID: '동양란',
-  WESTERN: '서양란',
-  BASKET: '바구니',
-  LARGE: '대형',
-  HOLIDAY: '명절',
-  NIGHT: '야간',
-};
+const CAPABILITY_LABELS: Record<string, string> = Object.fromEntries(
+  CAPABILITY_OPTIONS.map((opt) => [opt.code, opt.label])
+);
 
 function photoUrl(url: string) {
   if (!url) return '';
@@ -148,12 +142,12 @@ export default function DashboardPage() {
                 {f.capabilities && f.capabilities.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {f.capabilities.slice(0, 3).map((cap: string) => (
-                      <Badge key={cap} variant="outline" className="text-[9px] px-1 py-0">
+                      <Badge key={cap} variant="outline" className="text-[11px] px-1.5 py-0.5">
                         {CAPABILITY_LABELS[cap] || cap}
                       </Badge>
                     ))}
                     {f.capabilities.length > 3 && (
-                      <span className="text-[9px] text-slate-400">+{f.capabilities.length - 3}</span>
+                      <span className="text-[11px] text-slate-400">+{f.capabilities.length - 3}</span>
                     )}
                   </div>
                 )}
@@ -228,6 +222,9 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* 외부 꽃집 사진 */}
+      <ExternalPhotosSection />
     </div>
   );
 }

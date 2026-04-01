@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { submitConsultRequest } from '@/lib/branch/api';
-import { usePaymentStore } from '@/lib/branch/payment-store';
+import { submitConsultRequest, submitOrderRequest } from '@/lib/branch/api';
+import { usePaymentStore, dataUrlToFile } from '@/lib/branch/payment-store';
 
 function PaymentSuccessInner() {
   const params = useParams();
@@ -16,7 +16,6 @@ function PaymentSuccessInner() {
   const amount = searchParams.get('amount');
   const paymentType = searchParams.get('paymentType');
 
-  const orderData = usePaymentStore((s) => s.orderData);
   const clearStore = usePaymentStore((s) => s.clear);
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -33,6 +32,20 @@ function PaymentSuccessInner() {
         setErrorMessage('결제 정보가 올바르지 않습니다.');
         return;
       }
+
+      // persist 미들웨어 hydration 대기
+      if (!usePaymentStore.persist.hasHydrated()) {
+        await new Promise<void>((resolve) => {
+          const unsub = usePaymentStore.persist.onFinishHydration(() => {
+            unsub();
+            resolve();
+          });
+        });
+      }
+
+      const orderData = usePaymentStore.getState().orderData;
+      const ribbonImage = usePaymentStore.getState().ribbonImage;
+      const businessRegFile = usePaymentStore.getState().businessRegFile;
 
       if (!orderData) {
         setStatus('error');
@@ -59,27 +72,66 @@ function PaymentSuccessInner() {
           return;
         }
 
-        // 2. 주문 등록 (JSON)
+        // 2. 주문 등록
+        const paymentInfo = `\n[결제] paymentKey=${paymentKey}, orderId=${orderId}, amount=${amount}, type=${paymentType}`;
+        const message = `${orderData.message}${paymentInfo}`;
+        const hasFiles = ribbonImage || businessRegFile;
+
         let orderSuccess = false;
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            const result = await submitConsultRequest(slug, {
-              customerName: orderData.customerName,
-              customerPhone: orderData.customerPhone,
-              productCode: String(orderData.productId),
-              productName: orderData.productName,
-              desiredDate: orderData.desiredDate,
-              deliveryPurpose: orderData.deliveryPurpose,
-              invoiceType: orderData.invoiceType,
-              cashReceiptPhone: orderData.invoiceType === 'CASH_RECEIPT' ? orderData.cashReceiptPhone : undefined,
-              recipientName: orderData.recipientName,
-              recipientPhone: orderData.recipientPhone,
-              address: orderData.address,
-              deliveryTime: orderData.deliveryTime || undefined,
-              ribbonText: orderData.ribbonText || undefined,
-              memo: orderData.memo || undefined,
-              message: `${orderData.message}\n[결제] paymentKey=${paymentKey}, orderId=${orderId}, amount=${amount}, type=${paymentType}`,
-            });
+            let result: { ok: boolean; message?: string };
+
+            if (hasFiles) {
+              // FormData 전송 (파일 포함)
+              const formData = new FormData();
+              formData.append('customerName', orderData.customerName);
+              formData.append('customerPhone', orderData.customerPhone);
+              formData.append('productCode', String(orderData.productId));
+              formData.append('productName', orderData.productName);
+              formData.append('desiredDate', orderData.desiredDate);
+              formData.append('deliveryPurpose', orderData.deliveryPurpose);
+              formData.append('invoiceType', orderData.invoiceType);
+              if (orderData.invoiceType === 'CASH_RECEIPT' && orderData.cashReceiptPhone) {
+                formData.append('cashReceiptPhone', orderData.cashReceiptPhone);
+              }
+              formData.append('recipientName', orderData.recipientName);
+              formData.append('recipientPhone', orderData.recipientPhone);
+              formData.append('address', orderData.address);
+              if (orderData.deliveryTime) formData.append('deliveryTime', orderData.deliveryTime);
+              if (orderData.ribbonText) formData.append('ribbonText', orderData.ribbonText);
+              if (orderData.memo) formData.append('memo', orderData.memo);
+              formData.append('message', message);
+
+              if (ribbonImage) {
+                formData.append('ribbonImage', dataUrlToFile(ribbonImage));
+              }
+              if (businessRegFile) {
+                formData.append('businessRegFile', dataUrlToFile(businessRegFile));
+              }
+
+              result = await submitOrderRequest(slug, formData);
+            } else {
+              // JSON 전송 (파일 없음)
+              result = await submitConsultRequest(slug, {
+                customerName: orderData.customerName,
+                customerPhone: orderData.customerPhone,
+                productCode: String(orderData.productId),
+                productName: orderData.productName,
+                desiredDate: orderData.desiredDate,
+                deliveryPurpose: orderData.deliveryPurpose,
+                invoiceType: orderData.invoiceType,
+                cashReceiptPhone: orderData.invoiceType === 'CASH_RECEIPT' ? orderData.cashReceiptPhone : undefined,
+                recipientName: orderData.recipientName,
+                recipientPhone: orderData.recipientPhone,
+                address: orderData.address,
+                deliveryTime: orderData.deliveryTime || undefined,
+                ribbonText: orderData.ribbonText || undefined,
+                memo: orderData.memo || undefined,
+                message,
+              });
+            }
+
             if (result.ok) {
               orderSuccess = true;
               break;
@@ -105,7 +157,7 @@ function PaymentSuccessInner() {
     }
 
     processPayment();
-  }, [paymentKey, orderId, amount, paymentType, orderData, slug, clearStore]);
+  }, [paymentKey, orderId, amount, paymentType, slug, clearStore]);
 
   if (status === 'loading') {
     return (
