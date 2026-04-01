@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'seoulflower.co.kr',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.468.co.kr',
+      },
+      {
+        protocol: 'http',
+        hostname: 'ebestflower.co.kr',
+      },
     ],
     unoptimized: true,
   },
