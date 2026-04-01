@@ -55,6 +55,25 @@ export function PhotoUploadForm({
           </div>
         </div>
         <p className="text-[11px] text-stone-400 truncate px-1">{file.name}</p>
+
+        {/* Internal Memo (Admin Only) — 사진 아래 배치 */}
+        <div className="rounded-xl bg-[#FEFCE8] border border-[#FDE68A] p-4 space-y-2">
+          <Label className="text-stone-700 font-medium text-sm flex items-center gap-2">
+            <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            내부 메모
+            <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-[10px] font-bold">관리자 전용</span>
+          </Label>
+          <textarea
+            value={internalMemo}
+            onChange={(e) => setInternalMemo(e.target.value)}
+            placeholder="관리자만 볼 수 있는 내부 메모를 입력하세요"
+            maxLength={500}
+            rows={2}
+            className="w-full text-sm rounded-xl border border-amber-200 px-4 py-3 bg-white/60 focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 resize-none placeholder:text-amber-400"
+          />
+        </div>
       </div>
 
       {/* Right: Form Fields */}
@@ -134,25 +153,6 @@ export function PhotoUploadForm({
             maxLength={1000}
             rows={4}
             className="w-full text-base rounded-xl border border-stone-200 px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-[#5B7A3D]/20 focus:border-[#5B7A3D] resize-none"
-          />
-        </div>
-
-        {/* Internal Memo (Admin Only) */}
-        <div className="rounded-xl bg-[#FEFCE8] border border-[#FDE68A] p-4 space-y-2">
-          <Label className="text-stone-700 font-medium text-sm flex items-center gap-2">
-            <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            내부 메모
-            <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-[10px] font-bold">관리자 전용</span>
-          </Label>
-          <textarea
-            value={internalMemo}
-            onChange={(e) => setInternalMemo(e.target.value)}
-            placeholder="관리자만 볼 수 있는 내부 메모를 입력하세요"
-            maxLength={500}
-            rows={2}
-            className="w-full text-sm rounded-xl border border-amber-200 px-4 py-3 bg-white/60 focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 resize-none placeholder:text-amber-400"
           />
         </div>
 
