@@ -59,7 +59,15 @@ const navEntries: NavEntry[] = [
       { href: '/admin/payments/key-in', label: '수동 결제', icon: <PaymentIcon /> },
     ],
   },
-  { href: '/admin/florists', label: '화원 관리', icon: <FloristIcon /> },
+  {
+    label: '화원',
+    icon: <FloristIcon />,
+    color: 'text-[#5B7A3D]',
+    items: [
+      { href: '/admin/florists', label: '화원 목록', icon: <FloristIcon /> },
+      { href: '/admin/florists/search', label: '상품 검색', icon: <CatalogIcon /> },
+    ],
+  },
   {
     label: '관리',
     icon: <BranchIcon />,

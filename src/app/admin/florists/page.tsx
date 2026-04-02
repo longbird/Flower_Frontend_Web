@@ -20,8 +20,6 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import type { FloristSummary } from '@/lib/types/florist';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ProductSearch from './product-search';
 import FloristDetailDialog from './florist-dialog';
 import FloristCreateDialog from './florist-create-dialog';
 
@@ -277,7 +275,7 @@ function FloristsPage() {
   return (
     <div className="min-h-screen bg-gray-50 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-transparent">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">화원 관리</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">화원 목록</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="rounded-full px-3 md:px-4 border-gray-200 text-gray-500 hover:bg-gray-50 text-xs md:text-sm" onClick={() => router.push('/admin/florists/photo-logs')}>
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
@@ -290,30 +288,7 @@ function FloristsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl shadow-sm overflow-hidden">
-        <Tabs defaultValue="list" className="w-full">
-          <div className="bg-white border-b border-gray-200 rounded-t-xl">
-            <TabsList className="bg-transparent h-12 p-0 space-x-0 justify-start px-0 rounded-none w-full">
-              <TabsTrigger
-                value="list"
-                className="relative h-12 px-6 rounded-none font-medium transition-none text-gray-400 data-[state=active]:text-gray-800 data-[state=active]:font-semibold data-[state=active]:bg-gray-50 data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#5B7A3D] data-[state=active]:border-x data-[state=active]:border-x-gray-200 data-[state=active]:border-b-0 data-[state=inactive]:border-b data-[state=inactive]:border-b-transparent"
-              >
-                화원 목록
-              </TabsTrigger>
-              <TabsTrigger
-                value="search"
-                className="relative h-12 px-6 rounded-none font-medium transition-none text-gray-400 data-[state=active]:text-gray-800 data-[state=active]:font-semibold data-[state=active]:bg-gray-50 data-[state=active]:shadow-none data-[state=active]:border-t-2 data-[state=active]:border-t-[#5B7A3D] data-[state=active]:border-x data-[state=active]:border-x-gray-200 data-[state=active]:border-b-0 data-[state=inactive]:border-b data-[state=inactive]:border-b-transparent"
-              >
-                상품 검색
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="search" className="bg-gray-50 p-3 md:p-6 m-0 outline-none rounded-b-xl">
-            <ProductSearch />
-          </TabsContent>
-
-          <TabsContent value="list" className="bg-gray-50 p-3 md:p-6 m-0 outline-none rounded-b-xl">
+      <div className="rounded-xl shadow-sm overflow-hidden bg-gray-50 p-3 md:p-6">
         <div className="space-y-6">
 
       {/* 필터 토글 버튼 (모바일만) */}
@@ -662,8 +637,6 @@ function FloristsPage() {
         </>
       )}
       </div>
-          </TabsContent>
-        </Tabs>
       </div>
 
       {selectedFloristId && (
