@@ -27,6 +27,8 @@ export default function BranchSettingsPage() {
   const [ecommerceLicenseNo, setEcommerceLicenseNo] = useState('');
   const [partnershipEmail, setPartnershipEmail] = useState('');
   const [enableOnlinePayment, setEnableOnlinePayment] = useState(false);
+  const [serviceAreaTags, setServiceAreaTags] = useState<string[]>([]);
+  const [serviceAreaInput, setServiceAreaInput] = useState('');
 
   const loadInfo = useCallback(async () => {
     try {
@@ -47,6 +49,11 @@ export default function BranchSettingsPage() {
         setEcommerceLicenseNo(res.data.ecommerceLicenseNo || '');
         setPartnershipEmail(res.data.partnershipEmail || '');
         setEnableOnlinePayment(res.data.enableOnlinePayment ?? false);
+        setServiceAreaTags(
+          res.data.serviceAreas
+            ? res.data.serviceAreas.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : []
+        );
       }
     } catch {
       toast.error('정보를 불러오는데 실패했습니다.');
@@ -69,6 +76,7 @@ export default function BranchSettingsPage() {
         phone,
         address,
         description,
+        serviceAreas: serviceAreaTags.length > 0 ? serviceAreaTags.join(',') : '',
         virtualAccountBank,
         virtualAccountNumber,
         virtualAccountHolder,
@@ -243,6 +251,69 @@ export default function BranchSettingsPage() {
                 className={inputClass}
               />
             </div>
+          </div>
+        </div>
+
+        {/* 기본 영업 지역 */}
+        <div className="border-t border-[var(--branch-rose-light)] pt-5">
+          <h3 className="text-sm font-medium text-[var(--branch-text)] mb-1.5">기본 영업 지역</h3>
+          <p className="text-xs text-[var(--branch-text-light)] mb-3">
+            홈페이지에서 기본으로 보여줄 지역을 설정합니다. 최대 3개까지 가능하며, 미설정 시 전체 상품이 표시됩니다.
+          </p>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {serviceAreaTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--branch-accent)]/10 text-[var(--branch-accent)] text-sm font-medium border border-[var(--branch-accent)]/20"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => setServiceAreaTags(serviceAreaTags.filter((t) => t !== tag))}
+                    className="hover:text-red-500 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+            {serviceAreaTags.length < 3 && (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={serviceAreaInput}
+                  onChange={(e) => setServiceAreaInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = serviceAreaInput.trim();
+                      if (val && !serviceAreaTags.includes(val) && serviceAreaTags.length < 3) {
+                        setServiceAreaTags([...serviceAreaTags, val]);
+                        setServiceAreaInput('');
+                      }
+                    }
+                  }}
+                  placeholder="지역명 입력 후 Enter (예: 강남구)"
+                  className={inputClass}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = serviceAreaInput.trim();
+                    if (val && !serviceAreaTags.includes(val) && serviceAreaTags.length < 3) {
+                      setServiceAreaTags([...serviceAreaTags, val]);
+                      setServiceAreaInput('');
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[var(--branch-accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
+                >
+                  추가
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

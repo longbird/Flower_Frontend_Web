@@ -49,6 +49,7 @@ export interface FloristPhoto {
   grade?: PhotoGrade | null;
   isHidden: boolean;
   isRecommended: boolean;
+  isRepresentative?: boolean;
   costPrice?: number | null;
   sellingPrice?: number | null;
   memo?: string | null;

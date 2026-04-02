@@ -98,6 +98,7 @@ export async function updateMyBranchInfo(body: {
   phone?: string;
   address?: string;
   description?: string;
+  serviceAreas?: string;
   virtualAccountBank?: string;
   virtualAccountNumber?: string;
   virtualAccountHolder?: string;

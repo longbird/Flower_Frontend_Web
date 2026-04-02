@@ -419,14 +419,16 @@ function ProductsSection({
   slug,
   initialData,
   onProductClick,
+  defaultServiceArea,
 }: {
   slug: string;
   initialData: PaginatedResponse<RecommendedPhoto>;
   onProductClick: (product: RecommendedPhoto) => void;
+  defaultServiceArea?: string;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
-  const [areaInput, setAreaInput] = useState('');
-  const [activeArea, setActiveArea] = useState('');
+  const [areaInput, setAreaInput] = useState(defaultServiceArea || '');
+  const [activeArea, setActiveArea] = useState(defaultServiceArea || '');
   const [page, setPage] = useState(1);
   const [photosData, setPhotosData] = useState<PaginatedResponse<RecommendedPhoto>>(initialData);
   const [loadingPage, setLoadingPage] = useState(false);
@@ -881,6 +883,7 @@ export function RoseHomePage({ branch, slug, products, onProductClick }: BranchT
           slug={slug}
           initialData={products}
           onProductClick={onProductClick}
+          defaultServiceArea={branch.serviceAreas?.split(',')[0]?.trim()}
         />
       )}
 

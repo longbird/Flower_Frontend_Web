@@ -85,7 +85,9 @@ function useFloristPhoto(floristId: string) {
     queryFn: () => getFloristPhotos(floristId, { includeHidden: false }),
     staleTime: 5 * 60 * 1000,
   });
-  return data?.data?.[0] ?? null;
+  const photos = data?.data;
+  if (!photos || photos.length === 0) return null;
+  return photos.find((p) => p.isRepresentative) ?? photos[0];
 }
 
 function FloristThumb({ floristId }: { floristId: string }) {
@@ -197,7 +199,7 @@ function FloristsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFloristId, setSelectedFloristId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [gradeFilter, setGradeFilter] = useState(initialGrade);
   const [recommendedFilter, setRecommendedFilter] = useState(initialRecommended);
   const pageSize = 30;
