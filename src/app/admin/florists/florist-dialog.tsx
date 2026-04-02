@@ -59,7 +59,7 @@ export default function FloristDetailDialog({
     queryFn: () => getFloristPhotos(floristId, { includeHidden: true }),
     enabled: open && !!floristId,
   });
-  const photos = photosRes?.data ?? [];
+  const photos = [...(photosRes?.data ?? [])].sort((a, b) => (b.isRepresentative ? 1 : 0) - (a.isRepresentative ? 1 : 0));
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
@@ -218,6 +218,7 @@ function FloristEditPanel({
     },
     onSuccess: ({ beforeSnapshot, photoId, data }) => {
       const isToggle = Object.keys(data).length === 1 && 'isHidden' in data;
+      const isRepSet = Object.keys(data).length === 1 && 'isRepresentative' in data;
       addPhotoLog({
         action: isToggle ? 'TOGGLE_VISIBILITY' : 'UPDATE',
         floristId: floristId,
@@ -226,12 +227,16 @@ function FloristEditPanel({
         before: beforeSnapshot ?? null,
         after: { ...beforeSnapshot, ...data } as Partial<FloristPhoto>,
         userName: useAuthStore.getState().user?.name || '-',
-        note: isToggle ? `표시상태: ${data.isHidden ? '숨김' : '표시'}` : undefined,
+        note: isToggle ? `표시상태: ${data.isHidden ? '숨김' : '표시'}` : isRepSet ? '대표 사진 설정' : undefined,
       });
-      toast.success('사진 정보가 수정되었습니다.');
-      queryClient.invalidateQueries({ queryKey: ['floristPhotos', floristId] });
-      queryClient.invalidateQueries({ queryKey: ['floristThumb', floristId] });
-      setSelectedPhoto(null);
+      toast.success(isRepSet ? '대표 사진으로 설정되었습니다.' : '사진 정보가 수정되었습니다.');
+      queryClient.refetchQueries({ queryKey: ['floristPhotos', floristId] });
+      queryClient.refetchQueries({ queryKey: ['floristThumb', floristId] });
+      if (isRepSet) {
+        setSelectedPhoto({ ...beforeSnapshot!, ...data } as FloristPhoto);
+      } else {
+        setSelectedPhoto(null);
+      }
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : '수정 실패'),
   });
@@ -551,7 +556,7 @@ function FloristEditPanel({
                         </span>
                         {photo.isHidden && <span className="absolute bottom-1 right-1 bg-amber-700/80 text-white text-[10px] px-1.5 py-0.5 rounded">숨김</span>}
                         {photo.isRecommended && <span className="absolute top-1 right-1 bg-amber-600/85 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">추천</span>}
-                        {photo.isRepresentative && <span className="absolute bottom-1 left-1 bg-amber-500/90 text-white text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5"><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>대표</span>}
+                        {photo.isRepresentative && <span className="absolute top-0 bottom-0 left-0 w-1 bg-amber-500 z-10" />}
                       </div>
                       <div className="flex flex-col gap-0.5 px-2 py-1.5 bg-white border-t border-stone-100">
                         {photo.sellingPrice != null && <p className="text-[12px] text-[#5B7A3D] font-semibold truncate">판매 {photo.sellingPrice.toLocaleString()}원</p>}
@@ -589,7 +594,7 @@ function FloristEditPanel({
                       {CATEGORIES.find((c) => c.code === photo.category)?.name || photo.category}
                     </span>
                     {photo.isRecommended && <span className="absolute top-1.5 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">추천</span>}
-                    {photo.isRepresentative && <span className="absolute bottom-8 left-1.5 bg-amber-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5"><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>대표</span>}
+                    {photo.isRepresentative && <span className="absolute top-0 bottom-0 left-0 w-1.5 bg-amber-500 z-10 rounded-l" />}
                     {photo.grade && <span className={cn('absolute top-1.5 text-white text-[11px] font-bold px-2 py-0.5 rounded', PHOTO_GRADES.find((g) => g.code === photo.grade)?.color || 'bg-stone-500', photo.isHidden ? 'right-8' : 'right-1.5')}>{PHOTO_GRADES.find((g) => g.code === photo.grade)?.name}</span>}
                     {photo.isHidden && <svg className="absolute top-1.5 right-1.5 w-5 h-5 text-amber-600 bg-white/80 rounded-full p-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" /></svg>}
                     <span className="absolute bottom-1.5 right-1.5 bg-black/50 text-white rounded p-1">
@@ -626,7 +631,7 @@ function FloristEditPanel({
 
       {/* 사진 정보 수정 다이얼로그 — 탭 독립 */}
       <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-stone-800">사진 정보 수정</DialogTitle>
           </DialogHeader>
@@ -648,7 +653,7 @@ function FloristEditPanel({
       </Dialog>
 
       <Dialog open={!!uploadDialogFile} onOpenChange={() => setUploadDialogFile(null)}>
-        <DialogContent className="max-w-2xl border-stone-200">
+        <DialogContent className="max-w-4xl border-stone-200">
           <DialogHeader>
             <DialogTitle className="text-stone-800">사진 정보 입력</DialogTitle>
           </DialogHeader>

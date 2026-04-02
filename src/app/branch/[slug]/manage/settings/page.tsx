@@ -258,7 +258,7 @@ export default function BranchSettingsPage() {
         <div className="border-t border-[var(--branch-rose-light)] pt-5">
           <h3 className="text-sm font-medium text-[var(--branch-text)] mb-1.5">기본 영업 지역</h3>
           <p className="text-xs text-[var(--branch-text-light)] mb-3">
-            홈페이지에서 기본으로 보여줄 지역을 설정합니다. 최대 3개까지 가능하며, 미설정 시 전체 상품이 표시됩니다.
+            홈페이지에서 기본으로 보여줄 지역을 설정합니다. 최대 10개까지 가능하며, 미설정 시 전체 상품이 표시됩니다.
           </p>
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
@@ -280,7 +280,7 @@ export default function BranchSettingsPage() {
                 </span>
               ))}
             </div>
-            {serviceAreaTags.length < 3 && (
+            {serviceAreaTags.length < 10 && (
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -290,7 +290,7 @@ export default function BranchSettingsPage() {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       const val = serviceAreaInput.trim();
-                      if (val && !serviceAreaTags.includes(val) && serviceAreaTags.length < 3) {
+                      if (val && !serviceAreaTags.includes(val) && serviceAreaTags.length < 10) {
                         setServiceAreaTags([...serviceAreaTags, val]);
                         setServiceAreaInput('');
                       }
@@ -303,7 +303,7 @@ export default function BranchSettingsPage() {
                   type="button"
                   onClick={() => {
                     const val = serviceAreaInput.trim();
-                    if (val && !serviceAreaTags.includes(val) && serviceAreaTags.length < 3) {
+                    if (val && !serviceAreaTags.includes(val) && serviceAreaTags.length < 10) {
                       setServiceAreaTags([...serviceAreaTags, val]);
                       setServiceAreaInput('');
                     }

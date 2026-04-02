@@ -377,45 +377,7 @@ export function PhotoEditForm({
             </span>
           </div>
 
-          {/* Florist info card */}
-          {floristInfo && (
-            <div className="p-4 bg-white rounded-xl border border-stone-200 shadow-sm space-y-1.5">
-              <div className="flex items-center gap-1.5 mb-2">
-                <svg className="w-3.5 h-3.5 text-[#5B7A3D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span className="text-[9px] font-bold text-[#5B7A3D]">소속 화원</span>
-              </div>
-              <p className="text-sm font-bold text-stone-800">{floristInfo.name || '—'}</p>
-              {floristInfo.address && (
-                <p className="text-xs text-stone-500 line-clamp-2">{floristInfo.address}</p>
-              )}
-              {floristInfo.phone && (
-                <p className="text-xs text-stone-400">{floristInfo.phone}</p>
-              )}
-            </div>
-          )}
-
-          {/* Internal Memo (Admin Only) — 사진 아래 배치 */}
-          <div className="rounded-xl bg-[#FEFCE8] border border-[#FDE68A] p-4 space-y-2">
-            <Label className="text-stone-700 font-medium text-sm flex items-center gap-2">
-              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              내부 메모
-              <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-[10px] font-bold">관리자 전용</span>
-            </Label>
-            <textarea
-              value={internalMemo}
-              onChange={(e) => setInternalMemo(e.target.value)}
-              placeholder="관리자만 볼 수 있는 내부 메모를 입력하세요"
-              maxLength={500}
-              rows={2}
-              className="w-full text-sm rounded-xl border border-amber-200 px-4 py-3 bg-white/60 focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 resize-none placeholder:text-amber-400"
-            />
-          </div>
-
-          {/* Photo Replace Section */}
+          {/* Photo Replace Section — 사진 바로 아래 */}
           {onReplace && (
             <div>
               {!replaceOpen ? (
@@ -485,6 +447,45 @@ export function PhotoEditForm({
               )}
             </div>
           )}
+
+          {/* Internal Memo (Admin Only) */}
+          <div className="rounded-xl bg-[#FEFCE8] border border-[#FDE68A] p-4 space-y-2">
+            <Label className="text-stone-700 font-medium text-sm flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              내부 메모
+              <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-[10px] font-bold">관리자 전용</span>
+            </Label>
+            <textarea
+              value={internalMemo}
+              onChange={(e) => setInternalMemo(e.target.value)}
+              placeholder="관리자만 볼 수 있는 내부 메모를 입력하세요"
+              maxLength={500}
+              rows={2}
+              className="w-full text-sm rounded-xl border border-amber-200 px-4 py-3 bg-white/60 focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 resize-none placeholder:text-amber-400"
+            />
+          </div>
+
+          {/* Florist info card */}
+          {floristInfo && (
+            <div className="p-4 bg-white rounded-xl border border-stone-200 shadow-sm space-y-1.5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <svg className="w-3.5 h-3.5 text-[#5B7A3D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span className="text-[9px] font-bold text-[#5B7A3D]">소속 화원</span>
+              </div>
+              <p className="text-sm font-bold text-stone-800">{floristInfo.name || '—'}</p>
+              {floristInfo.address && (
+                <p className="text-xs text-stone-500 line-clamp-2">{floristInfo.address}</p>
+              )}
+              {floristInfo.phone && (
+                <p className="text-xs text-stone-400">{floristInfo.phone}</p>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Right: Form Fields */}

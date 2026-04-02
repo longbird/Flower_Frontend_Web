@@ -82,6 +82,7 @@ export async function api<T = unknown>(
   let res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
+    cache: 'no-store',
   });
 
   // 401 -> try refresh (동시 요청은 동일한 refreshPromise를 공유)
