@@ -114,12 +114,27 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     const body: Record<string, unknown> = {
       code: homepageForm.code.trim() || undefined,
     };
-    // 지사 정보 필드 보존 (홈페이지 저장 시 기존값 유지)
+    // 기존 모든 필드 보존 (PUT이 전체 교체할 경우 누락 필드가 null로 초기화됨)
     if (branch) {
       body.name = branch.name;
       body.type = branch.type;
       body.delegationMode = branch.delegationMode;
       body.isActive = branch.isActive;
+      if (branch.businessRegistrationNo) body.businessRegistrationNo = branch.businessRegistrationNo;
+      if (branch.ownerName) body.ownerName = branch.ownerName;
+      if (branch.email) body.email = branch.email;
+      if (branch.ecommerceLicenseNo) body.ecommerceLicenseNo = branch.ecommerceLicenseNo;
+      if (branch.partnershipEmail) body.partnershipEmail = branch.partnershipEmail;
+      if (branch.phone) body.phone = branch.phone;
+      if (branch.address) body.address = branch.address;
+      if (branch.virtualAccountBank) body.virtualAccountBank = branch.virtualAccountBank;
+      if (branch.virtualAccountNumber) body.virtualAccountNumber = branch.virtualAccountNumber;
+      if (branch.virtualAccountHolder) body.virtualAccountHolder = branch.virtualAccountHolder;
+      if (branch.description) body.description = branch.description;
+      if (branch.serviceAreas) body.serviceAreas = branch.serviceAreas;
+      if (branch.homepageDesign) body.homepageDesign = branch.homepageDesign;
+      if (branch.enableOnlinePayment != null) body.enableOnlinePayment = branch.enableOnlinePayment;
+      if (branch.defaultSurcharge != null) body.defaultSurcharge = branch.defaultSurcharge;
     }
     updateHomepageMutation.mutate(body);
   };
@@ -162,8 +177,13 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     if (form.virtualAccountBank.trim()) body.virtualAccountBank = form.virtualAccountBank.trim();
     if (form.virtualAccountNumber.trim()) body.virtualAccountNumber = form.virtualAccountNumber.trim();
     if (form.virtualAccountHolder.trim()) body.virtualAccountHolder = form.virtualAccountHolder.trim();
-    // 홈페이지 관련 필드 보존 (지사 정보 저장 시 기존값 유지)
+    // 기존 모든 필드 보존 (PUT이 전체 교체할 경우 누락 필드가 null로 초기화됨)
     if (branch?.code) body.code = branch.code;
+    if (branch?.description) body.description = branch.description;
+    if (branch?.serviceAreas) body.serviceAreas = branch.serviceAreas;
+    if (branch?.homepageDesign) body.homepageDesign = branch.homepageDesign;
+    if (branch?.enableOnlinePayment != null) body.enableOnlinePayment = branch.enableOnlinePayment;
+    if (branch?.defaultSurcharge != null) body.defaultSurcharge = branch.defaultSurcharge;
     updateMutation.mutate(body);
   };
 
