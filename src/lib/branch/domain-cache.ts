@@ -13,7 +13,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 async function refreshCache(): Promise<Record<string, string>> {
   try {
-    const res = await fetch(`${BACKEND_URL}/public/domain-mapping`);
+    const res = await fetch(`${BACKEND_URL}/public/branch/domain-mapping`);
     if (!res.ok) return cachedMapping;
     const json = await res.json();
     cachedMapping = json.data ?? {};
