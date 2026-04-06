@@ -11,6 +11,8 @@ export interface BranchInfo {
   virtualAccountNumber?: string;
   virtualAccountHolder?: string;
   homepageDesign?: string;
+  /** 커스텀 도메인 (예: example.co.kr) */
+  customDomain?: string;
   /** 대표자명 */
   ownerName?: string;
   /** 이메일 */

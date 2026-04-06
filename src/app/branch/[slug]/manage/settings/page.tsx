@@ -29,6 +29,7 @@ export default function BranchSettingsPage() {
   const [enableOnlinePayment, setEnableOnlinePayment] = useState(false);
   const [serviceAreaTags, setServiceAreaTags] = useState<string[]>([]);
   const [serviceAreaInput, setServiceAreaInput] = useState('');
+  const [customDomain, setCustomDomain] = useState('');
 
   const loadInfo = useCallback(async () => {
     try {
@@ -49,6 +50,7 @@ export default function BranchSettingsPage() {
         setEcommerceLicenseNo(res.data.ecommerceLicenseNo || '');
         setPartnershipEmail(res.data.partnershipEmail || '');
         setEnableOnlinePayment(res.data.enableOnlinePayment ?? false);
+        setCustomDomain(res.data.customDomain || '');
         setServiceAreaTags(
           res.data.serviceAreas
             ? res.data.serviceAreas.split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -84,6 +86,7 @@ export default function BranchSettingsPage() {
         ecommerceLicenseNo,
         partnershipEmail,
         enableOnlinePayment,
+        customDomain: customDomain.trim() || undefined,
       });
       if (res.ok && res.data) {
         setInfo(res.data);
@@ -158,6 +161,30 @@ export default function BranchSettingsPage() {
           <div className="px-4 py-2.5 rounded-xl bg-[var(--branch-cream)] text-[var(--branch-text)] text-sm break-all">
             {typeof window !== 'undefined' ? `${window.location.origin}/branch/${slug}/manage/login` : `/branch/${slug}/manage/login`}
           </div>
+        </div>
+
+        {/* 커스텀 도메인 */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--branch-text)] mb-1.5">
+            커스텀 도메인
+          </label>
+          <input
+            type="text"
+            value={customDomain}
+            onChange={(e) => setCustomDomain(e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, ''))}
+            placeholder="example.co.kr"
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-[var(--branch-text-light)]">
+            자체 도메인을 연결하려면 도메인 등록업체에서 A 레코드를 서버 IP로 설정 후 입력하세요.
+          </p>
+          {customDomain && (
+            <div className="mt-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-200">
+              <p className="text-xs text-blue-700">
+                연결 URL: https://{customDomain}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* 사업자 정보 섹션 */}

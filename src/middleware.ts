@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDomainMapping, lookupDomain } from './lib/branch/domain-cache';
 
 /**
- * Subdomain routing middleware
- * *.seoulflower.co.kr → branch homepage
+ * Subdomain + custom domain routing middleware
+ * *.seoulflower.co.kr → branch homepage (subdomain)
+ * custom domains (e.g., 15885555.co.kr) → branch homepage (DB lookup)
  * seoulflower.co.kr (no subdomain) → admin/partner app
- * 
+ *
  * Development: uses ?branch=slug query param for testing
  */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // Skip static files, API routes, Next.js internals, and already-rewritten branch paths
@@ -35,6 +37,12 @@ export function middleware(request: NextRequest) {
   // Development: ?branch=slug query parameter
   if (!branchSlug && searchParams.get('branch')) {
     branchSlug = searchParams.get('branch');
+  }
+
+  // Custom domain lookup (e.g., 15885555.co.kr → branch code)
+  if (!branchSlug && !hostname.includes('seoulflower.co.kr') && !hostname.startsWith('localhost') && !hostname.match(/^\d+\.\d+\.\d+\.\d+/)) {
+    const mapping = await getDomainMapping();
+    branchSlug = lookupDomain(mapping, hostname);
   }
 
   // No subdomain → pass through to default app

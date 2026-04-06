@@ -63,6 +63,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
   const [showEditHomepage, setShowEditHomepage] = useState(false);
   const [homepageForm, setHomepageForm] = useState({
     code: '',
+    customDomain: '',
   });
 
   const { data: branch, isLoading } = useQuery({
@@ -106,6 +107,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     if (!branch) return;
     setHomepageForm({
       code: branch.code || '',
+      customDomain: branch.customDomain || '',
     });
     setShowEditHomepage(true);
   };
@@ -113,6 +115,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
   const handleUpdateHomepage = () => {
     const body: Record<string, unknown> = {
       code: homepageForm.code.trim() || undefined,
+      customDomain: homepageForm.customDomain.trim() || null,
     };
     // 기존 모든 필드 보존 (PUT이 전체 교체할 경우 누락 필드가 null로 초기화됨)
     if (branch) {
@@ -184,6 +187,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     if (branch?.homepageDesign) body.homepageDesign = branch.homepageDesign;
     if (branch?.enableOnlinePayment != null) body.enableOnlinePayment = branch.enableOnlinePayment;
     if (branch?.defaultSurcharge != null) body.defaultSurcharge = branch.defaultSurcharge;
+    if (branch?.customDomain) body.customDomain = branch.customDomain;
     updateMutation.mutate(body);
   };
 
@@ -280,6 +284,23 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               </>
             )}
+            <div>
+              <dt className="text-slate-400 text-xs">커스텀 도메인</dt>
+              <dd>
+                {branch.customDomain ? (
+                  <a
+                    href={`https://${branch.customDomain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {branch.customDomain}
+                  </a>
+                ) : (
+                  <span className="text-slate-300">-</span>
+                )}
+              </dd>
+            </div>
           </dl>
         </CardContent>
       </Card>
@@ -444,6 +465,17 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
               {homepageForm.code && (
                 <p className="text-xs text-slate-400 mt-1">URL: {homepageForm.code}.seoulflower.co.kr</p>
               )}
+            </div>
+            <div>
+              <Label>커스텀 도메인</Label>
+              <Input
+                value={homepageForm.customDomain}
+                onChange={e => setHomepageForm(f => ({ ...f, customDomain: e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, '') }))}
+                placeholder="example.co.kr"
+              />
+              <p className="text-xs text-slate-400 mt-1">
+                도메인 등록업체에서 A 레코드를 서버 IP로 설정해야 합니다.
+              </p>
             </div>
           </div>
           {updateHomepageMutation.isError && (

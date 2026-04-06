@@ -68,6 +68,7 @@ export interface MyBranchInfo {
   id: number;
   name: string;
   code?: string;
+  customDomain?: string;
   businessRegistrationNo?: string;
   ownerName?: string;
   email?: string;
@@ -107,6 +108,7 @@ export async function updateMyBranchInfo(body: {
   enableOnlinePayment?: boolean;
   ecommerceLicenseNo?: string;
   partnershipEmail?: string;
+  customDomain?: string;
 }) {
   return branchApi<{ ok: boolean; data: MyBranchInfo }>('/branch/me', {
     method: 'PATCH',
