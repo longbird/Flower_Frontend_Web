@@ -30,6 +30,7 @@ export default function BranchSettingsPage() {
   const [serviceAreaTags, setServiceAreaTags] = useState<string[]>([]);
   const [serviceAreaInput, setServiceAreaInput] = useState('');
   const [customDomain, setCustomDomain] = useState('');
+  const [notificationPhone, setNotificationPhone] = useState('');
 
   const loadInfo = useCallback(async () => {
     try {
@@ -51,6 +52,7 @@ export default function BranchSettingsPage() {
         setPartnershipEmail(res.data.partnershipEmail || '');
         setEnableOnlinePayment(res.data.enableOnlinePayment ?? false);
         setCustomDomain(res.data.customDomain || '');
+        setNotificationPhone(res.data.notificationPhone || '');
         setServiceAreaTags(
           res.data.serviceAreas
             ? res.data.serviceAreas.split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -87,6 +89,7 @@ export default function BranchSettingsPage() {
         partnershipEmail,
         enableOnlinePayment,
         customDomain: customDomain.trim() || undefined,
+        notificationPhone: notificationPhone.trim() || undefined,
       });
       if (res.ok && res.data) {
         setInfo(res.data);
@@ -267,6 +270,19 @@ export default function BranchSettingsPage() {
                 placeholder="예: 031-123-4567"
                 className={inputClass}
               />
+            </div>
+            <div>
+              <label className="block text-xs text-[var(--branch-text-light)] mb-1">알림 수신 번호</label>
+              <input
+                type="text"
+                value={notificationPhone}
+                onChange={(e) => setNotificationPhone(e.target.value)}
+                placeholder="예: 010-1234-5678"
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-[var(--branch-text-light)]">
+                상담 요청 시 SMS 알림을 받을 전화번호입니다. 미입력 시 대표 전화번호로 발송됩니다.
+              </p>
             </div>
             <div>
               <label className="block text-xs text-[var(--branch-text-light)] mb-1">주소</label>

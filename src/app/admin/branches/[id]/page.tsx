@@ -38,6 +38,7 @@ interface EditForm {
   ecommerceLicenseNo: string;
   partnershipEmail: string;
   phone: string;
+  notificationPhone: string;
   address: string;
   virtualAccountBank: string;
   virtualAccountNumber: string;
@@ -56,7 +57,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     name: '', type: 'BRANCH', delegationMode: 'NONE',
     isActive: true, businessRegistrationNo: '',
     ownerName: '', email: '', ecommerceLicenseNo: '',
-    partnershipEmail: '', phone: '', address: '',
+    partnershipEmail: '', phone: '', notificationPhone: '', address: '',
     virtualAccountBank: '', virtualAccountNumber: '', virtualAccountHolder: '',
   });
 
@@ -155,6 +156,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
       ecommerceLicenseNo: branch.ecommerceLicenseNo || '',
       partnershipEmail: branch.partnershipEmail || '',
       phone: branch.phone || '',
+      notificationPhone: branch.notificationPhone || '',
       address: branch.address || '',
       virtualAccountBank: branch.virtualAccountBank || '',
       virtualAccountNumber: branch.virtualAccountNumber || '',
@@ -176,6 +178,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
     if (form.ecommerceLicenseNo.trim()) body.ecommerceLicenseNo = form.ecommerceLicenseNo.trim();
     if (form.partnershipEmail.trim()) body.partnershipEmail = form.partnershipEmail.trim();
     if (form.phone.trim()) body.phone = form.phone.trim();
+    body.notificationPhone = form.notificationPhone.trim() || null;
     if (form.address.trim()) body.address = form.address.trim();
     if (form.virtualAccountBank.trim()) body.virtualAccountBank = form.virtualAccountBank.trim();
     if (form.virtualAccountNumber.trim()) body.virtualAccountNumber = form.virtualAccountNumber.trim();
@@ -224,6 +227,7 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
             {branch.businessRegistrationNo && <div><dt className="text-slate-400 text-xs">사업자번호</dt><dd>{branch.businessRegistrationNo}</dd></div>}
             {branch.ecommerceLicenseNo && <div><dt className="text-slate-400 text-xs">통신판매업신고</dt><dd>{branch.ecommerceLicenseNo}</dd></div>}
             <div><dt className="text-slate-400 text-xs">전화번호</dt><dd>{branch.phone || <span className="text-slate-300">-</span>}</dd></div>
+            <div><dt className="text-slate-400 text-xs">알림 수신 번호</dt><dd>{branch.notificationPhone || <span className="text-slate-300">미설정 (대표번호로 발송)</span>}</dd></div>
             {branch.email && <div><dt className="text-slate-400 text-xs">이메일</dt><dd>{branch.email}</dd></div>}
             {branch.partnershipEmail && <div><dt className="text-slate-400 text-xs">제휴문의</dt><dd>{branch.partnershipEmail}</dd></div>}
             {branch.address && <div><dt className="text-slate-400 text-xs">주소</dt><dd>{branch.address}</dd></div>}
@@ -370,6 +374,11 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
                   <div>
                     <Label>전화번호</Label>
                     <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="02-1234-5678" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>알림 수신 번호</Label>
+                    <Input value={form.notificationPhone} onChange={e => setForm(f => ({ ...f, notificationPhone: e.target.value }))} placeholder="010-1234-5678" />
+                    <p className="text-xs text-slate-400">상담 요청 시 SMS 알림을 받을 번호 (미입력 시 대표번호)</p>
                   </div>
                   <div>
                     <Label>이메일</Label>

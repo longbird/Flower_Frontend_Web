@@ -85,6 +85,7 @@ export interface MyBranchInfo {
   enableOnlinePayment?: boolean;
   ecommerceLicenseNo?: string;
   partnershipEmail?: string;
+  notificationPhone?: string;
 }
 
 export async function fetchMyBranchInfo() {
@@ -108,6 +109,7 @@ export async function updateMyBranchInfo(body: {
   enableOnlinePayment?: boolean;
   ecommerceLicenseNo?: string;
   partnershipEmail?: string;
+  notificationPhone?: string;
   customDomain?: string;
 }) {
   return branchApi<{ ok: boolean; data: MyBranchInfo }>('/branch/me', {
