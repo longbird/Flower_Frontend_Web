@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { fetchMyBranchInfo, updateMyBranchInfo, type MyBranchInfo } from '@/lib/branch/branch-api';
 import { getAllThemes, type BranchTheme } from '@/lib/branch/themes';
+import { ServiceAreaSelector } from '@/components/admin/service-area-selector';
 
 export default function BranchSettingsPage() {
   const params = useParams();
@@ -28,7 +29,6 @@ export default function BranchSettingsPage() {
   const [partnershipEmail, setPartnershipEmail] = useState('');
   const [enableOnlinePayment, setEnableOnlinePayment] = useState(false);
   const [serviceAreaTags, setServiceAreaTags] = useState<string[]>([]);
-  const [serviceAreaInput, setServiceAreaInput] = useState('');
   const [customDomain, setCustomDomain] = useState('');
   const [notificationPhone, setNotificationPhone] = useState('');
 
@@ -324,38 +324,14 @@ export default function BranchSettingsPage() {
               ))}
             </div>
             {serviceAreaTags.length < 10 && (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={serviceAreaInput}
-                  onChange={(e) => setServiceAreaInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const val = serviceAreaInput.trim();
-                      if (val && !serviceAreaTags.includes(val) && serviceAreaTags.length < 10) {
-                        setServiceAreaTags([...serviceAreaTags, val]);
-                        setServiceAreaInput('');
-                      }
-                    }
-                  }}
-                  placeholder="지역명 입력 후 Enter (예: 강남구)"
-                  className={inputClass}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const val = serviceAreaInput.trim();
-                    if (val && !serviceAreaTags.includes(val) && serviceAreaTags.length < 10) {
-                      setServiceAreaTags([...serviceAreaTags, val]);
-                      setServiceAreaInput('');
-                    }
-                  }}
-                  className="px-4 py-2 rounded-xl bg-[var(--branch-accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
-                >
-                  추가
-                </button>
-              </div>
+              <ServiceAreaSelector
+                onAdd={({ area }) => {
+                  if (!serviceAreaTags.includes(area) && serviceAreaTags.length < 10) {
+                    setServiceAreaTags([...serviceAreaTags, area]);
+                  }
+                }}
+                existingAreas={serviceAreaTags}
+              />
             )}
           </div>
         </div>

@@ -15,6 +15,7 @@ import {
   deleteFloristPhoto,
   rotateFloristPhoto,
 } from '@/lib/api/admin';
+import { ServiceAreaSelector } from '@/components/admin/service-area-selector';
 import type { FloristSummary, FloristPhoto } from '@/lib/types/florist';
 import { addPhotoLog } from '@/lib/photo-log';
 import { useAuthStore } from '@/lib/auth/store';
@@ -148,7 +149,6 @@ function FloristEditPanel({
   const [grade, setGrade] = useState(florist.grade ?? 0);
   const [priority, setPriority] = useState(florist.priority ?? 0);
   const [capabilities, setCapabilities] = useState<string[]>(florist.capabilities || []);
-  const [newArea, setNewArea] = useState('');
   const [deleteAreaTarget, setDeleteAreaTarget] = useState<string | null>(null);
   const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<'selected' | 'viewer' | null>(null);
 
@@ -163,8 +163,8 @@ function FloristEditPanel({
   });
 
   const addAreaMutation = useMutation({
-    mutationFn: ({ area, sido: s }: { area: string; sido?: string }) =>
-      addFloristServiceArea(floristId, area, s),
+    mutationFn: ({ area, gugunId }: { area: string; gugunId: number }) =>
+      addFloristServiceArea(floristId, area, gugunId || undefined),
     onSuccess: () => {
       toast.success('서비스 지역 추가');
       queryClient.invalidateQueries({ queryKey: ['florist', floristId] });
@@ -341,13 +341,6 @@ function FloristEditPanel({
     );
   };
 
-  const handleAddArea = () => {
-    const area = newArea.trim();
-    if (!area) return;
-    addAreaMutation.mutate({ area });
-    setNewArea('');
-  };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -486,12 +479,11 @@ function FloristEditPanel({
                     <span className="text-sm text-stone-400 italic">설정된 지역 없음</span>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <input placeholder="지역명 입력" value={newArea} onChange={(e) => setNewArea(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddArea()} className="field-input flex-1" />
-                  <button onClick={handleAddArea} disabled={addAreaMutation.isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-[#5B7A3D] text-white hover:bg-[#4A6830] transition-colors disabled:opacity-50">
-                    추가
-                  </button>
-                </div>
+                <ServiceAreaSelector
+                  onAdd={(params) => addAreaMutation.mutate(params)}
+                  disabled={addAreaMutation.isPending}
+                  existingAreas={florist.serviceAreas || []}
+                />
               </Section>
 
               <Section title="역량" accent="bg-[#5B7A3D]">

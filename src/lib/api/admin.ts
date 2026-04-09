@@ -208,14 +208,35 @@ export async function rotateFloristPhoto(
 }
 
 // ─── Service Areas ──────────────────────────────────────
+export interface SidoItem {
+  id: number;
+  name: string;
+}
+
+export interface GugunItem {
+  id: number;
+  name: string;
+  sidoId: number;
+}
+
+export async function listFloristSidos(): Promise<SidoItem[]> {
+  const res = await api<{ ok: boolean; data: SidoItem[] }>('/admin/partners/florists/sidos');
+  return res.data;
+}
+
+export async function listFloristGuguns(sidoId: number): Promise<GugunItem[]> {
+  const res = await api<{ ok: boolean; data: GugunItem[] }>(`/admin/partners/florists/sidos/${sidoId}/guguns`);
+  return res.data;
+}
+
 export async function addFloristServiceArea(
   floristId: string,
   area: string,
-  sido?: string
+  gugunId?: number
 ) {
   return api(`/admin/partners/florists/${floristId}/service-areas`, {
     method: 'POST',
-    body: JSON.stringify({ area, ...(sido ? { sido } : {}) }),
+    body: JSON.stringify({ area, ...(gugunId ? { gugunId } : {}) }),
   });
 }
 

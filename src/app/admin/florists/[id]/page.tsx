@@ -18,6 +18,7 @@ import {
   removeFloristServiceArea,
 } from '@/lib/api/admin';
 import type { FloristPhoto, FloristSummary, PhotoCategory, PhotoGrade } from '@/lib/types/florist';
+import { ServiceAreaSelector } from '@/components/admin/service-area-selector';
 import { addPhotoLog } from '@/lib/photo-log';
 import { useAuthStore } from '@/lib/auth/store';
 import { Button } from '@/components/ui/button';
@@ -119,7 +120,6 @@ export default function FloristDetailPage({
   const [viewerPhoto, setViewerPhoto] = useState<FloristPhoto | null>(null);
   const [photoCacheBuster, setPhotoCacheBuster] = useState(0);
   const [uploadDialogFile, setUploadDialogFile] = useState<File | null>(null);
-  const [newServiceArea, setNewServiceArea] = useState('');
   const [deleteAreaConfirm, setDeleteAreaConfirm] = useState<string | null>(null);
   const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<{ photoId: number; beforeSnapshot: FloristPhoto } | null>(null);
 
@@ -148,8 +148,8 @@ export default function FloristDetailPage({
   });
 
   const addAreaMutation = useMutation({
-    mutationFn: ({ area, sido }: { area: string; sido?: string }) =>
-      addFloristServiceArea(id, area, sido),
+    mutationFn: ({ area, gugunId }: { area: string; gugunId: number }) =>
+      addFloristServiceArea(id, area, gugunId || undefined),
     onSuccess: () => {
       toast.success('서비스 지역이 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['florist', id] });
@@ -305,13 +305,6 @@ export default function FloristDetailPage({
     }
     setUploadDialogFile(file);
     e.target.value = '';
-  };
-
-  const handleAddServiceArea = () => {
-    const area = newServiceArea.trim();
-    if (!area) return;
-    addAreaMutation.mutate({ area });
-    setNewServiceArea('');
   };
 
   const handleToggleVisibility = useCallback((photo: FloristPhoto) => {
@@ -476,21 +469,9 @@ export default function FloristDetailPage({
                 {/* 서비스 지역 */}
                 <Card className="shadow-sm border-slate-200">
                   <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">서비스 지역</h3>
-                      <div className="flex gap-1.5">
-                        <Input
-                          placeholder="지역명"
-                          value={newServiceArea}
-                          onChange={(e) => setNewServiceArea(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleAddServiceArea()}
-                          className="h-7 w-24 text-xs border-slate-200 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400"
-                        />
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-slate-200 hover:bg-slate-50 hover:text-gray-600 hover:border-slate-400" onClick={handleAddServiceArea} disabled={addAreaMutation.isPending}>+</Button>
-                      </div>
-                    </div>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">서비스 지역</h3>
                     {florist.serviceAreas && florist.serviceAreas.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5 mb-3">
                         {florist.serviceAreas.map((area) => (
                           <span key={area} className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
                             {area}
@@ -501,8 +482,13 @@ export default function FloristDetailPage({
                         ))}
                       </div>
                     ) : (
-                      <span className="text-slate-400 text-xs">설정된 서비스 지역 없음</span>
+                      <span className="text-slate-400 text-xs block mb-3">설정된 서비스 지역 없음</span>
                     )}
+                    <ServiceAreaSelector
+                      onAdd={(params) => addAreaMutation.mutate(params)}
+                      disabled={addAreaMutation.isPending}
+                      existingAreas={florist.serviceAreas || []}
+                    />
                   </CardContent>
                 </Card>
               </div>

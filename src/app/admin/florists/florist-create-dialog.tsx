@@ -7,6 +7,7 @@ import { createFlorist } from '@/lib/api/admin';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { CAPABILITY_OPTIONS, GRADE_OPTIONS } from './florist-constants';
+import { ServiceAreaSelector } from '@/components/admin/service-area-selector';
 
 export default function FloristCreateDialog({
   open,
@@ -29,7 +30,6 @@ export default function FloristCreateDialog({
   const [grade, setGrade] = useState(0);
   const [priority, setPriority] = useState(0);
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
-  const [newArea, setNewArea] = useState('');
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => createFlorist(data),
@@ -57,7 +57,6 @@ export default function FloristCreateDialog({
     setGrade(0);
     setPriority(0);
     setServiceAreas([]);
-    setNewArea('');
   };
 
   const handleClose = () => {
@@ -88,17 +87,6 @@ export default function FloristCreateDialog({
     setCapabilities((prev) =>
       prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
     );
-  };
-
-  const handleAddArea = () => {
-    const area = newArea.trim();
-    if (!area) return;
-    if (serviceAreas.includes(area)) {
-      toast.error('이미 추가된 지역입니다.');
-      return;
-    }
-    setServiceAreas((prev) => [...prev, area]);
-    setNewArea('');
   };
 
   const handleRemoveArea = (area: string) => {
@@ -251,24 +239,14 @@ export default function FloristCreateDialog({
                     <span className="text-sm text-stone-400 italic">추가된 지역 없음</span>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    placeholder="지역명 입력"
-                    value={newArea}
-                    onChange={(e) => setNewArea(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddArea()}
-                    className="field-input flex-1"
-                  />
-                  <button
-                    onClick={handleAddArea}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-[#5B7A3D] text-white hover:bg-[#4A6830] transition-colors flex items-center gap-1.5"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    지역 추가
-                  </button>
-                </div>
+                <ServiceAreaSelector
+                  onAdd={({ area }) => {
+                    if (!serviceAreas.includes(area)) {
+                      setServiceAreas((prev) => [...prev, area]);
+                    }
+                  }}
+                  existingAreas={serviceAreas}
+                />
               </Section>
 
               <Section title="역량" accent="bg-[#5B7A3D]">
