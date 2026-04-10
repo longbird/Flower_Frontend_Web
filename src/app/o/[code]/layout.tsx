@@ -13,10 +13,6 @@ export default function OrderLinkLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-lg mx-auto px-4 py-6">
-        <header className="mb-6 text-center">
-          <h1 className="text-lg font-bold text-slate-800">달려라 꽃배달</h1>
-          <p className="text-xs text-slate-500 mt-1">주문 진행 상황</p>
-        </header>
         <main>{children}</main>
       </div>
     </div>

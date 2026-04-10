@@ -183,7 +183,15 @@ function OrderView({ view }: { view: CustomerOrderView }) {
 
   return (
     <div className="space-y-4">
-      {/* 상단 헤더 */}
+      {/* 페이지 헤더 — 지사명 */}
+      <header className="mb-6 text-center">
+        <h1 className="text-lg font-bold text-slate-800">
+          {branchName || '달려라 꽃배달'}
+        </h1>
+        <p className="text-xs text-slate-500 mt-1">주문 진행 상황</p>
+      </header>
+
+      {/* 상단 정보 카드 */}
       <Card>
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-2">

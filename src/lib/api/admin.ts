@@ -313,6 +313,13 @@ export async function resendOrderPublicLink(orderId: number) {
   );
 }
 
+export async function deactivateOrderPublicLink(orderId: number) {
+  return api<{ ok: boolean; message?: string }>(
+    `/admin/orders/${orderId}/public-link/deactivate`,
+    { method: 'POST' },
+  );
+}
+
 // ─── Consult Request Public Link (지사 상담요청 고객 확인 URL) ─
 export async function getConsultRequestPublicLink(consultId: number) {
   return api<{ ok: boolean; data?: OrderPublicLinkInfo; message?: string }>(
@@ -330,6 +337,13 @@ export async function reactivateConsultRequestPublicLink(consultId: number) {
 export async function resendConsultRequestPublicLink(consultId: number) {
   return api<{ ok: boolean; shortCode?: string; shortUrl?: string; message?: string }>(
     `/admin/orders/consult-requests/${consultId}/public-link/resend`,
+    { method: 'POST' },
+  );
+}
+
+export async function deactivateConsultRequestPublicLink(consultId: number) {
+  return api<{ ok: boolean; message?: string }>(
+    `/admin/orders/consult-requests/${consultId}/public-link/deactivate`,
     { method: 'POST' },
   );
 }
