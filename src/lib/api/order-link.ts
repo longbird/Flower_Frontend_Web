@@ -16,6 +16,8 @@ export interface DeliveryPhoto {
 export interface CustomerOrderView {
   orderId: number;
   editable: boolean;
+  branchName?: string | null;
+  branchPhone?: string | null;
   order: {
     orderNo?: string | null;
     orderType?: string | null;

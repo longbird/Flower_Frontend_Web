@@ -13,7 +13,9 @@ import {
 } from '@/lib/api/order-link';
 
 // ─── 상태 매핑 ──────────────────────────────────────────────
+// 주문(orders) + 상담요청(branch_consult_requests) 상태값을 모두 매핑
 const STATUS_LABELS: Record<string, string> = {
+  // 주문 상태
   UNCONFIRMED: '접수 확인 중',
   ORDER_RECEIVED: '주문 접수',
   RECEIVED: '주문 접수',
@@ -27,11 +29,16 @@ const STATUS_LABELS: Record<string, string> = {
   DELIVERED: '배송 완료',
   ORDER_DELIVERED: '배송 완료',
   CANCELED: '주문 취소',
-  CANCELLED: '주문 취소',
   ORDER_CANCELED: '주문 취소',
+  // 상담요청 상태
+  NEW: '요청 접수',
+  IN_PROGRESS: '처리 중',
+  COMPLETED: '완료',
+  CANCELLED: '취소',
 };
 
 const STATUS_COLORS: Record<string, string> = {
+  // 주문 상태
   UNCONFIRMED: 'bg-gray-100 text-gray-800',
   ORDER_RECEIVED: 'bg-sky-100 text-sky-800',
   RECEIVED: 'bg-sky-100 text-sky-800',
@@ -45,26 +52,51 @@ const STATUS_COLORS: Record<string, string> = {
   DELIVERED: 'bg-emerald-100 text-emerald-800',
   ORDER_DELIVERED: 'bg-emerald-100 text-emerald-800',
   CANCELED: 'bg-red-100 text-red-800',
-  CANCELLED: 'bg-red-100 text-red-800',
   ORDER_CANCELED: 'bg-red-100 text-red-800',
+  // 상담요청 상태
+  NEW: 'bg-sky-100 text-sky-800',
+  IN_PROGRESS: 'bg-amber-100 text-amber-800',
+  COMPLETED: 'bg-emerald-100 text-emerald-800',
+  CANCELLED: 'bg-red-100 text-red-800',
 };
 
-// 진행 단계 (타임라인)
-const TIMELINE_STEPS = [
-  { key: 'received', label: '주문 접수', matches: ['UNCONFIRMED', 'ORDER_RECEIVED', 'RECEIVED', 'PENDING', 'CONFIRMED'] },
+// 진행 단계 (타임라인) — 주문(ORDER) 타입
+const TIMELINE_STEPS_ORDER = [
+  { key: 'received', label: '주문 접수', matches: ['UNCONFIRMED', 'ORDER_RECEIVED', 'RECEIVED', 'PENDING', 'CONFIRMED', 'NEW'] },
   { key: 'assigned', label: '화원 배정', matches: ['ASSIGNED', 'PARTNER_ACCEPTED', 'ACCEPTED'] },
-  { key: 'preparing', label: '상품 제작', matches: ['PREPARING'] },
+  { key: 'preparing', label: '상품 제작', matches: ['PREPARING', 'IN_PROGRESS'] },
   { key: 'delivering', label: '배송 중', matches: ['DELIVERING'] },
-  { key: 'delivered', label: '배송 완료', matches: ['DELIVERED', 'ORDER_DELIVERED'] },
+  { key: 'delivered', label: '배송 완료', matches: ['DELIVERED', 'ORDER_DELIVERED', 'COMPLETED'] },
 ];
 
-function currentStepIndex(status: string): number {
-  const idx = TIMELINE_STEPS.findIndex((s) => s.matches.includes(status));
+// 진행 단계 (타임라인) — 상담요청(CONSULT_REQUEST) 타입
+const TIMELINE_STEPS_CONSULT = [
+  { key: 'new', label: '요청 접수', matches: ['NEW'] },
+  { key: 'in_progress', label: '처리 중', matches: ['IN_PROGRESS'] },
+  { key: 'completed', label: '완료', matches: ['COMPLETED'] },
+];
+
+function getTimelineSteps(orderType?: string | null) {
+  return orderType === 'CONSULT_REQUEST' ? TIMELINE_STEPS_CONSULT : TIMELINE_STEPS_ORDER;
+}
+
+function currentStepIndex(status: string, steps: typeof TIMELINE_STEPS_ORDER): number {
+  const idx = steps.findIndex((s) => s.matches.includes(status));
   return idx < 0 ? 0 : idx;
 }
 
 function isCancelled(status: string): boolean {
   return status === 'CANCELED' || status === 'CANCELLED' || status === 'ORDER_CANCELED';
+}
+
+function formatBranchPhone(phone?: string | null): string | null {
+  if (!phone) return null;
+  const d = phone.replace(/\D/g, '');
+  if (d.length === 8) return `${d.slice(0, 4)}-${d.slice(4)}`;
+  if (d.length === 9) return `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}`;
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+  return phone;
 }
 
 // ─── 포맷 헬퍼 ──────────────────────────────────────────────
@@ -84,13 +116,6 @@ function formatAmount(n?: number | null) {
   return `${n.toLocaleString('ko-KR')}원`;
 }
 
-function maskAddress(addr?: string | null): string {
-  if (!addr) return '';
-  // "서울시 강남구 역삼동 123-45" → "서울시 강남구 역삼동 ***"
-  const parts = addr.trim().split(/\s+/);
-  if (parts.length <= 3) return addr;
-  return `${parts.slice(0, 3).join(' ')} ***`;
-}
 
 // ─── 메인 페이지 ──────────────────────────────────────────────
 export default function CustomerOrderPage({
@@ -148,11 +173,13 @@ export default function CustomerOrderPage({
 
 // ─── 뷰 컴포넌트 ──────────────────────────────────────────────
 function OrderView({ view }: { view: CustomerOrderView }) {
-  const { order, deliveryPhotos } = view;
+  const { order, deliveryPhotos, branchName, branchPhone } = view;
   const statusLabel = STATUS_LABELS[order.status] || order.status;
   const statusColor = STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800';
   const cancelled = isCancelled(order.status);
-  const stepIdx = currentStepIndex(order.status);
+  const timelineSteps = getTimelineSteps(order.orderType);
+  const stepIdx = currentStepIndex(order.status, timelineSteps);
+  const formattedBranchPhone = formatBranchPhone(branchPhone);
 
   return (
     <div className="space-y-4">
@@ -189,7 +216,7 @@ function OrderView({ view }: { view: CustomerOrderView }) {
               진행 상황
             </h2>
             <ol className="relative border-l-2 border-slate-200 ml-2">
-              {TIMELINE_STEPS.map((step, i) => {
+              {timelineSteps.map((step, i) => {
                 const active = i <= stepIdx;
                 return (
                   <li key={step.key} className="mb-4 ml-4 last:mb-0">
@@ -252,7 +279,11 @@ function OrderView({ view }: { view: CustomerOrderView }) {
           <InfoRow label="받는 분" value={order.receiverName || '-'} />
           <InfoRow
             label="배송 주소"
-            value={maskAddress(order.deliveryAddress1) || '-'}
+            value={
+              [order.deliveryAddress1, order.deliveryAddress2]
+                .filter(Boolean)
+                .join(' ') || '-'
+            }
           />
           {order.amountTotal != null && (
             <InfoRow label="주문 금액" value={formatAmount(order.amountTotal)} />
@@ -277,6 +308,18 @@ function OrderView({ view }: { view: CustomerOrderView }) {
           </CardContent>
         </Card>
       )}
+
+      {/* 문의 지사 연락처 */}
+      <div className="pt-4 pb-2 text-center text-xs text-slate-500">
+        {branchName && <div className="font-medium">{branchName}</div>}
+        {formattedBranchPhone ? (
+          <div className="mt-1">
+            문의: <a href={`tel:${branchPhone}`} className="text-slate-700 hover:underline">{formattedBranchPhone}</a>
+          </div>
+        ) : (
+          <div className="mt-1">문의는 주문 접수 지사로 연락 주세요.</div>
+        )}
+      </div>
     </div>
   );
 }

@@ -18,9 +18,6 @@ export default function OrderLinkLayout({
           <p className="text-xs text-slate-500 mt-1">주문 진행 상황</p>
         </header>
         <main>{children}</main>
-        <footer className="mt-10 pb-4 text-center text-xs text-slate-400">
-          문의: 1588-xxxx
-        </footer>
       </div>
     </div>
   );
