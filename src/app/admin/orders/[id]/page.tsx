@@ -7,6 +7,7 @@ import { api } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CustomerLinkCard } from '@/components/admin/customer-link-card';
 
 const STATUS_LABELS: Record<string, string> = {
   UNCONFIRMED: '미확인', RECEIVED: '접수', PENDING: '대기', CONFIRMED: '확인',
@@ -36,6 +37,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         <h1 className="text-xl font-bold">주문 상세 {order.orderNo || `#${id}`}</h1>
         <Badge>{STATUS_LABELS[order.status] || order.status}</Badge>
       </div>
+
+      <CustomerLinkCard orderId={Number(id)} />
 
       <Card>
         <CardHeader><CardTitle className="text-base">주문 정보</CardTitle></CardHeader>

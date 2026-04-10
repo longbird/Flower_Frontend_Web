@@ -19,6 +19,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/admin') ||
     pathname.startsWith('/partner') ||
     pathname.startsWith('/branch') ||
+    pathname.startsWith('/o/') || // 고객 확인 URL (공개)
     pathname.includes('.') // static files (favicon, etc.)
   ) {
     return NextResponse.next();

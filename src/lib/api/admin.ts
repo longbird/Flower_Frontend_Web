@@ -279,3 +279,36 @@ export async function createOrder(data: Record<string, unknown>) {
     body: JSON.stringify(data),
   });
 }
+
+// ─── Order Public Link (고객 확인 URL) ──────────────────────
+export interface OrderPublicLinkInfo {
+  shortCode: string | null;
+  shortUrl: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  reactivatedAt: string | null;
+  reactivatedBy: string | null;
+  lastSentAt: string | null;
+  sendCount: number;
+  isActive: boolean;
+}
+
+export async function getOrderPublicLink(orderId: number) {
+  return api<{ ok: boolean; data?: OrderPublicLinkInfo; message?: string }>(
+    `/admin/orders/${orderId}/public-link`,
+  );
+}
+
+export async function reactivateOrderPublicLink(orderId: number) {
+  return api<{ ok: boolean; message?: string }>(
+    `/admin/orders/${orderId}/public-link/reactivate`,
+    { method: 'POST' },
+  );
+}
+
+export async function resendOrderPublicLink(orderId: number) {
+  return api<{ ok: boolean; shortCode?: string; shortUrl?: string; message?: string }>(
+    `/admin/orders/${orderId}/public-link/resend`,
+    { method: 'POST' },
+  );
+}
