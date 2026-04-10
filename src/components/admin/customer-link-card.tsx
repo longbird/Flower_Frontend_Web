@@ -9,11 +9,18 @@ import {
   getOrderPublicLink,
   reactivateOrderPublicLink,
   resendOrderPublicLink,
+  getConsultRequestPublicLink,
+  reactivateConsultRequestPublicLink,
+  resendConsultRequestPublicLink,
 } from '@/lib/api/admin';
 import { cn } from '@/lib/utils';
 
 interface CustomerLinkCardProps {
   orderId: number;
+  /** 'ORDER' (기본) 또는 'CONSULT_REQUEST' (지사 상담요청) */
+  targetType?: 'ORDER' | 'CONSULT_REQUEST';
+  /** 카드 컴팩트 모드 (상담요청 펼친 영역 안에 작게 표시) */
+  compact?: boolean;
 }
 
 function formatDateTime(s?: string | null): string {
@@ -27,15 +34,27 @@ function formatDateTime(s?: string | null): string {
   }
 }
 
-export function CustomerLinkCard({ orderId }: CustomerLinkCardProps) {
+export function CustomerLinkCard({
+  orderId,
+  targetType = 'ORDER',
+  compact = false,
+}: CustomerLinkCardProps) {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState<'resend' | 'reactivate' | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
+  const isConsult = targetType === 'CONSULT_REQUEST';
+  const queryKey = isConsult
+    ? ['admin-consult-public-link', orderId]
+    : ['admin-order-public-link', orderId];
+  const getFn = isConsult ? getConsultRequestPublicLink : getOrderPublicLink;
+  const reactivateFn = isConsult ? reactivateConsultRequestPublicLink : reactivateOrderPublicLink;
+  const resendFn = isConsult ? resendConsultRequestPublicLink : resendOrderPublicLink;
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-order-public-link', orderId],
-    queryFn: () => getOrderPublicLink(orderId),
+    queryKey,
+    queryFn: () => getFn(orderId),
   });
 
   const info = data?.ok && data.data ? data.data : null;
@@ -59,10 +78,10 @@ export function CustomerLinkCard({ orderId }: CustomerLinkCardProps) {
   const handleResend = async () => {
     setBusy('resend');
     try {
-      const res = await resendOrderPublicLink(orderId);
+      const res = await resendFn(orderId);
       if (res.ok) {
         showToast('고객에게 SMS가 발송되었습니다');
-        queryClient.invalidateQueries({ queryKey: ['admin-order-public-link', orderId] });
+        queryClient.invalidateQueries({ queryKey });
       } else {
         showToast(res.message || '발송 실패');
       }
@@ -79,10 +98,10 @@ export function CustomerLinkCard({ orderId }: CustomerLinkCardProps) {
     }
     setBusy('reactivate');
     try {
-      const res = await reactivateOrderPublicLink(orderId);
+      const res = await reactivateFn(orderId);
       if (res.ok) {
         showToast('재활성화되었습니다');
-        queryClient.invalidateQueries({ queryKey: ['admin-order-public-link', orderId] });
+        queryClient.invalidateQueries({ queryKey });
       } else {
         showToast(res.message || '재활성화 실패');
       }
@@ -94,6 +113,9 @@ export function CustomerLinkCard({ orderId }: CustomerLinkCardProps) {
   };
 
   if (isLoading) {
+    if (compact) {
+      return <div className="text-xs text-slate-500">고객 확인 URL 로딩 중...</div>;
+    }
     return (
       <Card>
         <CardContent className="p-5 text-sm text-slate-500">
@@ -103,9 +125,8 @@ export function CustomerLinkCard({ orderId }: CustomerLinkCardProps) {
     );
   }
 
-  return (
-    <Card>
-      <CardContent className="p-5 space-y-3">
+  const inner = (
+    <>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-700">고객 확인 URL</h2>
           {info && (
@@ -125,9 +146,9 @@ export function CustomerLinkCard({ orderId }: CustomerLinkCardProps) {
         </div>
 
         {!info ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <p className="text-xs text-slate-500">
-              아직 발급된 URL이 없습니다. 주문이 새로 접수되면 자동 발급됩니다.
+              아직 발급된 URL이 없습니다.
             </p>
             <Button
               size="sm"
@@ -203,6 +224,21 @@ export function CustomerLinkCard({ orderId }: CustomerLinkCardProps) {
             {toast}
           </p>
         )}
+    </>
+  );
+
+  if (compact) {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="space-y-3">{inner}</div>
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="space-y-3">{inner}</div>
       </CardContent>
     </Card>
   );

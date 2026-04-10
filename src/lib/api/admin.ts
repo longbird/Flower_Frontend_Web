@@ -312,3 +312,24 @@ export async function resendOrderPublicLink(orderId: number) {
     { method: 'POST' },
   );
 }
+
+// ─── Consult Request Public Link (지사 상담요청 고객 확인 URL) ─
+export async function getConsultRequestPublicLink(consultId: number) {
+  return api<{ ok: boolean; data?: OrderPublicLinkInfo; message?: string }>(
+    `/admin/orders/consult-requests/${consultId}/public-link`,
+  );
+}
+
+export async function reactivateConsultRequestPublicLink(consultId: number) {
+  return api<{ ok: boolean; message?: string }>(
+    `/admin/orders/consult-requests/${consultId}/public-link/reactivate`,
+    { method: 'POST' },
+  );
+}
+
+export async function resendConsultRequestPublicLink(consultId: number) {
+  return api<{ ok: boolean; shortCode?: string; shortUrl?: string; message?: string }>(
+    `/admin/orders/consult-requests/${consultId}/public-link/resend`,
+    { method: 'POST' },
+  );
+}

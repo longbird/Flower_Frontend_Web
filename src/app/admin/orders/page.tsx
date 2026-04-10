@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { CustomerLinkCard } from '@/components/admin/customer-link-card';
+import { resendOrderPublicLink } from '@/lib/api/admin';
 
 // ─── Orders Tab ─────────────────────────────────────────────────
 
@@ -318,6 +320,13 @@ function BranchConsultsPanel() {
                       </div>
                     )}
 
+                    {/* 고객 확인 URL */}
+                    <CustomerLinkCard
+                      orderId={item.id}
+                      targetType="CONSULT_REQUEST"
+                      compact
+                    />
+
                     {/* Status change buttons */}
                     <div className="flex items-center gap-2 pt-1">
                       <span className="text-xs text-slate-500">상태 변경:</span>
@@ -356,6 +365,69 @@ function BranchConsultsPanel() {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Order List Row (with quick resend SMS button) ─────────────
+
+function OrderListRow({ order, onClick }: { order: any; onClick: () => void }) {
+  const [sending, setSending] = useState(false);
+  const [sentMsg, setSentMsg] = useState<string | null>(null);
+
+  const handleResend = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (sending) return;
+    setSending(true);
+    setSentMsg(null);
+    try {
+      const res = await resendOrderPublicLink(order.id);
+      setSentMsg(res.ok ? '발송됨' : (res.message || '실패'));
+    } catch (err: any) {
+      setSentMsg('실패');
+    } finally {
+      setSending(false);
+      setTimeout(() => setSentMsg(null), 3000);
+    }
+  };
+
+  return (
+    <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-sm">{order.orderNo || `#${order.id}`}</span>
+              <Badge className={cn('text-[10px]', STATUS_COLORS[order.status] || 'bg-slate-100')}>
+                {STATUS_LABELS[order.status] || order.status}
+              </Badge>
+            </div>
+            <div className="text-xs text-slate-500 truncate">
+              {order.receiverName || '-'} · {order.totalPrice != null ? `${Number(order.totalPrice).toLocaleString()}원` : '-'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={sending}
+              onClick={handleResend}
+              className={cn(
+                'px-2 py-1 text-[11px] rounded border transition-colors',
+                sentMsg
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
+                sending && 'opacity-50',
+              )}
+              title="고객에게 확인 URL SMS 발송"
+            >
+              {sending ? '발송...' : (sentMsg || 'SMS 발송')}
+            </button>
+            <div className="text-xs text-slate-400">
+              {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ko-KR') : ''}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -457,24 +529,7 @@ export default function OrdersPage() {
           {orders.length > 0 && (
             <div className="space-y-2">
               {orders.map((order: any) => (
-                <Card key={order.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push(`/admin/orders/${order.id}`)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{order.orderNo || `#${order.id}`}</span>
-                          <Badge className={cn('text-[10px]', STATUS_COLORS[order.status] || 'bg-slate-100')}>
-                            {STATUS_LABELS[order.status] || order.status}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-slate-500 truncate">
-                          {order.receiverName || '-'} · {order.totalPrice != null ? `${Number(order.totalPrice).toLocaleString()}원` : '-'}
-                        </div>
-                      </div>
-                      <div className="text-xs text-slate-400 shrink-0">{order.createdAt ? new Date(order.createdAt).toLocaleDateString('ko-KR') : ''}</div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <OrderListRow key={order.id} order={order} onClick={() => router.push(`/admin/orders/${order.id}`)} />
               ))}
             </div>
           )}
