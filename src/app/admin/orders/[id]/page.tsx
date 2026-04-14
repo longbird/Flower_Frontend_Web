@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CustomerLinkCard } from '@/components/admin/customer-link-card';
+import { OrderDeliveryCard } from '@/components/admin/order-delivery-card';
 
 const STATUS_LABELS: Record<string, string> = {
   UNCONFIRMED: '미확인', RECEIVED: '접수', PENDING: '대기', CONFIRMED: '확인',
@@ -86,6 +87,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           </CardContent>
         </Card>
       )}
+
+      <OrderDeliveryCard
+        orderId={Number(id)}
+        initialRecipientName={order.recipientActualName}
+        initialReceivedAt={order.receivedAt}
+        initialRecipientRelationship={order.recipientRelationship}
+      />
 
       <div className="text-xs text-slate-400">
         생성: {order.createdAt ? new Date(order.createdAt).toLocaleString('ko-KR') : '-'}
