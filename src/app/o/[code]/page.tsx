@@ -2,20 +2,21 @@
 
 import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { fetchCustomerOrderView, type CustomerOrderView } from '@/lib/api/order-link';
 import {
-  fetchCustomerOrderView,
-  resolvePhotoUrl,
-  type CustomerOrderView,
-} from '@/lib/api/order-link';
+  ProductInfoSection,
+  DeliveryInfoSection,
+  ReceiverInfoSection,
+  RibbonMessageSection,
+  InvoiceInfoSection,
+} from '@/components/customer/order-info-sections';
+import { RecipientInfoSection } from '@/components/customer/recipient-info-section';
+import { ActionButtons } from '@/components/customer/action-buttons';
 
-// ─── 상태 매핑 ──────────────────────────────────────────────
-// 주문(orders) + 상담요청(branch_consult_requests) 상태값을 모두 매핑
 const STATUS_LABELS: Record<string, string> = {
-  // 주문 상태
   UNCONFIRMED: '접수 확인 중',
   ORDER_RECEIVED: '주문 접수',
   RECEIVED: '주문 접수',
@@ -30,7 +31,6 @@ const STATUS_LABELS: Record<string, string> = {
   ORDER_DELIVERED: '배송 완료',
   CANCELED: '주문 취소',
   ORDER_CANCELED: '주문 취소',
-  // 상담요청 상태
   NEW: '요청 접수',
   IN_PROGRESS: '처리 중',
   COMPLETED: '완료',
@@ -38,7 +38,6 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  // 주문 상태
   UNCONFIRMED: 'bg-gray-100 text-gray-800',
   ORDER_RECEIVED: 'bg-sky-100 text-sky-800',
   RECEIVED: 'bg-sky-100 text-sky-800',
@@ -53,14 +52,12 @@ const STATUS_COLORS: Record<string, string> = {
   ORDER_DELIVERED: 'bg-emerald-100 text-emerald-800',
   CANCELED: 'bg-red-100 text-red-800',
   ORDER_CANCELED: 'bg-red-100 text-red-800',
-  // 상담요청 상태
   NEW: 'bg-sky-100 text-sky-800',
   IN_PROGRESS: 'bg-amber-100 text-amber-800',
   COMPLETED: 'bg-emerald-100 text-emerald-800',
   CANCELLED: 'bg-red-100 text-red-800',
 };
 
-// 진행 단계 (타임라인) — 주문(ORDER) 타입
 const TIMELINE_STEPS_ORDER = [
   { key: 'received', label: '주문 접수', matches: ['UNCONFIRMED', 'ORDER_RECEIVED', 'RECEIVED', 'PENDING', 'CONFIRMED', 'NEW'] },
   { key: 'assigned', label: '화원 배정', matches: ['ASSIGNED', 'PARTNER_ACCEPTED', 'ACCEPTED'] },
@@ -69,7 +66,6 @@ const TIMELINE_STEPS_ORDER = [
   { key: 'delivered', label: '배송 완료', matches: ['DELIVERED', 'ORDER_DELIVERED', 'COMPLETED'] },
 ];
 
-// 진행 단계 (타임라인) — 상담요청(CONSULT_REQUEST) 타입
 const TIMELINE_STEPS_CONSULT = [
   { key: 'new', label: '요청 접수', matches: ['NEW'] },
   { key: 'in_progress', label: '처리 중', matches: ['IN_PROGRESS'] },
@@ -99,25 +95,6 @@ function formatBranchPhone(phone?: string | null): string | null {
   return phone;
 }
 
-// ─── 포맷 헬퍼 ──────────────────────────────────────────────
-function formatDateTime(s?: string | null) {
-  if (!s) return '';
-  try {
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return s;
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  } catch {
-    return s;
-  }
-}
-
-function formatAmount(n?: number | null) {
-  if (n == null) return '';
-  return `${n.toLocaleString('ko-KR')}원`;
-}
-
-
-// ─── 메인 페이지 ──────────────────────────────────────────────
 export default function CustomerOrderPage({
   params,
 }: {
@@ -129,7 +106,7 @@ export default function CustomerOrderPage({
     queryKey: ['customer-order-view', code],
     queryFn: () => fetchCustomerOrderView(code),
     retry: false,
-    refetchInterval: 30_000, // 30초마다 자동 새로고침
+    refetchInterval: 30_000,
   });
 
   if (isLoading) {
@@ -168,12 +145,11 @@ export default function CustomerOrderPage({
     );
   }
 
-  return <OrderView view={data.data} />;
+  return <OrderView view={data.data} code={code} />;
 }
 
-// ─── 뷰 컴포넌트 ──────────────────────────────────────────────
-function OrderView({ view }: { view: CustomerOrderView }) {
-  const { order, deliveryPhotos, branchName, branchPhone } = view;
+export function OrderView({ view, code }: { view: CustomerOrderView; code: string }) {
+  const { order, branchName, branchPhone } = view;
   const statusLabel = STATUS_LABELS[order.status] || order.status;
   const statusColor = STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800';
   const cancelled = isCancelled(order.status);
@@ -183,46 +159,28 @@ function OrderView({ view }: { view: CustomerOrderView }) {
 
   return (
     <div className="space-y-4">
-      {/* 페이지 헤더 — 지사명 */}
+      {/* 1. 헤더 */}
       <header className="mb-6 text-center">
-        <h1 className="text-lg font-bold text-slate-800">
-          {branchName || '달려라 꽃배달'}
-        </h1>
+        <h1 className="text-lg font-bold text-slate-800">{branchName || '달려라 꽃배달'}</h1>
         <p className="text-xs text-slate-500 mt-1">주문 진행 상황</p>
       </header>
 
-      {/* 상단 정보 카드 */}
+      {/* 상단 요약 */}
       <Card>
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-slate-500">주문번호</span>
-            <span className="text-xs text-slate-700 font-mono">
-              {order.orderNo || '-'}
-            </span>
+            <span className="text-xs text-slate-700 font-mono">{order.orderNo || '-'}</span>
           </div>
-          <div className="flex items-center gap-2 mb-1">
-            <Badge className={cn('text-xs font-medium', statusColor)}>
-              {statusLabel}
-            </Badge>
-          </div>
-          <p className="text-base font-semibold text-slate-800 mt-2">
-            {order.receiverName ? `${order.receiverName}님께` : ''}
-          </p>
-          {order.desiredDatetime && (
-            <p className="text-sm text-slate-600 mt-1">
-              배송 희망: {formatDateTime(order.desiredDatetime)}
-            </p>
-          )}
+          <Badge className={cn('text-xs font-medium', statusColor)}>{statusLabel}</Badge>
         </CardContent>
       </Card>
 
-      {/* 진행 상황 타임라인 */}
+      {/* 2. 진행 타임라인 */}
       {!cancelled && (
         <Card>
           <CardContent className="p-5">
-            <h2 className="text-sm font-semibold text-slate-700 mb-4">
-              진행 상황
-            </h2>
+            <h2 className="text-sm font-semibold text-slate-700 mb-4">진행 상황</h2>
             <ol className="relative border-l-2 border-slate-200 ml-2">
               {timelineSteps.map((step, i) => {
                 const active = i <= stepIdx;
@@ -250,95 +208,37 @@ function OrderView({ view }: { view: CustomerOrderView }) {
         </Card>
       )}
 
-      {/* 배달 완료 사진 */}
-      {deliveryPhotos && deliveryPhotos.length > 0 && (
-        <Card>
-          <CardContent className="p-5">
-            <h2 className="text-sm font-semibold text-slate-700 mb-3">
-              배달 완료 사진
-            </h2>
-            <div className="grid grid-cols-2 gap-2">
-              {deliveryPhotos.map((p) => (
-                <div
-                  key={p.id}
-                  className="relative aspect-square rounded-lg overflow-hidden border border-slate-200"
-                >
-                  <Image
-                    src={resolvePhotoUrl(p.url)}
-                    alt="배달 사진"
-                    fill
-                    sizes="(max-width: 640px) 50vw, 33vw"
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* 3-7. 정보 섹션들 */}
+      <ProductInfoSection order={order} />
+      <DeliveryInfoSection order={order} />
+      <ReceiverInfoSection order={order} />
+      <RibbonMessageSection order={order} />
+      <InvoiceInfoSection order={order} />
 
-      {/* 주문 정보 */}
-      <Card>
-        <CardContent className="p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700 mb-2">
-            주문 정보
-          </h2>
-          <InfoRow label="받는 분" value={order.receiverName || '-'} />
-          <InfoRow
-            label="배송 주소"
-            value={
-              [order.deliveryAddress1, order.deliveryAddress2]
-                .filter(Boolean)
-                .join(' ') || '-'
-            }
-          />
-          {order.amountTotal != null && (
-            <InfoRow label="주문 금액" value={formatAmount(order.amountTotal)} />
-          )}
-        </CardContent>
-      </Card>
+      {/* 8. 인수자 정보 (DELIVERED 시만) */}
+      <RecipientInfoSection view={view} />
 
-      {/* 카드 메시지 / 리본 */}
-      {(order.cardMessage || order.ribbonRight || order.memo) && (
-        <Card>
-          <CardContent className="p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-slate-700 mb-2">
-              메시지
-            </h2>
-            {order.cardMessage && (
-              <InfoRow label="리본(좌)" value={order.cardMessage} />
-            )}
-            {order.ribbonRight && (
-              <InfoRow label="리본(우)" value={order.ribbonRight} />
-            )}
-            {order.memo && <InfoRow label="메모" value={order.memo} />}
-          </CardContent>
-        </Card>
-      )}
+      {/* 9. 액션 버튼 */}
+      <ActionButtons
+        code={code}
+        branchPhone={branchPhone}
+        customerConfirmedAt={order.customerConfirmedAt}
+      />
 
-      {/* 문의 지사 연락처 */}
+      {/* 10. Footer */}
       <div className="pt-4 pb-2 text-center text-xs text-slate-500">
         {branchName && <div className="font-medium">{branchName}</div>}
         {formattedBranchPhone ? (
           <div className="mt-1">
-            문의: <a href={`tel:${branchPhone}`} className="text-slate-700 hover:underline">{formattedBranchPhone}</a>
+            문의:{' '}
+            <a href={`tel:${branchPhone}`} className="text-slate-700 hover:underline">
+              {formattedBranchPhone}
+            </a>
           </div>
         ) : (
           <div className="mt-1">문의는 주문 접수 지사로 연락 주세요.</div>
         )}
       </div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <span className="text-xs text-slate-500 shrink-0 w-20">{label}</span>
-      <span className="text-sm text-slate-800 text-right flex-1 break-keep">
-        {value}
-      </span>
     </div>
   );
 }
