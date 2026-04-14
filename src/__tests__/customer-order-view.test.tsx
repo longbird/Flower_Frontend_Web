@@ -143,6 +143,31 @@ describe('OrderView (customer page)', () => {
     expect(screen.queryByRole('link', { name: /수정 요청 전화/ })).not.toBeInTheDocument();
   });
 
+  it('사진 클릭 시 라이트박스 열리고 닫기 버튼으로 닫힘', () => {
+    renderView(
+      baseView(
+        { status: 'DELIVERED' },
+        {
+          deliveryPhotos: [{ id: 1, url: '/uploads/a.jpg', createdAt: '2025-12-22T16:00:00' }],
+          scenePhotos: [],
+        },
+      ),
+    );
+
+    // 사진은 <button> 으로 감싸여 있어야 함 (확대 보기 가능)
+    const photoButton = screen.getByRole('button', { name: /배송 사진 1 확대 보기/ });
+    fireEvent.click(photoButton);
+
+    // 라이트박스 dialog 표시
+    const dialog = screen.getByRole('dialog', { name: /사진 확대/ });
+    expect(dialog).toBeInTheDocument();
+
+    // X 닫기 버튼
+    const closeBtn = screen.getByRole('button', { name: '닫기' });
+    fireEvent.click(closeBtn);
+    expect(screen.queryByRole('dialog', { name: /사진 확대/ })).not.toBeInTheDocument();
+  });
+
   it('상품명 + 배송 장소 + 보내는 분 + 발행 방식 섹션 표시 (매트릭스)', () => {
     renderView(
       baseView({
