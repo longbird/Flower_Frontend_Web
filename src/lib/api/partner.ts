@@ -159,3 +159,20 @@ export async function listProofs(orderId: number) {
     `/partner/orders/${orderId}/proofs`
   );
 }
+
+// ─── Recipient Info ──────────────────────────────────────
+export interface PartnerRecipientInfoPayload {
+  name: string;
+  receivedAt: string;
+  relationship: string;
+}
+
+export async function updatePartnerRecipientInfo(
+  orderId: number,
+  payload: PartnerRecipientInfoPayload,
+): Promise<{ ok: boolean }> {
+  return partnerApi<{ ok: boolean }>(`/partner/orders/${orderId}/recipient-info`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
