@@ -1,4 +1,5 @@
 import { api } from '@/lib/api/client';
+import { idempotencyKey } from '@/lib/idempotency-key';
 import type { ProofItem } from '@/lib/types/partner';
 
 export type ProofType = 'DELIVERY_PHOTO' | 'SCENE_PHOTO';
@@ -27,10 +28,6 @@ export interface RecipientInfoPayload {
   name: string;
   receivedAt: string;
   relationship: string;
-}
-
-function idempotencyKey() {
-  return crypto.randomUUID();
 }
 
 export async function presignAdminProof(

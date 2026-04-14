@@ -1,4 +1,5 @@
 import { usePartnerAuthStore } from '@/lib/auth/partner-store';
+import { idempotencyKey } from '@/lib/idempotency-key';
 import type {
   PartnerStep1Response,
   PartnerStep2Response,
@@ -48,10 +49,6 @@ async function partnerApi<T = unknown>(
 
   if (res.status === 204) return undefined as T;
   return res.json();
-}
-
-function idempotencyKey() {
-  return crypto.randomUUID();
 }
 
 // ─── Auth ────────────────────────────────────────────────
