@@ -116,15 +116,6 @@ export async function confirmCustomerOrder(code: string): Promise<ConfirmOrderRe
 }
 
 /**
- * 배달 사진 원본 URL 해석 (상대경로 → 절대 프록시 경로).
+ * 배달 사진 원본 URL 해석 (상대경로 → Next.js rewrites 프록시 경로).
  */
-export function resolvePhotoUrl(url: string): string {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (base) {
-    if (url.startsWith('/')) return `${base}${url}`;
-    return `${base}/${url}`;
-  }
-  return url;
-}
+export { toProxyUrl as resolvePhotoUrl } from '@/lib/proxy-url';

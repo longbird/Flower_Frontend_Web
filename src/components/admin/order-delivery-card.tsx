@@ -14,15 +14,8 @@ import {
   updateAdminRecipientInfo,
   type ProofType,
 } from '@/lib/api/admin-orders';
+import { toProxyUrl as proofUrl } from '@/lib/proxy-url';
 import type { ProofItem } from '@/lib/types/partner';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-function proofUrl(url: string) {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 /**
  * ISO 문자열(`2025-12-22T16:07:00Z` 등)을 datetime-local input 형식(`YYYY-MM-DDTHH:mm`)으로 변환.

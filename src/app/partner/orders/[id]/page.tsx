@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toProxyUrl as proofUrl } from '@/lib/proxy-url';
 
 const STATUS_LABELS: Record<string, string> = {
   ASSIGNED: '배정됨',
@@ -30,14 +31,6 @@ const STATUS_LABELS: Record<string, string> = {
   DONE: '완료',
   CANCELLED: '취소',
 };
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-function proofUrl(url: string) {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 export default function PartnerOrderDetailPage({
   params,
