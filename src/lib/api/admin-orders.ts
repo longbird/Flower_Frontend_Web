@@ -39,6 +39,16 @@ export async function listAdminProofs(
   return api<{ ok: boolean; items: ProofItem[] }>(`/admin/orders/${orderId}/proofs`);
 }
 
+export async function deleteAdminProof(
+  orderId: number,
+  proofId: number,
+): Promise<{ ok: boolean; deletedId: number }> {
+  return api<{ ok: boolean; deletedId: number }>(
+    `/admin/orders/${orderId}/proofs/${proofId}`,
+    { method: 'DELETE' },
+  );
+}
+
 export async function updateAdminRecipientInfo(
   orderId: number,
   payload: RecipientInfoPayload,

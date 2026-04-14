@@ -12,6 +12,7 @@ vi.mock('@/lib/api/admin-orders', async () => {
     listAdminProofs: vi.fn(),
     uploadAdminProof: vi.fn(),
     updateAdminRecipientInfo: vi.fn(),
+    deleteAdminProof: vi.fn(),
   };
 });
 
@@ -28,11 +29,13 @@ import {
   listAdminProofs,
   uploadAdminProof,
   updateAdminRecipientInfo,
+  deleteAdminProof,
 } from '@/lib/api/admin-orders';
 
 const mockList = listAdminProofs as ReturnType<typeof vi.fn>;
 const mockUpload = uploadAdminProof as ReturnType<typeof vi.fn>;
 const mockUpdateRecipient = updateAdminRecipientInfo as ReturnType<typeof vi.fn>;
+const mockDelete = deleteAdminProof as ReturnType<typeof vi.fn>;
 
 function renderCard(props: Partial<React.ComponentProps<typeof OrderDeliveryCard>> = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -48,6 +51,7 @@ describe('OrderDeliveryCard', () => {
     mockList.mockReset();
     mockUpload.mockReset();
     mockUpdateRecipient.mockReset();
+    mockDelete.mockReset();
   });
 
   afterEach(() => {
@@ -137,6 +141,38 @@ describe('OrderDeliveryCard', () => {
     await waitFor(() => {
       expect(mockUpload).toHaveBeenCalledWith(123, file, 'DELIVERY_PHOTO');
     });
+  });
+
+  it('사진 삭제 버튼 클릭 시 confirm 후 deleteAdminProof 호출', async () => {
+    mockList.mockResolvedValue({
+      ok: true,
+      items: [
+        { id: 99, proofType: 'DELIVERY_PHOTO', fileUrl: '/uploads/x.jpg' },
+      ],
+    });
+    mockDelete.mockResolvedValue({ ok: true, deletedId: 99 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderCard();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '사진 삭제' })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '사진 삭제' }));
+
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith(123, 99));
+  });
+
+  it('id 없는 사진은 삭제 버튼 미표시 (legacy 데이터)', async () => {
+    mockList.mockResolvedValue({
+      ok: true,
+      items: [{ proofType: 'DELIVERY_PHOTO', fileUrl: '/legacy.jpg' }],
+    });
+    renderCard();
+    await waitFor(() => {
+      const img = screen.getByRole('img', { name: /배송사진/ });
+      expect(img).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: '사진 삭제' })).not.toBeInTheDocument();
   });
 
   it('현장사진 탭에서 업로드 시 proofType=SCENE_PHOTO로 전송', async () => {

@@ -74,6 +74,8 @@ export interface PresignResponse {
 }
 
 export interface ProofItem {
+  id?: number;
   proofType: string;
   fileUrl: string;
+  createdAt?: string;
 }

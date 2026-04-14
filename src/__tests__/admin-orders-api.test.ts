@@ -3,6 +3,7 @@ import {
   uploadAdminProof,
   listAdminProofs,
   updateAdminRecipientInfo,
+  deleteAdminProof,
 } from '@/lib/api/admin-orders';
 
 vi.mock('@/lib/auth/store', () => ({
@@ -76,6 +77,21 @@ describe('admin-orders API', () => {
     const res = await listAdminProofs(123);
     expect(res.items).toHaveLength(2);
     expect(res.items[0].proofType).toBe('DELIVERY_PHOTO');
+  });
+
+  it('deleteAdminProof DELETEs by orderId/proofId', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, deletedId: 42 }),
+    } as Response);
+
+    const res = await deleteAdminProof(123, 42);
+    expect(res.ok).toBe(true);
+    expect(res.deletedId).toBe(42);
+    const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(call[0]).toContain('/admin/orders/123/proofs/42');
+    expect(call[1].method).toBe('DELETE');
   });
 
   it('updateAdminRecipientInfo PATCHes with full payload', async () => {

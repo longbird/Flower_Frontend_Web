@@ -12,6 +12,7 @@ import {
   uploadAdminProof,
   listAdminProofs,
   updateAdminRecipientInfo,
+  deleteAdminProof,
   type ProofType,
 } from '@/lib/api/admin-orders';
 import { toProxyUrl as proofUrl } from '@/lib/proxy-url';
@@ -83,6 +84,23 @@ export function OrderDeliveryCard({
     }
   };
 
+  const deleteProofMutation = useMutation({
+    mutationFn: (proofId: number) => deleteAdminProof(orderId, proofId),
+    onSuccess: () => {
+      toast.success('사진이 삭제되었습니다.');
+      queryClient.invalidateQueries({ queryKey: ['admin-order-proofs', orderId] });
+    },
+    onError: (e) => {
+      toast.error(e instanceof Error ? e.message : '삭제 실패');
+    },
+  });
+
+  const handleDelete = (proofId: number | undefined) => {
+    if (!proofId) return;
+    if (!window.confirm('이 사진을 삭제하시겠습니까?')) return;
+    deleteProofMutation.mutate(proofId);
+  };
+
   const saveRecipient = useMutation({
     mutationFn: () =>
       updateAdminRecipientInfo(orderId, {
@@ -148,7 +166,7 @@ export function OrderDeliveryCard({
             {activePhotos.map((p, i) => (
               <div
                 key={`${p.fileUrl}-${i}`}
-                className="relative aspect-square rounded-lg overflow-hidden border border-slate-200"
+                className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200"
               >
                 <Image
                   src={proofUrl(p.fileUrl)}
@@ -158,6 +176,17 @@ export function OrderDeliveryCard({
                   sizes="33vw"
                   unoptimized
                 />
+                {p.id != null && (
+                  <button
+                    type="button"
+                    aria-label="사진 삭제"
+                    onClick={() => handleDelete(p.id)}
+                    disabled={deleteProofMutation.isPending}
+                    className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>
