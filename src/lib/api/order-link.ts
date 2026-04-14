@@ -33,7 +33,7 @@ export interface CustomerOrderView {
     desiredTimeSlot?: string | null;
     desiredDatetime?: string | null;
     status: string;
-    amountTotal?: number | null;
+    amountTotal?: number | string | null;
     createdAt?: string | null;
     productName?: string | null;
     senderName?: string | null;
