@@ -9,11 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  presignAdminProof,
-  completeAdminProof,
+  uploadAdminProof,
   listAdminProofs,
   updateAdminRecipientInfo,
-  uploadAdminProofFile,
   type ProofType,
 } from '@/lib/api/admin-orders';
 import type { ProofItem } from '@/lib/types/partner';
@@ -81,18 +79,7 @@ export function OrderDeliveryCard({
 
     setUploading(true);
     try {
-      const presign = await presignAdminProof(orderId, {
-        fileName: file.name,
-        contentType: file.type,
-        size: file.size,
-        proofType: activeTab,
-      });
-      await uploadAdminProofFile(presign.uploadUrl, file, presign.headers);
-      await completeAdminProof(orderId, {
-        proofType: activeTab,
-        fileUrl: presign.fileUrl,
-        fileKey: presign.fileKey,
-      });
+      await uploadAdminProof(orderId, file, activeTab);
       toast.success('사진이 업로드되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['admin-order-proofs', orderId] });
     } catch (err) {

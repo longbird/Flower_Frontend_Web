@@ -1,27 +1,12 @@
 import { api } from '@/lib/api/client';
-import { idempotencyKey } from '@/lib/idempotency-key';
 import type { ProofItem } from '@/lib/types/partner';
 
 export type ProofType = 'DELIVERY_PHOTO' | 'SCENE_PHOTO';
 
-export interface AdminPresignRequest {
-  fileName: string;
-  contentType: string;
-  size: number;
-  proofType: ProofType;
-}
-
-export interface AdminPresignResponse {
-  uploadUrl: string;
+export interface AdminUploadProofResponse {
+  ok: boolean;
+  proofId: number;
   fileUrl: string;
-  fileKey: string;
-  headers?: Record<string, string>;
-}
-
-export interface AdminCompleteProofRequest {
-  proofType: ProofType;
-  fileUrl: string;
-  fileKey?: string;
 }
 
 export interface RecipientInfoPayload {
@@ -30,25 +15,21 @@ export interface RecipientInfoPayload {
   relationship: string;
 }
 
-export async function presignAdminProof(
+/**
+ * Admin 증빙 사진 업로드 (multipart/form-data 단일 호출).
+ * 서버: POST /admin/orders/:id/proofs/upload (FileInterceptor + StorageService)
+ */
+export async function uploadAdminProof(
   orderId: number,
-  payload: AdminPresignRequest,
-): Promise<AdminPresignResponse> {
-  return api<AdminPresignResponse>(`/admin/orders/${orderId}/proofs/presign`, {
+  file: File,
+  proofType: ProofType,
+): Promise<AdminUploadProofResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('proofType', proofType);
+  return api<AdminUploadProofResponse>(`/admin/orders/${orderId}/proofs/upload`, {
     method: 'POST',
-    headers: { 'Idempotency-Key': idempotencyKey() },
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function completeAdminProof(
-  orderId: number,
-  payload: AdminCompleteProofRequest,
-): Promise<{ ok: boolean }> {
-  return api<{ ok: boolean }>(`/admin/orders/${orderId}/proofs/complete`, {
-    method: 'POST',
-    headers: { 'Idempotency-Key': idempotencyKey() },
-    body: JSON.stringify(payload),
+    body: formData,
   });
 }
 
@@ -66,21 +47,4 @@ export async function updateAdminRecipientInfo(
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
-}
-
-/**
- * presigned URL로 파일 PUT 업로드.
- * partner.ts의 uploadToPresignedUrl과 동일 로직이지만 의존성 분리 목적으로 복사.
- */
-export async function uploadAdminProofFile(
-  uploadUrl: string,
-  file: File,
-  headers?: Record<string, string>,
-): Promise<void> {
-  const res = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: { ...headers, 'Content-Type': file.type },
-    body: file,
-  });
-  if (!res.ok) throw new Error('파일 업로드 실패');
 }

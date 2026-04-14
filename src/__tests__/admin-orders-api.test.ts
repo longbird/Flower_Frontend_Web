@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  presignAdminProof,
-  completeAdminProof,
+  uploadAdminProof,
   listAdminProofs,
   updateAdminRecipientInfo,
 } from '@/lib/api/admin-orders';
@@ -28,46 +27,37 @@ describe('admin-orders API', () => {
     vi.restoreAllMocks();
   });
 
-  it('presignAdminProof POSTs with proofType', async () => {
+  it('uploadAdminProof POSTs multipart with file + proofType', async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({
-        uploadUrl: 'https://s3/put',
-        fileUrl: '/uploads/x.jpg',
-        fileKey: 'x.jpg',
-        headers: {},
-      }),
+      json: async () => ({ ok: true, proofId: 1, fileUrl: '/uploads/x.jpg' }),
     } as Response);
 
-    const res = await presignAdminProof(123, {
-      fileName: 'photo.jpg',
-      contentType: 'image/jpeg',
-      size: 1024,
-      proofType: 'DELIVERY_PHOTO',
-    });
-    expect(res.uploadUrl).toBe('https://s3/put');
+    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+    const res = await uploadAdminProof(123, file, 'DELIVERY_PHOTO');
+    expect(res.ok).toBe(true);
+    expect(res.fileUrl).toBe('/uploads/x.jpg');
     const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(call[0]).toContain('/admin/orders/123/proofs/presign');
+    expect(call[0]).toContain('/admin/orders/123/proofs/upload');
     expect(call[1].method).toBe('POST');
-    const body = JSON.parse(call[1].body);
-    expect(body.proofType).toBe('DELIVERY_PHOTO');
+    expect(call[1].body).toBeInstanceOf(FormData);
+    const fd = call[1].body as FormData;
+    expect(fd.get('proofType')).toBe('DELIVERY_PHOTO');
+    expect(fd.get('file')).toBe(file);
   });
 
-  it('completeAdminProof sends proofType', async () => {
+  it('uploadAdminProof sends SCENE_PHOTO when scene tab selected', async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ ok: true }),
+      json: async () => ({ ok: true, proofId: 2, fileUrl: '/uploads/y.jpg' }),
     } as Response);
 
-    await completeAdminProof(123, {
-      proofType: 'SCENE_PHOTO',
-      fileUrl: '/uploads/a.jpg',
-      fileKey: 'a.jpg',
-    });
-    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
-    expect(body.proofType).toBe('SCENE_PHOTO');
+    const file = new File(['y'], 'scene.jpg', { type: 'image/jpeg' });
+    await uploadAdminProof(123, file, 'SCENE_PHOTO');
+    const fd = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body as FormData;
+    expect(fd.get('proofType')).toBe('SCENE_PHOTO');
   });
 
   it('listAdminProofs returns items', async () => {

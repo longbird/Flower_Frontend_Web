@@ -1,0 +1,159 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: F
+        - generic [ref=e8]: 달려라 꽃배달
+      - navigation [ref=e9]:
+        - link "대시보드" [ref=e10] [cursor=pointer]:
+          - /url: /admin/dashboard
+          - img [ref=e12]
+          - text: 대시보드
+        - link "주문" [ref=e14] [cursor=pointer]:
+          - /url: /admin/orders
+          - img [ref=e16]
+          - text: 주문
+        - button "결제" [ref=e19]:
+          - img [ref=e21]
+          - generic [ref=e23]: 결제
+          - img [ref=e24]
+        - link "화원 관리" [ref=e26] [cursor=pointer]:
+          - /url: /admin/florists
+          - img [ref=e28]
+          - text: 화원 관리
+        - button "관리" [ref=e31]:
+          - img [ref=e33]
+          - generic [ref=e35]: 관리
+          - img [ref=e36]
+        - button "통계" [ref=e39]:
+          - img [ref=e41]
+          - generic [ref=e43]: 통계
+          - img [ref=e44]
+        - button "감사" [ref=e47]:
+          - img [ref=e49]
+          - generic [ref=e51]: 감사
+          - img [ref=e52]
+        - button "설정" [ref=e55]:
+          - img [ref=e57]
+          - generic [ref=e60]: 설정
+          - img [ref=e61]
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]: a
+          - generic [ref=e66]:
+            - generic [ref=e67]: admin
+            - generic [ref=e68]: admin
+        - generic [ref=e69]:
+          - button "로그아웃" [ref=e70]
+          - button "메뉴 축소" [ref=e71]:
+            - img [ref=e72]
+    - generic [ref=e74]:
+      - banner [ref=e75]:
+        - generic [ref=e76]:
+          - img [ref=e77]
+          - textbox "검색..." [ref=e79]
+        - generic [ref=e80]:
+          - button [ref=e81]:
+            - img [ref=e82]
+          - generic [ref=e84]: a
+      - main [ref=e85]:
+        - generic [ref=e86]:
+          - heading "대시보드" [level=1] [ref=e87]
+          - generic [ref=e88]:
+            - generic [ref=e90]:
+              - paragraph [ref=e91]: 활성 화원
+              - paragraph [ref=e92]: "12"
+            - generic [ref=e94]:
+              - paragraph [ref=e95]: 오늘 주문
+              - paragraph [ref=e96]: "0"
+            - generic [ref=e98]:
+              - paragraph [ref=e99]: 오늘 매출
+              - paragraph [ref=e100]: 0원
+          - generic [ref=e101]:
+            - generic [ref=e102]:
+              - heading "화원 현황" [level=2] [ref=e103]
+              - button "전체보기" [ref=e104]
+            - generic [ref=e105]:
+              - generic [ref=e107] [cursor=pointer]:
+                - generic [ref=e108]:
+                  - generic [ref=e109]: 대지화원(서울중구5호)
+                  - generic [ref=e110]: 활성
+                - generic [ref=e111]: 02-2263-7744
+                - generic [ref=e112]: 서울 중구 충무로4가 120-3 진양꽃3층100대지화원
+                - generic [ref=e113]:
+                  - generic [ref=e114]: 꽃
+                  - generic [ref=e115]: 동양란
+              - generic [ref=e117] [cursor=pointer]:
+                - generic [ref=e118]:
+                  - generic [ref=e119]: 더플라워
+                  - generic [ref=e120]: 활성
+                - generic [ref=e121]: 010-5074-7282
+                - generic [ref=e122]: 강원도 춘천시
+                - generic [ref=e123]:
+                  - generic [ref=e124]: 근조(특대)
+                  - generic [ref=e125]: 축하기본
+              - generic [ref=e127] [cursor=pointer]:
+                - generic [ref=e128]:
+                  - generic [ref=e129]: 수연플라워(경기안산37호)
+                  - generic [ref=e130]: 활성
+                - generic [ref=e131]: 번호 010-5594-9563
+                - generic [ref=e132]: 경기 안산시 상록구 담원길 5
+                - generic [ref=e133]:
+                  - generic [ref=e134]: 축하기본
+                  - generic [ref=e135]: 근조기본
+              - generic [ref=e137] [cursor=pointer]:
+                - generic [ref=e138]:
+                  - generic [ref=e139]: 오드리플라워
+                  - generic [ref=e140]: 활성
+                - generic [ref=e141]: 010-3947-3771
+                - generic [ref=e142]: 경기 시흥시 신천3길 27-7 대양쉐르빌
+              - generic [ref=e144] [cursor=pointer]:
+                - img [ref=e145]
+                - generic [ref=e147]: 새로운 제휴 꽃집 추가
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - heading "새로 등록된 사진" [level=2] [ref=e150]
+              - button "전체보기" [ref=e151]
+            - generic [ref=e152]:
+              - generic [ref=e153] [cursor=pointer]:
+                - generic [ref=e154]:
+                  - img "화원 사진" [ref=e155]
+                  - generic [ref=e157]: 관엽
+                - generic [ref=e158]:
+                  - generic [ref=e159]: 부산골드플라워
+                  - generic [ref=e160]:
+                    - generic [ref=e161]: "-"
+                    - generic [ref=e162]: 2026. 3. 19.
+              - generic [ref=e163] [cursor=pointer]:
+                - generic [ref=e164]:
+                  - img "화원 사진" [ref=e165]
+                  - generic [ref=e167]: 관엽
+                - generic [ref=e168]:
+                  - generic [ref=e169]: ★헤이즈★부산
+                  - generic [ref=e170]:
+                    - generic [ref=e171]: "-"
+                    - generic [ref=e172]: 2026. 3. 19.
+              - generic [ref=e173] [cursor=pointer]:
+                - generic [ref=e174]:
+                  - img "화원 사진" [ref=e175]
+                  - generic [ref=e177]: 축하
+                - generic [ref=e178]:
+                  - generic [ref=e179]: ☆스타플라워☆
+                  - generic [ref=e180]:
+                    - generic [ref=e181]: 37,000원
+                    - generic [ref=e182]: 2026. 3. 18.
+              - generic [ref=e183] [cursor=pointer]:
+                - generic [ref=e184]:
+                  - img "화원 사진" [ref=e185]
+                  - generic [ref=e187]: 축하
+                - generic [ref=e188]:
+                  - generic [ref=e189]: (주)다솔 농업회사법인
+                  - generic [ref=e190]:
+                    - generic [ref=e191]: 45,000원
+                    - generic [ref=e192]: 2026. 3. 18.
+  - region "Notifications alt+T"
+  - alert [ref=e193]
+```

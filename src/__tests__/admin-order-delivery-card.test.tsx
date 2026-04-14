@@ -10,9 +10,7 @@ vi.mock('@/lib/api/admin-orders', async () => {
   return {
     ...actual,
     listAdminProofs: vi.fn(),
-    presignAdminProof: vi.fn(),
-    completeAdminProof: vi.fn(),
-    uploadAdminProofFile: vi.fn(),
+    uploadAdminProof: vi.fn(),
     updateAdminRecipientInfo: vi.fn(),
   };
 });
@@ -28,16 +26,12 @@ vi.mock('next/image', () => ({
 import { OrderDeliveryCard } from '@/components/admin/order-delivery-card';
 import {
   listAdminProofs,
-  presignAdminProof,
-  completeAdminProof,
-  uploadAdminProofFile,
+  uploadAdminProof,
   updateAdminRecipientInfo,
 } from '@/lib/api/admin-orders';
 
 const mockList = listAdminProofs as ReturnType<typeof vi.fn>;
-const mockPresign = presignAdminProof as ReturnType<typeof vi.fn>;
-const mockComplete = completeAdminProof as ReturnType<typeof vi.fn>;
-const mockUpload = uploadAdminProofFile as ReturnType<typeof vi.fn>;
+const mockUpload = uploadAdminProof as ReturnType<typeof vi.fn>;
 const mockUpdateRecipient = updateAdminRecipientInfo as ReturnType<typeof vi.fn>;
 
 function renderCard(props: Partial<React.ComponentProps<typeof OrderDeliveryCard>> = {}) {
@@ -52,8 +46,6 @@ function renderCard(props: Partial<React.ComponentProps<typeof OrderDeliveryCard
 describe('OrderDeliveryCard', () => {
   beforeEach(() => {
     mockList.mockReset();
-    mockPresign.mockReset();
-    mockComplete.mockReset();
     mockUpload.mockReset();
     mockUpdateRecipient.mockReset();
   });
@@ -131,16 +123,9 @@ describe('OrderDeliveryCard', () => {
     );
   });
 
-  it('업로드: presign → upload → complete 순으로 호출 (DELIVERY_PHOTO 탭)', async () => {
+  it('업로드: uploadAdminProof 호출 (DELIVERY_PHOTO 탭)', async () => {
     mockList.mockResolvedValue({ ok: true, items: [] });
-    mockPresign.mockResolvedValue({
-      uploadUrl: 'https://s3/put',
-      fileUrl: '/uploads/x.jpg',
-      fileKey: 'x.jpg',
-      headers: {},
-    });
-    mockUpload.mockResolvedValue(undefined);
-    mockComplete.mockResolvedValue({ ok: true });
+    mockUpload.mockResolvedValue({ ok: true, proofId: 1, fileUrl: '/uploads/x.jpg' });
 
     renderCard();
     await waitFor(() => expect(screen.getByText(/등록된 사진이 없습니다/)).toBeInTheDocument());
@@ -150,28 +135,13 @@ describe('OrderDeliveryCard', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => {
-      expect(mockPresign).toHaveBeenCalledWith(
-        123,
-        expect.objectContaining({ proofType: 'DELIVERY_PHOTO', fileName: 'photo.jpg' }),
-      );
-      expect(mockUpload).toHaveBeenCalled();
-      expect(mockComplete).toHaveBeenCalledWith(
-        123,
-        expect.objectContaining({ proofType: 'DELIVERY_PHOTO', fileUrl: '/uploads/x.jpg' }),
-      );
+      expect(mockUpload).toHaveBeenCalledWith(123, file, 'DELIVERY_PHOTO');
     });
   });
 
   it('현장사진 탭에서 업로드 시 proofType=SCENE_PHOTO로 전송', async () => {
     mockList.mockResolvedValue({ ok: true, items: [] });
-    mockPresign.mockResolvedValue({
-      uploadUrl: 'https://s3/put',
-      fileUrl: '/uploads/y.jpg',
-      fileKey: 'y.jpg',
-      headers: {},
-    });
-    mockUpload.mockResolvedValue(undefined);
-    mockComplete.mockResolvedValue({ ok: true });
+    mockUpload.mockResolvedValue({ ok: true, proofId: 2, fileUrl: '/uploads/y.jpg' });
 
     renderCard();
     await waitFor(() => expect(screen.getByText(/현장사진 \(0\)/)).toBeInTheDocument());
@@ -183,14 +153,7 @@ describe('OrderDeliveryCard', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => {
-      expect(mockPresign).toHaveBeenCalledWith(
-        123,
-        expect.objectContaining({ proofType: 'SCENE_PHOTO' }),
-      );
-      expect(mockComplete).toHaveBeenCalledWith(
-        123,
-        expect.objectContaining({ proofType: 'SCENE_PHOTO' }),
-      );
+      expect(mockUpload).toHaveBeenCalledWith(123, file, 'SCENE_PHOTO');
     });
   });
 });
