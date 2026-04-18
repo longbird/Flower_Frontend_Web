@@ -55,7 +55,14 @@ export default function BranchSettingsPage() {
         setNotificationPhone(res.data.notificationPhone || '');
         setServiceAreaTags(
           res.data.serviceAreas
-            ? res.data.serviceAreas.split(',').map((s: string) => s.trim()).filter(Boolean)
+            ? (() => {
+                try {
+                  const parsed = JSON.parse(res.data.serviceAreas);
+                  if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+                  if (typeof parsed === 'string') return parsed.split(',').map((s: string) => s.trim()).filter(Boolean);
+                } catch {}
+                return res.data.serviceAreas.split(',').map((s: string) => s.trim()).filter(Boolean);
+              })()
             : []
         );
       }
@@ -80,7 +87,7 @@ export default function BranchSettingsPage() {
         phone,
         address,
         description,
-        serviceAreas: serviceAreaTags.length > 0 ? serviceAreaTags.join(',') : '',
+        serviceAreas: serviceAreaTags.length > 0 ? JSON.stringify(serviceAreaTags) : undefined,
         virtualAccountBank,
         virtualAccountNumber,
         virtualAccountHolder,

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { fetchRecommendedPhotos } from '@/lib/branch/api';
 import type { BranchInfo, RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
 import type { BranchThemeProps } from './types';
+import { parseServiceAreas } from '@/lib/branch/utils';
 import {
   formatPrice,
   photoUrl,
@@ -531,7 +532,7 @@ export function GreenLandingHomePage({ branch, slug, products, onProductClick }:
           slug={slug}
           initialData={products}
           onProductClick={onProductClick}
-          defaultServiceArea={branch.serviceAreas?.split(',')[0]?.trim()}
+          defaultServiceArea={parseServiceAreas(branch.serviceAreas)[0]}
         />
       )}
 
