@@ -292,12 +292,17 @@ function Stat({ num, label }: { num: string; label: string }) {
 
 type UseCaseKey = 'celebration' | 'condolence' | 'bouquet' | 'parents';
 
+// Curated stock photos per use case. All licensed for commercial use without
+// attribution (Pexels / Unsplash free license). URLs include server-side
+// resize params so bandwidth stays tight.
 const USE_CASES: Array<{
   key: UseCaseKey;
   label: string;
   sub: string;
   from: number;
   lines: string[];
+  image: string;
+  imageCredit: string;
 }> = [
   {
     key: 'celebration',
@@ -305,6 +310,8 @@ const USE_CASES: Array<{
     sub: '개업 · 승진 · 취임 · 공연',
     from: 90000,
     lines: ['리본 문구 정성 작성', '당일 오후 배송 가능', '실물 사진 전송'],
+    image: 'https://images.pexels.com/photos/7813205/pexels-photo-7813205.jpeg?auto=compress&cs=tinysrgb&w=800',
+    imageCredit: 'Pexels — colorful floral wreath',
   },
   {
     key: 'condolence',
@@ -312,6 +319,8 @@ const USE_CASES: Array<{
     sub: '조의 · 영결 · 49재',
     from: 85000,
     lines: ['2시간 이내 긴급 배송', '정식 근조 스탠드', '상주 이름 확인 후 제작'],
+    image: 'https://images.pexels.com/photos/8986716/pexels-photo-8986716.jpeg?auto=compress&cs=tinysrgb&w=800',
+    imageCredit: 'Pexels — bouquet wrapped in black ribbon',
   },
   {
     key: 'bouquet',
@@ -319,6 +328,8 @@ const USE_CASES: Array<{
     sub: '기념일 · 고백 · 생일',
     from: 48000,
     lines: ['시즌 신선 꽃다발', '카드 메시지 무료', '픽업/배송 선택'],
+    image: 'https://images.unsplash.com/photo-1549576351-2b0829ac81f8?w=800&q=80&auto=format&fit=crop',
+    imageCredit: 'Unsplash — pink & white peony bouquet',
   },
   {
     key: 'parents',
@@ -326,93 +337,30 @@ const USE_CASES: Array<{
     sub: '카네이션 · 용돈박스 · 감사 화환',
     from: 55000,
     lines: ['시즌 한정 카네이션', '용돈 박스 옵션', '전국 KTX 특송'],
+    image: 'https://images.unsplash.com/photo-1497276236755-0f85ba99a126?w=800&q=80&auto=format&fit=crop',
+    imageCredit: 'Unsplash — pink carnation bouquet',
   },
 ];
 
-// Purpose-matched line illustrations. Product photos can't reliably convey
-// sub-types (화환 vs 꽃바구니) from a mixed catalog, and stock imagery tends
-// to mismatch — hand-drawn SVG glyphs always hit the mark.
-function UseCaseIllustration({ kind }: { kind: UseCaseKey }) {
-  const common = {
-    viewBox: '0 0 200 240',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 1.4,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    className: 'w-[70%] h-[70%]',
+// Map each use case to the actual product category used in the catalog —
+// clicking a tile filters the Products grid and scrolls the user to it.
+const USE_CASE_CATEGORY: Record<UseCaseKey, string> = {
+  celebration: 'CELEBRATION',
+  condolence: 'CONDOLENCE',
+  bouquet: 'FLOWER',
+  parents: 'OBJET',
+};
+
+function UseCases({ onPickCategory }: { onPickCategory: (category: string) => void }) {
+  const handlePick = (key: UseCaseKey) => {
+    onPickCategory(USE_CASE_CATEGORY[key]);
+    if (typeof window !== 'undefined') {
+      // Defer so the category state applies before scroll starts.
+      requestAnimationFrame(() => {
+        document.getElementById('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
   };
-
-  if (kind === 'celebration') {
-    // 3-tier standing wreath with ribbons
-    return (
-      <svg {...common}>
-        <line x1="100" y1="28" x2="100" y2="210" />
-        <line x1="70" y1="210" x2="130" y2="210" />
-        <circle cx="100" cy="60" r="24" />
-        <circle cx="100" cy="60" r="16" opacity="0.4" />
-        <circle cx="100" cy="115" r="34" />
-        <circle cx="100" cy="115" r="24" opacity="0.4" />
-        <circle cx="100" cy="175" r="28" />
-        <circle cx="100" cy="175" r="20" opacity="0.4" />
-        <path d="M86 200 L76 224 M100 200 L100 228 M114 200 L124 224" opacity="0.7" />
-        <path d="M82 52 Q75 48 72 44 M118 52 Q125 48 128 44" strokeWidth="1.2" />
-      </svg>
-    );
-  }
-
-  if (kind === 'condolence') {
-    // Wreath with black mourning ribbon bow at top
-    return (
-      <svg {...common}>
-        <line x1="100" y1="40" x2="100" y2="210" />
-        <line x1="70" y1="210" x2="130" y2="210" />
-        <path d="M86 38 Q92 28 100 32 Q108 28 114 38 Q108 46 100 42 Q92 46 86 38 Z" fill="currentColor" opacity="0.85" />
-        <circle cx="100" cy="130" r="52" />
-        <circle cx="100" cy="130" r="40" opacity="0.35" />
-        <path d="M60 130 Q70 100 100 92 Q130 100 140 130" strokeWidth="1.1" opacity="0.6" />
-        <path d="M88 198 L78 224 M100 198 L100 228 M112 198 L122 224" opacity="0.7" />
-      </svg>
-    );
-  }
-
-  if (kind === 'bouquet') {
-    // Hand-held bouquet with paper wrap
-    return (
-      <svg {...common}>
-        <circle cx="80" cy="68" r="16" />
-        <circle cx="116" cy="60" r="14" />
-        <circle cx="100" cy="90" r="18" />
-        <circle cx="68" cy="96" r="12" />
-        <circle cx="124" cy="96" r="12" />
-        <circle cx="100" cy="62" r="10" opacity="0.35" />
-        <circle cx="100" cy="90" r="10" opacity="0.35" />
-        <path d="M64 110 L44 200 L156 200 L136 110 Z" />
-        <path d="M64 110 L136 110" opacity="0.5" />
-        <path d="M84 110 L70 200 M100 110 L100 200 M116 110 L130 200" opacity="0.35" strokeWidth="1.1" />
-        <path d="M78 200 Q100 212 122 200" />
-        <path d="M100 212 L96 228 M100 212 L104 228" opacity="0.6" />
-      </svg>
-    );
-  }
-
-  // parents: single carnation stem
-  return (
-    <svg {...common}>
-      <path d="M70 70 Q100 40 130 70 Q140 95 120 105 Q130 120 110 128 Q130 140 105 148 Q115 160 96 162 Q88 148 78 142 Q60 136 74 120 Q54 108 72 96 Q60 80 70 70 Z" />
-      <path d="M88 82 Q100 78 112 82" strokeWidth="1" opacity="0.5" />
-      <path d="M82 98 Q100 92 118 98" strokeWidth="1" opacity="0.5" />
-      <path d="M86 118 Q100 112 114 118" strokeWidth="1" opacity="0.5" />
-      <line x1="100" y1="162" x2="100" y2="216" />
-      <path d="M100 180 Q82 172 74 158" opacity="0.7" />
-      <path d="M100 198 Q120 192 128 176" opacity="0.7" />
-      <path d="M84 172 Q78 168 74 158 M120 192 Q126 186 128 176" opacity="0.4" />
-    </svg>
-  );
-}
-
-function UseCases({ slug }: { slug: string }) {
-  const router = useRouter();
 
   return (
     <section id="usecase" className="py-20 md:py-24 px-4 md:px-6" style={{ background: 'var(--branch-bg)' }}>
@@ -426,7 +374,7 @@ function UseCases({ slug }: { slug: string }) {
               어떤 자리에 보내시나요?
             </h2>
             <p className="text-sm mt-3 max-w-md" style={{ color: 'var(--branch-text-muted)' }}>
-              자리에 어울리는 꽃을 먼저 골라보세요. 자주 묻는 질문과 예상 가격대를 함께 보여 드립니다.
+              자리에 어울리는 상품을 바로 확인해 보세요. 상세 상담은 언제든 가능합니다.
             </p>
           </div>
         </div>
@@ -435,21 +383,26 @@ function UseCases({ slug }: { slug: string }) {
           {USE_CASES.map((u, i) => (
             <article
               key={u.key}
-              onClick={() => router.push(`/branch/${slug}/consult?purpose=${u.key}`)}
+              onClick={() => handlePick(u.key)}
               className={`reveal d${(i % 4) + 1} group relative overflow-hidden rounded-[20px] cursor-pointer transition-shadow hover:shadow-md`}
               style={{ background: 'var(--branch-surface)', border: '1px solid var(--branch-border)' }}
             >
               <div className="grid grid-cols-[1fr_1fr]">
                 <div
-                  className="relative aspect-[4/3] md:aspect-auto overflow-hidden flex items-center justify-center transition-colors"
-                  style={{ background: 'var(--branch-green-light)', color: 'var(--branch-green)' }}
+                  className="relative aspect-[4/3] md:aspect-auto overflow-hidden"
+                  style={{ background: 'var(--branch-bg-alt)' }}
                 >
-                  <div
-                    className="transition-transform duration-700 group-hover:scale-[1.05] flex items-center justify-center w-full h-full"
+                  <img
+                    src={u.image}
+                    alt={u.label}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
                     style={{ transitionTimingFunction: 'var(--ease-out-quart)' }}
-                  >
-                    <UseCaseIllustration kind={u.key} />
-                  </div>
+                  />
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ background: 'linear-gradient(90deg, transparent 55%, var(--branch-surface) 100%)' }}
+                  />
                 </div>
                 <div className="p-5 md:p-7 flex flex-col">
                   <p className="text-[10px] md:text-[11px] tracking-[0.3em] uppercase mb-1" style={{ color: 'var(--branch-text-subtle)' }}>
@@ -529,13 +482,16 @@ function Products({
   initialData,
   onProductClick,
   defaultServiceArea,
+  selectedCategory,
+  setSelectedCategory,
 }: {
   slug: string;
   initialData: PaginatedResponse<RecommendedPhoto>;
   onProductClick: (product: RecommendedPhoto) => void;
   defaultServiceArea?: string;
+  selectedCategory: string;
+  setSelectedCategory: (c: string) => void;
 }) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [selectedGrade, setSelectedGrade] = useState<string>('전체');
   const [areaInput, setAreaInput] = useState(defaultServiceArea || '');
   const [activeArea, setActiveArea] = useState(defaultServiceArea || '');
@@ -559,6 +515,15 @@ function Products({
     }
     loadCategories();
   }, [slug]);
+
+  // Reset to page 1 whenever the category changes (incl. from parent / use-case tile).
+  // See react.dev "Adjusting some state when a prop changes" — derive via render-phase
+  // compare instead of useEffect to avoid cascading re-renders.
+  const [prevCategory, setPrevCategory] = useState(selectedCategory);
+  if (selectedCategory !== prevCategory) {
+    setPrevCategory(selectedCategory);
+    setPage(1);
+  }
 
   useEffect(() => {
     const category = selectedCategory === '전체' ? undefined : selectedCategory;
@@ -1420,6 +1385,9 @@ export function EditorialHome({ branch, slug, products, onProductClick }: Branch
   const stageRef = useRef<HTMLDivElement | null>(null);
   useScrollReveal(stageRef);
 
+  // Product category filter is lifted so use-case tiles can control it.
+  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
+
   const defaultServiceArea = useMemo(() => parseServiceAreas(branch.serviceAreas)[0], [branch.serviceAreas]);
   const heroProduct =
     products.data.find((p) => p.category === 'FLOWER' && p.imageUrl) ||
@@ -1430,7 +1398,7 @@ export function EditorialHome({ branch, slug, products, onProductClick }: Branch
     <div ref={stageRef}>
       <StickyHeader branch={branch} slug={slug} />
       <EditorialHero branch={branch} heroProduct={heroProduct} slug={slug} />
-      <UseCases slug={slug} />
+      <UseCases onPickCategory={setSelectedCategory} />
       <TrustStrip />
       {products.data.length > 0 && (
         <Products
@@ -1438,6 +1406,8 @@ export function EditorialHome({ branch, slug, products, onProductClick }: Branch
           initialData={products}
           onProductClick={onProductClick}
           defaultServiceArea={defaultServiceArea}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
         />
       )}
       <Reviews products={products.data} />

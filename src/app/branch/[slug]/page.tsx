@@ -6,6 +6,10 @@ import { fetchBranchInfo, fetchRecommendedPhotos } from '@/lib/branch/api';
 import type { BranchInfo, RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
 import { EditorialHome } from './themes/editorial-home';
+import { GreenHomePage } from './themes/green';
+import { GreenLandingHomePage } from './themes/green-landing';
+import { RoseHomePage } from './themes/rose';
+import { NavyHomePage } from './themes/navy';
 import { ProductDetailModal } from './themes/shared';
 
 // ─── Utility screens ──────────────────────────────────────────────
@@ -81,9 +85,19 @@ export default function BranchHomePage() {
     fontFamily: theme.fontFamily,
   } as React.CSSProperties;
 
+  const ThemeComponent = (() => {
+    switch (theme.key) {
+      case 'editorial': return EditorialHome;
+      case 'green-landing': return GreenLandingHomePage;
+      case 'rose': return RoseHomePage;
+      case 'navy': return NavyHomePage;
+      default: return GreenHomePage;
+    }
+  })();
+
   return (
     <div style={themeStyle} className={`theme-${theme.key}`}>
-      <EditorialHome
+      <ThemeComponent
         branch={branch}
         slug={slug}
         products={products!}
