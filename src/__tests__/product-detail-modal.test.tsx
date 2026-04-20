@@ -128,34 +128,46 @@ describe('ProductDetailModal', () => {
   });
 
   describe('category and grade badges', () => {
-    it('should render category label when category is provided', () => {
+    // The editorial design merges category + grade into a single eyebrow line
+    // formatted as "카테고리 · 등급" to reduce visual noise at the top of the modal.
+    it('should render category and grade as combined eyebrow when both provided', () => {
       render(<ProductDetailModal product={makeProduct()} {...defaultProps} />);
-      expect(screen.getByText('축하')).toBeInTheDocument();
+      expect(screen.getByText('축하 · 프리미엄')).toBeInTheDocument();
     });
 
-    it('should render grade label when grade is provided', () => {
-      render(<ProductDetailModal product={makeProduct()} {...defaultProps} />);
-      expect(screen.getByText('프리미엄')).toBeInTheDocument();
-    });
-
-    it('should NOT render category badge when category is missing', () => {
+    it('should render only grade in eyebrow when category is missing', () => {
       render(
         <ProductDetailModal
           product={makeProduct({ category: undefined })}
           {...defaultProps}
         />
       );
-      expect(screen.queryByText('축하')).not.toBeInTheDocument();
+      expect(screen.getByText('프리미엄')).toBeInTheDocument();
+      expect(screen.queryByText('축하 · 프리미엄')).not.toBeInTheDocument();
     });
 
-    it('should NOT render grade badge when grade is missing', () => {
+    it('should render only category in eyebrow when grade is missing', () => {
       render(
         <ProductDetailModal
           product={makeProduct({ grade: undefined })}
           {...defaultProps}
         />
       );
+      // Eyebrow shows "축하" alone; product name "축하 꽃바구니" is separate heading.
+      expect(screen.getAllByText(/축하/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.queryByText('축하 · 프리미엄')).not.toBeInTheDocument();
+    });
+
+    it('should NOT render eyebrow when both category and grade are missing', () => {
+      render(
+        <ProductDetailModal
+          product={makeProduct({ category: undefined, grade: undefined })}
+          {...defaultProps}
+        />
+      );
       expect(screen.queryByText('프리미엄')).not.toBeInTheDocument();
+      // Product name still contains "축하" but eyebrow should not render alone.
+      expect(screen.queryByText(/^축하$/)).not.toBeInTheDocument();
     });
   });
 
@@ -195,9 +207,10 @@ describe('ProductDetailModal', () => {
   });
 
   describe('order button', () => {
-    it('should render "주문하기" button', () => {
+    // CTA copy is "주문 / 상담 신청" — consult-forward phrasing aligned with Plan A.
+    it('should render "주문 / 상담 신청" button', () => {
       render(<ProductDetailModal product={makeProduct()} {...defaultProps} />);
-      expect(screen.getByText('주문하기')).toBeInTheDocument();
+      expect(screen.getByText('주문 / 상담 신청')).toBeInTheDocument();
     });
 
     it('should call onOrder with product when onOrder is provided', () => {
@@ -206,13 +219,13 @@ describe('ProductDetailModal', () => {
       render(
         <ProductDetailModal product={product} {...defaultProps} onOrder={onOrder} />
       );
-      fireEvent.click(screen.getByText('주문하기'));
+      fireEvent.click(screen.getByText('주문 / 상담 신청'));
       expect(onOrder).toHaveBeenCalledWith(product);
     });
 
     it('should call onClose when onOrder is not provided', () => {
       render(<ProductDetailModal product={makeProduct()} {...defaultProps} />);
-      fireEvent.click(screen.getByText('주문하기'));
+      fireEvent.click(screen.getByText('주문 / 상담 신청'));
       expect(defaultProps.onClose).toHaveBeenCalled();
     });
   });
@@ -252,7 +265,7 @@ describe('ProductDetailModal', () => {
       // Should fall back to "상품" for the name
       expect(screen.getByText('상품')).toBeInTheDocument();
       // Should still render the order button
-      expect(screen.getByText('주문하기')).toBeInTheDocument();
+      expect(screen.getByText('주문 / 상담 신청')).toBeInTheDocument();
     });
   });
 });

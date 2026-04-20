@@ -274,28 +274,19 @@ function ConsultPageInner() {
     );
   }
 
-  // No productId → guide back
-  if (!productId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f0] md:bg-white">
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-gray-900 mb-4">상품을 선택해 주세요</h1>
-          <Link
-            href={`/branch/${slug}`}
-            className="inline-flex items-center justify-center px-6 py-3 bg-[var(--branch-green)] text-white rounded-full text-sm font-medium hover:bg-[var(--branch-green-hover)] transition-colors"
-          >
-            상품 보러 가기
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   const theme = getTheme(branch.homepageDesign);
   const themeStyle = {
     ...themeToStyle(theme),
     fontFamily: theme.fontFamily,
   } as React.CSSProperties;
+
+  // No productId → render simple inquiry form (상품 없이도 문의 가능)
+  if (!productId) {
+    const purpose = searchParams.get('purpose');
+    return (
+      <SimpleInquiry branch={branch} slug={slug} initialPurpose={purpose} themeStyle={themeStyle} />
+    );
+  }
 
   // ─── Success screen ────────────────────────────────────
   if (submitted) {
@@ -449,6 +440,307 @@ function ConsultPageInner() {
             className="px-8 py-3 bg-[var(--branch-green)] text-white rounded-full text-base font-bold hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? '전송 중...' : buttonText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Simple Inquiry (상품 없이 상담만 신청) ──────────────────
+const INQUIRY_PURPOSES: Array<{ key: string; label: string }> = [
+  { key: 'celebration', label: '축하 화환' },
+  { key: 'condolence', label: '근조 화환' },
+  { key: 'bouquet', label: '꽃다발 · 부케' },
+  { key: 'parents', label: '어버이날 · 기타' },
+];
+
+const INQUIRY_BUDGETS = ['5만원 이하', '5~10만원', '10~20만원', '20~30만원', '30만원 이상'];
+
+function formatInquiryPhone(value: string): string {
+  const d = value.replace(/\D/g, '');
+  if (d.length <= 3) return d;
+  if (d.length <= 7) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7, 11)}`;
+}
+
+function SimpleInquiry({
+  branch,
+  slug,
+  initialPurpose,
+  themeStyle,
+}: {
+  branch: BranchInfo;
+  slug: string;
+  initialPurpose: string | null;
+  themeStyle: React.CSSProperties;
+}) {
+  const [purpose, setPurpose] = useState<string>(initialPurpose || '');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [budget, setBudget] = useState('');
+  const [desiredDate, setDesiredDate] = useState('');
+  const [message, setMessage] = useState('');
+  const [privacy, setPrivacy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!name.trim()) { setError('이름을 입력해 주세요.'); return; }
+    if (phone.replace(/\D/g, '').length < 10) { setError('연락처를 정확히 입력해 주세요.'); return; }
+    if (!privacy) { setError('개인정보 수집에 동의해 주세요.'); return; }
+
+    const parts: string[] = [];
+    if (purpose) {
+      const label = INQUIRY_PURPOSES.find((p) => p.key === purpose)?.label || purpose;
+      parts.push(`[용도] ${label}`);
+    }
+    if (budget) parts.push(`[예상 예산] ${budget}`);
+    if (desiredDate) parts.push(`[희망 배송일] ${desiredDate}`);
+    if (message.trim()) parts.push(`[상세 내용]\n${message.trim()}`);
+
+    setSubmitting(true);
+    const result = await submitConsultRequest(slug, {
+      customerName: name.trim(),
+      customerPhone: phone.replace(/\D/g, ''),
+      desiredDate: desiredDate || undefined,
+      message: parts.join('\n\n'),
+    });
+    setSubmitting(false);
+
+    if (result.ok) setSubmitted(true);
+    else setError(result.message || '요청에 실패했습니다.');
+  };
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-[#f5f5f0] md:bg-white" style={themeStyle}>
+        <div className="max-w-md mx-auto text-center bg-white rounded-2xl p-10 shadow-lg border border-gray-100">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[var(--branch-green-light)] flex items-center justify-center">
+            <svg className="w-8 h-8 text-[var(--branch-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">상담 신청이 접수되었습니다</h1>
+          <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+            빠른 시간 내에 연락드려 맞춤 제안해 드리겠습니다.<br />감사합니다.
+          </p>
+          <Link
+            href={`/branch/${slug}`}
+            className="inline-flex items-center justify-center px-8 py-3 bg-[var(--branch-green)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-green-hover)] transition-colors"
+          >
+            홈으로 돌아가기
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f5f5f0] md:bg-gray-50" style={themeStyle}>
+      <header className="sticky top-0 z-40 bg-white border-b border-gray-100">
+        <div className="flex items-center h-14 px-4 md:max-w-2xl md:mx-auto">
+          <Link
+            href={`/branch/${slug}`}
+            className="flex items-center gap-1 text-gray-500 hover:text-gray-900 transition-colors mr-3"
+            aria-label="뒤로"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+          <h1 className="text-base font-bold text-gray-900 truncate">{branch.name}</h1>
+        </div>
+      </header>
+
+      <form onSubmit={handleSubmit} className="pb-28 md:pb-0 md:max-w-2xl md:mx-auto md:my-8">
+        <div className="space-y-3 p-4 md:p-0 md:space-y-4">
+          {/* Intro */}
+          <section className="bg-white rounded-2xl p-6 shadow-sm">
+            <p className="text-[11px] tracking-[0.3em] uppercase mb-2" style={{ color: 'var(--branch-green)' }}>
+              Simple Inquiry
+            </p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">간단 상담 신청</h2>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              상품을 아직 고르지 못하셨나요? 원하시는 자리 · 예상 예산 · 받으시는 분의 취향만 알려주시면,
+              플로리스트가 직접 맞춤 제안해 드립니다.
+            </p>
+            <Link
+              href={`/branch/${slug}#products`}
+              className="inline-flex items-center gap-1 mt-4 text-sm font-medium underline underline-offset-4"
+              style={{ color: 'var(--branch-green)' }}
+            >
+              상품을 먼저 둘러보기
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </section>
+
+          {/* Purpose pills */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
+              어떤 자리인가요? <span className="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {INQUIRY_PURPOSES.map((p) => {
+                const active = purpose === p.key;
+                return (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setPurpose(active ? '' : p.key)}
+                    className="px-4 py-2 rounded-full text-sm font-medium transition-colors"
+                    style={{
+                      background: active ? 'var(--branch-green)' : '#ffffff',
+                      color: active ? '#ffffff' : '#4B5563',
+                      border: '1px solid',
+                      borderColor: active ? 'var(--branch-green)' : '#E5E7EB',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Orderer */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                주문자 이름 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="성함을 입력해 주세요"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                연락처 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={(e) => setPhone(formatInquiryPhone(e.target.value))}
+                placeholder="010-1234-5678"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors tnum"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              />
+            </div>
+          </section>
+
+          {/* Budget + date */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                예상 예산 <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {INQUIRY_BUDGETS.map((b) => {
+                  const active = budget === b;
+                  return (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => setBudget(active ? '' : b)}
+                      className="px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors"
+                      style={{
+                        background: active ? 'var(--branch-green-light)' : '#F9FAFB',
+                        color: active ? 'var(--branch-green)' : '#4B5563',
+                        border: '1px solid',
+                        borderColor: active ? 'var(--branch-green)' : '#E5E7EB',
+                      }}
+                    >
+                      {b}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                희망 배송일 <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <input
+                type="date"
+                value={desiredDate}
+                onChange={(e) => setDesiredDate(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors"
+              />
+            </div>
+          </section>
+
+          {/* Message */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              상세 내용 <span className="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="받으시는 분의 취향, 원하는 꽃 종류·컬러, 리본 문구 등 편하게 남겨주세요."
+              rows={5}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[var(--branch-green)] focus:ring-2 focus:ring-[var(--branch-green)]/20 transition-colors resize-none leading-relaxed"
+            />
+          </section>
+
+          {/* Privacy */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="inquiry-privacy"
+                checked={privacy}
+                onChange={(e) => setPrivacy(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-[var(--branch-green)]"
+              />
+              <label htmlFor="inquiry-privacy" className="text-sm text-gray-500 leading-relaxed cursor-pointer">
+                상담 응대를 위해 개인정보(성함, 연락처)를 수집 및 이용하는 것에 동의합니다.
+              </label>
+            </div>
+          </section>
+
+          {error && (
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* PC Submit */}
+          <div className="hidden md:block bg-white rounded-2xl p-5 shadow-sm">
+            <button
+              type="submit"
+              disabled={submitting || !privacy}
+              className="w-full px-10 py-3.5 bg-[var(--branch-green)] text-white rounded-full text-base font-medium hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? '전송 중...' : '상담 신청하기'}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* Mobile sticky submit */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-center px-5 py-3.5 safe-area-bottom">
+          <button
+            type="button"
+            onClick={() => {
+              const form = document.querySelector('form');
+              if (form) form.requestSubmit();
+            }}
+            disabled={submitting || !privacy}
+            className="w-full px-8 py-3 bg-[var(--branch-green)] text-white rounded-full text-base font-bold hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {submitting ? '전송 중...' : '상담 신청하기'}
           </button>
         </div>
       </div>

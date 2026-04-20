@@ -52,9 +52,10 @@ describe('themeToStyle', () => {
     const theme = getTheme('green');
     const style = themeToStyle(theme);
 
+    // Editorial palette uses a warm paper bg for green rather than pure white.
     expect(style['--branch-green' as keyof typeof style]).toBe('#3D6B2E');
-    expect(style['--branch-bg' as keyof typeof style]).toBe('#FFFFFF');
-    expect(style['--branch-text' as keyof typeof style]).toBe('#1A1A1A');
+    expect(style['--branch-bg' as keyof typeof style]).toBe('#FAFAF6');
+    expect(style['--branch-text' as keyof typeof style]).toBe('#1C1C18');
   });
 
   it('should include all CSS variables from the theme', () => {
@@ -71,8 +72,9 @@ describe('themeToStyle', () => {
     const theme = getTheme('rose');
     const style = themeToStyle(theme);
 
-    expect(style['--branch-green' as keyof typeof style]).toBe('#C77D8F');
-    expect(style['--branch-bg' as keyof typeof style]).toBe('#FEF9F4');
+    // Rose primary deepened to dusty-rose for editorial boutique direction.
+    expect(style['--branch-green' as keyof typeof style]).toBe('#A8596E');
+    expect(style['--branch-bg' as keyof typeof style]).toBe('#FAF2E9');
     expect(style['--branch-footer-bg' as keyof typeof style]).toBe('#2E1F21');
   });
 

@@ -163,42 +163,55 @@ export function ProductDetailModal({
         )}
 
         {/* Product info */}
-        <div className="p-5">
-          <h2 className="text-lg font-bold text-gray-900">{displayName}</h2>
+        <div className="p-6">
+          {(product.category || product.grade) && (
+            <p
+              className="text-[11px] tracking-[0.3em] uppercase mb-2"
+              style={{ color: 'var(--branch-green)' }}
+            >
+              {[product.category && categoryLabel(product.category), product.grade && gradeLabel(product.grade)]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
+          <h2
+            className="branch-serif text-2xl leading-tight font-medium"
+            style={{ color: 'var(--branch-text)' }}
+          >
+            {displayName}
+          </h2>
           {product.sellingPrice != null && product.sellingPrice > 0 && (
-            <p className="text-xl font-bold text-gray-900 mt-1">
+            <p
+              className="branch-serif text-2xl font-normal mt-2 branch-price"
+              style={{ color: 'var(--branch-green)' }}
+            >
               {formatPrice(product.sellingPrice)}
             </p>
           )}
 
           {/* Badges */}
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap gap-2 mt-4">
             <Badge label="당일배송 가능" />
             <Badge label="리본 무료작성" />
             <Badge label="실물사진 제공" />
           </div>
 
-          {/* Category & Grade */}
-          <div className="flex gap-2 mt-3">
-            {product.category && (
-              <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-lg">
-                {categoryLabel(product.category)}
-              </span>
-            )}
-            {product.grade && (
-              <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-lg">
-                {gradeLabel(product.grade)}
-              </span>
-            )}
-          </div>
-
           {/* Order button */}
           <button
-            onClick={() => onOrder ? onOrder(product) : onClose()}
-            className="w-full mt-5 py-3.5 bg-[var(--branch-green)] text-white rounded-full text-base font-bold hover:bg-[var(--branch-green-hover)] transition-colors"
+            onClick={() => (onOrder ? onOrder(product) : onClose())}
+            className="w-full mt-6 py-3.5 bg-[var(--branch-green)] text-white rounded-full text-base font-semibold hover:bg-[var(--branch-green-hover)] transition-colors inline-flex items-center justify-center gap-2"
           >
-            주문하기
+            주문 / 상담 신청
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
           </button>
+          <p
+            className="text-[11px] text-center mt-3"
+            style={{ color: 'var(--branch-text-muted)' }}
+          >
+            주문 확정 후 2시간 이내 제작 · 실물 사진 먼저 전송해 드려요
+          </p>
         </div>
       </div>
 

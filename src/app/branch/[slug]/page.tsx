@@ -5,10 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { fetchBranchInfo, fetchRecommendedPhotos } from '@/lib/branch/api';
 import type { BranchInfo, RecommendedPhoto, PaginatedResponse } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
-import { GreenHomePage } from './themes/green';
-import { GreenLandingHomePage } from './themes/green-landing';
-import { RoseHomePage } from './themes/rose';
-import { NavyHomePage } from './themes/navy';
+import { EditorialHome } from './themes/editorial-home';
 import { ProductDetailModal } from './themes/shared';
 
 // ─── Utility screens ──────────────────────────────────────────────
@@ -60,7 +57,7 @@ export default function BranchHomePage() {
       setLoading(true);
       const [branchData, photosData] = await Promise.all([
         fetchBranchInfo(slug),
-        fetchRecommendedPhotos(slug, { page: 1, size: 40 }),
+        fetchRecommendedPhotos(slug, { page: 1, size: 24 }),
       ]);
 
       if (!branchData) {
@@ -84,18 +81,9 @@ export default function BranchHomePage() {
     fontFamily: theme.fontFamily,
   } as React.CSSProperties;
 
-  const ThemeComponent = (() => {
-    switch (theme.key) {
-      case 'green-landing': return GreenLandingHomePage;
-      case 'rose': return RoseHomePage;
-      case 'navy': return NavyHomePage;
-      default: return GreenHomePage;
-    }
-  })();
-
   return (
-    <div style={themeStyle}>
-      <ThemeComponent
+    <div style={themeStyle} className={`theme-${theme.key}`}>
+      <EditorialHome
         branch={branch}
         slug={slug}
         products={products!}
