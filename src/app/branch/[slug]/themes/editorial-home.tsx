@@ -99,8 +99,6 @@ function useScrollReveal(root: React.RefObject<HTMLElement | null>) {
     if (typeof window === 'undefined') return;
     const host = root.current;
     if (!host) return;
-    const targets = host.querySelectorAll<HTMLElement>('.reveal');
-    if (targets.length === 0) return;
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -113,8 +111,22 @@ function useScrollReveal(root: React.RefObject<HTMLElement | null>) {
       },
       { rootMargin: '0px 0px -10% 0px', threshold: 0.01 },
     );
-    targets.forEach((t) => io.observe(t));
-    return () => io.disconnect();
+
+    const observeAll = () => {
+      host.querySelectorAll<HTMLElement>('.reveal:not(.in)').forEach((t) => io.observe(t));
+    };
+    observeAll();
+
+    // Product lists refetch on area/category/page change — new `.reveal` cards
+    // render outside the initial observer batch. Watch the DOM for additions so
+    // they still animate in (and never stay stuck at opacity 0).
+    const mo = new MutationObserver(observeAll);
+    mo.observe(host, { childList: true, subtree: true });
+
+    return () => {
+      io.disconnect();
+      mo.disconnect();
+    };
   }, [root]);
 }
 
