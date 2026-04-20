@@ -13,6 +13,7 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ReactNode;
+  roles?: string[]; // if set, only these roles see the item
 }
 
 interface NavGroup {
@@ -20,6 +21,7 @@ interface NavGroup {
   icon: React.ReactNode;
   color: string;
   items: NavItem[];
+  roles?: string[]; // if set, whole group is hidden from other roles
 }
 
 type NavEntry = NavItem | NavGroup;
@@ -109,6 +111,19 @@ const navEntries: NavEntry[] = [
     ],
   },
 ];
+
+/** Filter navigation entries by the current user's role. */
+function visibleNavEntries(entries: NavEntry[], role: string | null | undefined): NavEntry[] {
+  return entries
+    .filter((entry) => !entry.roles || (role ? entry.roles.includes(role) : false))
+    .map((entry) => {
+      if (!isGroup(entry)) return entry;
+      const items = entry.items.filter((item) => !item.roles || (role ? item.roles.includes(role) : false));
+      if (items.length === 0) return null;
+      return { ...entry, items };
+    })
+    .filter((entry): entry is NavEntry => entry !== null);
+}
 
 /* ── 축소 모드: 아이콘만 표시하는 단일 항목 ── */
 function CollapsedNavItem({ entry, pathname, onNavClick }: { entry: NavItem; pathname: string; onNavClick: () => void }) {
@@ -312,7 +327,7 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
 
         {/* 네비게이션 */}
         <nav className={cn('flex-1 overflow-auto p-2', collapsed ? 'flex flex-col items-center gap-1' : 'space-y-0.5 p-3')}>
-          {navEntries.map((entry, i) => {
+          {visibleNavEntries(navEntries, user?.role).map((entry, i) => {
             if (collapsed) {
               // 축소 모드
               if (isGroup(entry)) {
