@@ -347,3 +347,55 @@ export async function deactivateConsultRequestPublicLink(consultId: number) {
     { method: 'POST' },
   );
 }
+
+// ─── Branch Payment Credentials (Toss per-branch) ─────────
+export type PaymentProvider = 'toss';
+export type PaymentEnv = 'TEST' | 'LIVE';
+
+export interface BranchPaymentCredential {
+  id: number;
+  branchId: number;
+  provider: PaymentProvider;
+  env: PaymentEnv;
+  mid: string;
+  clientKey: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+  clientKeyMasked: string;
+}
+
+export async function listBranchPaymentCredentials(branchId: number) {
+  return api<BranchPaymentCredential[]>(`/admin/branches/${branchId}/payment-credentials`);
+}
+
+export interface UpsertBranchPaymentCredentialBody {
+  provider: PaymentProvider;
+  env: PaymentEnv;
+  mid: string;
+  clientKey: string;
+  secretKey: string;
+  isActive?: boolean;
+}
+
+export async function upsertBranchPaymentCredential(
+  branchId: number,
+  body: UpsertBranchPaymentCredentialBody,
+) {
+  return api<{ ok: true }>(`/admin/branches/${branchId}/payment-credentials`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deactivateBranchPaymentCredential(
+  branchId: number,
+  body: { provider: PaymentProvider; env: PaymentEnv },
+) {
+  return api<{ ok: true }>(`/admin/branches/${branchId}/payment-credentials`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
