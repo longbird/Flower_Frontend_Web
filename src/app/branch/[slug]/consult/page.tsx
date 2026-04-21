@@ -7,6 +7,7 @@ import {
   fetchBranchInfo,
   fetchRecommendedPhotoById,
   submitConsultRequest,
+  submitOrderRequest,
 } from '@/lib/branch/api';
 import type { BranchInfo, RecommendedPhoto, DeliveryPurpose, InvoiceType } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
@@ -26,7 +27,7 @@ import { RibbonText } from './sections/ribbon-text';
 import { MemoSection } from './sections/memo-section';
 import { InvoiceSelection } from './sections/invoice-selection';
 import { PrivacyConsent } from './sections/privacy-consent';
-import { usePaymentStore, fileToSerializedFile } from '@/lib/branch/payment-store';
+import { usePaymentStore } from '@/lib/branch/payment-store';
 
 // ─── Inner component (needs useSearchParams inside Suspense) ──
 function ConsultPageInner() {
@@ -137,7 +138,14 @@ function ConsultPageInner() {
 
     const fullAddress = addressDetail ? `${address} ${addressDetail}` : address;
 
-    // ─── 온라인 결제 모드: 결제 페이지로 이동 ──────────────
+    // ─── 온라인 결제 모드: consult 먼저 등록 → 결제 페이지로 이동 ──────
+    //
+    // 백엔드 흐름상 POST /public/payments/create는 orderId(=consult_request id)
+    // 가 이미 존재해야 한다. 따라서 결제 전에 consult 요청을 먼저 등록하고
+    // 발급받은 id를 결제 페이지로 전달한다.
+    //
+    // 부수 효과: 결제를 도중 포기해도 consult는 NEW 상태로 어드민에 노출 →
+    // 운영자가 수동 응대 가능 (의도된 동작).
     if (isPaymentEnabled && product) {
       const resolvedTime = selectedHour
         ? `${selectedHour}시 ${selectedMinute}분 ${deliveryPurpose}`
@@ -150,46 +158,101 @@ function ConsultPageInner() {
       ];
       if (ribbonLeft || ribbonRight) msgParts.push(`[리본문구] ${ribbonLeft} / ${ribbonRight}`);
       if (memo) msgParts.push(`[요청사항] ${memo}`);
+      if (invoiceType === 'INVOICE') msgParts.push(`[증빙] 계산서 발행`);
+      else if (invoiceType === 'CASH_RECEIPT') {
+        const receiptPhone = cashReceiptPhone || senderPhone;
+        msgParts.push(`[증빙] 현금영수증 발행 (${receiptPhone})`);
+      }
 
-      // File → SerializedFile 변환 (sessionStorage 저장용)
       const totalFileSize = (ribbonImage?.size || 0) + (businessRegFile?.size || 0);
       if (totalFileSize > 4 * 1024 * 1024) {
         setError('첨부파일 합계가 4MB를 초과합니다. 파일 크기를 줄여 주세요.');
         return;
       }
-      const serializedRibbon = ribbonImage
-        ? await fileToSerializedFile(ribbonImage)
-        : null;
-      const serializedBizFile = (invoiceType === 'INVOICE' && businessRegFile)
-        ? await fileToSerializedFile(businessRegFile)
-        : null;
 
-      usePaymentStore.getState().setOrderData(
-        {
-          slug,
-          customerName: senderName,
-          customerPhone: senderPhone.replace(/\D/g, ''),
-          productId: product.id,
-          productName: product.name || '',
-          productPrice: totalPrice,
-          desiredDate: resolvedDate,
-          deliveryPurpose,
-          deliveryTime: selectedHour ? `${selectedHour}:${selectedMinute}` : '',
-          recipientName,
-          recipientPhone: recipientPhone.replace(/\D/g, ''),
-          address: fullAddress,
-          ribbonText: (ribbonLeft || ribbonRight) ? `${ribbonLeft} / ${ribbonRight}` : '',
-          memo: memo || '',
-          invoiceType,
-          cashReceiptPhone: invoiceType === 'CASH_RECEIPT'
-            ? (cashReceiptPhone || senderPhone).replace(/\D/g, '')
-            : '',
-          message: msgParts.join('\n'),
-        },
-        serializedRibbon,
-        serializedBizFile,
-      );
-      router.push(`/branch/${slug}/payment`);
+      const cashReceiptPhoneClean = invoiceType === 'CASH_RECEIPT'
+        ? (cashReceiptPhone || senderPhone).replace(/\D/g, '')
+        : '';
+
+      setSubmitting(true);
+      try {
+        const hasFiles = ribbonImage || (invoiceType === 'INVOICE' && businessRegFile);
+        let consultResult: { ok: boolean; message?: string; id?: number };
+        if (hasFiles) {
+          const formData = new FormData();
+          formData.append('customerName', senderName);
+          formData.append('customerPhone', senderPhone.replace(/\D/g, ''));
+          formData.append('productCode', String(product.id));
+          formData.append('productName', product.name || '');
+          formData.append('desiredDate', resolvedDate);
+          formData.append('deliveryPurpose', deliveryPurpose);
+          formData.append('invoiceType', invoiceType);
+          if (cashReceiptPhoneClean) formData.append('cashReceiptPhone', cashReceiptPhoneClean);
+          formData.append('recipientName', recipientName);
+          formData.append('recipientPhone', recipientPhone.replace(/\D/g, ''));
+          formData.append('address', fullAddress);
+          if (selectedHour) formData.append('deliveryTime', `${selectedHour}:${selectedMinute}`);
+          if (ribbonLeft || ribbonRight) formData.append('ribbonText', `${ribbonLeft} / ${ribbonRight}`);
+          if (memo) formData.append('memo', memo);
+          formData.append('message', msgParts.join('\n'));
+          if (ribbonImage) formData.append('ribbonImage', ribbonImage);
+          if (invoiceType === 'INVOICE' && businessRegFile) {
+            formData.append('businessRegistration', businessRegFile);
+          }
+          consultResult = await submitOrderRequest(slug, formData);
+        } else {
+          consultResult = await submitConsultRequest(slug, {
+            customerName: senderName,
+            customerPhone: senderPhone.replace(/\D/g, ''),
+            productCode: String(product.id),
+            productName: product.name || '',
+            desiredDate: resolvedDate,
+            deliveryPurpose,
+            invoiceType,
+            cashReceiptPhone: cashReceiptPhoneClean || undefined,
+            recipientName,
+            recipientPhone: recipientPhone.replace(/\D/g, ''),
+            address: fullAddress,
+            deliveryTime: selectedHour ? `${selectedHour}:${selectedMinute}` : undefined,
+            ribbonText: (ribbonLeft || ribbonRight) ? `${ribbonLeft} / ${ribbonRight}` : undefined,
+            memo: memo || undefined,
+            message: msgParts.join('\n'),
+          });
+        }
+        if (!consultResult.ok || !consultResult.id) {
+          setError(consultResult.message || '주문 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+          setSubmitting(false);
+          return;
+        }
+
+        usePaymentStore.getState().setOrderData(
+          {
+            slug,
+            customerName: senderName,
+            customerPhone: senderPhone.replace(/\D/g, ''),
+            productId: product.id,
+            productName: product.name || '',
+            productPrice: totalPrice,
+            desiredDate: resolvedDate,
+            deliveryPurpose,
+            deliveryTime: selectedHour ? `${selectedHour}:${selectedMinute}` : '',
+            recipientName,
+            recipientPhone: recipientPhone.replace(/\D/g, ''),
+            address: fullAddress,
+            ribbonText: (ribbonLeft || ribbonRight) ? `${ribbonLeft} / ${ribbonRight}` : '',
+            memo: memo || '',
+            invoiceType,
+            cashReceiptPhone: cashReceiptPhoneClean,
+            message: msgParts.join('\n'),
+            consultRequestId: consultResult.id,
+          },
+        );
+        router.push(`/branch/${slug}/payment`);
+      } catch (err) {
+        console.error('Consult submit before payment failed:', err);
+        setError('주문 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        setSubmitting(false);
+      }
       return;
     }
 
