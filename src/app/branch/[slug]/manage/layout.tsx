@@ -88,6 +88,16 @@ export default function BranchManageLayout({
       ),
     },
     {
+      href: `/branch/${slug}/manage/wallet`,
+      label: '충전금',
+      permission: 'wallet',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2zm11 8a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ),
+    },
+    {
       href: `/branch/${slug}/manage/settings`,
       label: '기본 정보',
       permission: 'settings',

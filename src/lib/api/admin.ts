@@ -348,6 +348,114 @@ export async function deactivateConsultRequestPublicLink(consultId: number) {
   );
 }
 
+// ─── Branch Wallets (충전금) ─────────
+export type WalletTxType = 'CHARGE' | 'REFUND' | 'ORDER_FEE' | 'SMS_FEE' | 'ADJUST';
+
+export interface WalletSummary {
+  branchId: number;
+  branchName?: string;
+  balance: number;
+  minBalance: number;
+  isLow: boolean;
+  lowAlertSentAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface WalletConfig {
+  branchId: number;
+  smsFee: number;
+  lmsFee: number;
+  orderFee: number;
+  minBalance: number;
+  smsFeeOverride: number | null;
+  lmsFeeOverride: number | null;
+  orderFeeOverride: number | null;
+  minBalanceOverride: number | null;
+}
+
+export interface WalletTransaction {
+  id: number;
+  branchId: number;
+  type: WalletTxType;
+  amount: number;
+  balanceAfter: number;
+  refType: string | null;
+  refId: string | null;
+  memo: string | null;
+  actorType: 'ADMIN' | 'SYSTEM' | 'WEBHOOK' | null;
+  actorId: number | null;
+  createdAt: string;
+}
+
+export interface WalletTxListResponse {
+  items: WalletTransaction[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export async function listBranchWallets() {
+  return api<{ data: WalletSummary[] }>('/admin/wallets');
+}
+
+export async function getBranchWallet(branchId: number) {
+  return api<{ summary: WalletSummary; config: WalletConfig }>(`/admin/wallets/${branchId}`);
+}
+
+export async function listBranchWalletTransactions(
+  branchId: number,
+  params: { type?: WalletTxType | ''; page?: number; size?: number } = {},
+) {
+  const sp = new URLSearchParams();
+  if (params.type) sp.set('type', params.type);
+  if (params.page) sp.set('page', String(params.page));
+  if (params.size) sp.set('size', String(params.size));
+  const qs = sp.toString();
+  return api<WalletTxListResponse>(
+    `/admin/wallets/${branchId}/transactions${qs ? `?${qs}` : ''}`,
+  );
+}
+
+export async function chargeBranchWallet(branchId: number, amount: number, memo?: string) {
+  return api<{ ok: true; transaction: WalletTransaction }>(
+    `/admin/wallets/${branchId}/charge`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, memo }),
+    },
+  );
+}
+
+export async function refundBranchWallet(branchId: number, amount: number, memo?: string) {
+  return api<{ ok: true; transaction: WalletTransaction }>(
+    `/admin/wallets/${branchId}/refund`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, memo }),
+    },
+  );
+}
+
+export interface UpdateWalletConfigBody {
+  smsFee?: number | null;
+  lmsFee?: number | null;
+  orderFee?: number | null;
+  minBalanceOverride?: number | null;
+}
+
+export async function updateBranchWalletConfig(branchId: number, body: UpdateWalletConfigBody) {
+  return api<{ ok: true; config: WalletConfig }>(
+    `/admin/wallets/${branchId}/config`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
 // ─── Branch Payment Credentials (Toss per-branch) ─────────
 export type PaymentProvider = 'toss';
 export type PaymentEnv = 'TEST' | 'LIVE';

@@ -333,6 +333,27 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
         </CardContent>
       </Card>
 
+      {/* 충전금 (본사 관리자) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">충전금 관리</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/admin/branches/${id}/wallet`)}
+            >
+              잔액·내역
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-slate-500">
+            지사 충전금 잔액, SMS/주문 수수료 단가, 수동 충전 및 거래 내역을 관리합니다.
+          </p>
+        </CardContent>
+      </Card>
+
       <div className="flex gap-2">
         <Button className="bg-blue-600 hover:bg-blue-700" onClick={openEdit}>수정</Button>
         <Button variant="destructive" onClick={() => setShowDelete(true)}>삭제</Button>

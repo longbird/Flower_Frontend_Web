@@ -207,6 +207,64 @@ export async function fetchBranchProducts() {
   return branchApi<{ ok: boolean; data: BranchProductSetting[] }>('/branch/products');
 }
 
+// ─── Branch Wallet (충전금) ─────────
+export type BranchWalletTxType = 'CHARGE' | 'REFUND' | 'ORDER_FEE' | 'SMS_FEE' | 'ADJUST';
+
+export interface MyBranchWalletSummary {
+  branchId: number;
+  branchName?: string;
+  balance: number;
+  minBalance: number;
+  isLow: boolean;
+  lowAlertSentAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface MyBranchWalletConfig {
+  branchId: number;
+  smsFee: number;
+  lmsFee: number;
+  orderFee: number;
+  minBalance: number;
+  smsFeeOverride: number | null;
+  lmsFeeOverride: number | null;
+  orderFeeOverride: number | null;
+  minBalanceOverride: number | null;
+}
+
+export interface MyBranchWalletTransaction {
+  id: number;
+  branchId: number;
+  type: BranchWalletTxType;
+  amount: number;
+  balanceAfter: number;
+  refType: string | null;
+  refId: string | null;
+  memo: string | null;
+  actorType: 'ADMIN' | 'SYSTEM' | 'WEBHOOK' | null;
+  actorId: number | null;
+  createdAt: string;
+}
+
+export async function fetchMyBranchWallet() {
+  return branchApi<{ summary: MyBranchWalletSummary; config: MyBranchWalletConfig }>('/branch/wallet');
+}
+
+export async function fetchMyBranchWalletTransactions(params: {
+  type?: BranchWalletTxType | '';
+  page?: number;
+  size?: number;
+} = {}) {
+  const sp = new URLSearchParams();
+  if (params.type) sp.set('type', params.type);
+  if (params.page) sp.set('page', String(params.page));
+  if (params.size) sp.set('size', String(params.size));
+  const qs = sp.toString();
+  return branchApi<{ items: MyBranchWalletTransaction[]; total: number; page: number; size: number }>(
+    `/branch/wallet/transactions${qs ? `?${qs}` : ''}`,
+  );
+}
+
 /** 지사 상품 설정 변경 (관리자) */
 export async function updateBranchProduct(
   productId: number,
