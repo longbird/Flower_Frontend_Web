@@ -15,6 +15,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   CANCELLED: { label: '취소', color: 'text-slate-500', bg: 'bg-slate-50 border-slate-200', dot: 'bg-slate-400' },
 };
 
+/** 결제 상태 배지 설정 — null이면 배지 표시 안 함(결제 없는 단순 상담) */
+const PAYMENT_BADGE: Record<string, { label: string; className: string }> = {
+  PAID:     { label: '결제완료', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  PENDING:  { label: '결제대기', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  CREATED:  { label: '결제대기', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  FAILED:   { label: '결제실패', className: 'bg-red-100 text-red-700 border-red-200' },
+  CANCELED: { label: '결제취소', className: 'bg-slate-100 text-slate-600 border-slate-200' },
+  REFUNDED: { label: '환불됨',   className: 'bg-slate-100 text-slate-600 border-slate-200' },
+};
+
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   NEW: ['IN_PROGRESS', 'CANCELLED'],
   IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
@@ -439,23 +449,41 @@ function ConsultCard({
   return (
     <div className={`rounded-2xl border border-[var(--branch-rose-light)]/50 border-l-4 shadow-sm overflow-hidden ${cardStyle}`}>
       {/* Card Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusInfo.dot}`} />
           <div className="min-w-0">
             <h3 className="text-base font-semibold text-[var(--branch-text)] truncate">
               {displayName}
             </h3>
-            <span className="text-xs text-[var(--branch-text-light)]">
-              {formatDate(consult.createdAt)}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+              <span className="text-xs text-[var(--branch-text-light)]">
+                {formatDate(consult.createdAt)}
+              </span>
+              {/* 결제 상태 배지 — 결제 연동된 consult만 */}
+              {consult.paymentStatus && PAYMENT_BADGE[consult.paymentStatus] && (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border tabular-nums ${PAYMENT_BADGE[consult.paymentStatus].className}`}
+                  title={
+                    consult.paidAt
+                      ? `${PAYMENT_BADGE[consult.paymentStatus].label} · ${formatDate(consult.paidAt)}`
+                      : PAYMENT_BADGE[consult.paymentStatus].label
+                  }
+                >
+                  {PAYMENT_BADGE[consult.paymentStatus].label}
+                  {consult.paymentAmount != null && consult.paymentStatus === 'PAID' && (
+                    <span className="opacity-70">· {formatPrice(consult.paymentAmount)}</span>
+                  )}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         {/* Status select */}
         <select
           value={consult.status}
           onChange={handleStatusSelect}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium border appearance-none cursor-pointer outline-none ${statusInfo.bg} ${statusInfo.color}`}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium border appearance-none cursor-pointer outline-none shrink-0 ${statusInfo.bg} ${statusInfo.color}`}
         >
           {ALL_STATUSES.map((s) => (
             <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>

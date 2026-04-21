@@ -144,6 +144,13 @@ function mapConsultRequest(raw: any): ConsultRequest {
     status: raw.status ?? 'NEW',
     createdAt: raw.createdAt ?? raw.created_at ?? '',
     updatedAt: raw.updatedAt ?? raw.updated_at,
+    orderId: raw.orderId ?? raw.order_id ?? null,
+    orderNo: raw.orderNo ?? raw.order_no ?? null,
+    totalPrice: raw.totalPrice != null ? Number(raw.totalPrice) : (raw.total_price != null ? Number(raw.total_price) : null),
+    paymentStatus: raw.paymentStatus ?? raw.payment_status ?? null,
+    paymentAmount: raw.paymentAmount != null ? Number(raw.paymentAmount) : (raw.payment_amount != null ? Number(raw.payment_amount) : null),
+    paymentProvider: raw.paymentProvider ?? raw.payment_provider ?? null,
+    paidAt: raw.paidAt ?? raw.paid_at ?? null,
   };
 }
 
