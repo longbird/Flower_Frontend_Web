@@ -26,10 +26,13 @@ export interface OrderPaymentData {
   message: string;
   paymentMethod?: PaymentMethodChoice;
   /**
-   * 백엔드가 발급한 consult_request id. 결제 페이지에서 POST /public/payments/create 의
-   * orderId 파라미터로 사용 (백엔드 payments.order_id 컬럼에 동일 값 저장됨).
+   * 백엔드가 consult 등록 시 함께 생성한 orders.id. 결제 페이지에서
+   * POST /public/payments/create의 orderId 파라미터로 사용된다.
+   * (TossCredentialResolver.byOrderId가 orders.branch_id로 지사 자격증명 해결)
    * 결제 진입 시점에 반드시 채워져 있어야 함.
    */
+  orderId?: number;
+  /** 교차 참조용 consult_request id (어드민/운영 로그용) */
   consultRequestId?: number;
 }
 

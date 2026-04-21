@@ -110,11 +110,14 @@ export async function fetchRecommendedPhotoById(
   return res.data.find((p) => p.id === photoId) ?? null;
 }
 
-/** 주문 요청 등록 — FormData (파일 포함) */
+/**
+ * 주문 요청 등록 — FormData (파일 포함). 백엔드가 consult_request id와,
+ * 결제 연동이 필요한 경우(amount>0) 함께 생성된 orders.id를 돌려준다.
+ */
 export async function submitOrderRequest(
   slug: string,
   data: FormData
-): Promise<{ ok: boolean; message?: string; id?: number }> {
+): Promise<{ ok: boolean; message?: string; id?: number; orderId?: number }> {
   try {
     const res = await fetch(`${API_BASE}/public/branch/${slug}/consult`, {
       method: 'POST',
@@ -125,17 +128,21 @@ export async function submitOrderRequest(
       return { ok: false, message: json.message || '요청에 실패했습니다.' };
     }
     const id = typeof json?.data?.id === 'number' ? json.data.id : undefined;
-    return { ok: true, id };
+    const orderId = typeof json?.data?.orderId === 'number' ? json.data.orderId : undefined;
+    return { ok: true, id, orderId };
   } catch {
     return { ok: false, message: '네트워크 오류가 발생했습니다.' };
   }
 }
 
-/** 상담 요청 등록 (인증 불필요). 성공 시 백엔드가 발급한 consult request id를 함께 반환. */
+/**
+ * 상담 요청 등록 (인증 불필요). body에 amount를 포함하면 백엔드가 orders 행을
+ * 함께 생성하고 orderId를 응답에 포함한다 (결제 연동용).
+ */
 export async function submitConsultRequest(
   slug: string,
-  form: ConsultRequestForm
-): Promise<{ ok: boolean; message?: string; id?: number }> {
+  form: ConsultRequestForm & { amount?: number }
+): Promise<{ ok: boolean; message?: string; id?: number; orderId?: number }> {
   try {
     const res = await fetch(`${API_BASE}/public/branch/${slug}/consult`, {
       method: 'POST',
@@ -147,7 +154,8 @@ export async function submitConsultRequest(
       return { ok: false, message: json.message || '요청에 실패했습니다.' };
     }
     const id = typeof json?.data?.id === 'number' ? json.data.id : undefined;
-    return { ok: true, id };
+    const orderId = typeof json?.data?.orderId === 'number' ? json.data.orderId : undefined;
+    return { ok: true, id, orderId };
   } catch {
     return { ok: false, message: '네트워크 오류가 발생했습니다.' };
   }

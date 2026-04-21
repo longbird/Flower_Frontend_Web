@@ -177,7 +177,7 @@ function ConsultPageInner() {
       setSubmitting(true);
       try {
         const hasFiles = ribbonImage || (invoiceType === 'INVOICE' && businessRegFile);
-        let consultResult: { ok: boolean; message?: string; id?: number };
+        let consultResult: { ok: boolean; message?: string; id?: number; orderId?: number };
         if (hasFiles) {
           const formData = new FormData();
           formData.append('customerName', senderName);
@@ -195,6 +195,8 @@ function ConsultPageInner() {
           if (ribbonLeft || ribbonRight) formData.append('ribbonText', `${ribbonLeft} / ${ribbonRight}`);
           if (memo) formData.append('memo', memo);
           formData.append('message', msgParts.join('\n'));
+          // 백엔드가 orders.total_price 에 사용. 이 값이 있어야 orders 행이 생성됨
+          formData.append('amount', String(Math.floor(totalPrice)));
           if (ribbonImage) formData.append('ribbonImage', ribbonImage);
           if (invoiceType === 'INVOICE' && businessRegFile) {
             formData.append('businessRegistration', businessRegFile);
@@ -217,10 +219,17 @@ function ConsultPageInner() {
             ribbonText: (ribbonLeft || ribbonRight) ? `${ribbonLeft} / ${ribbonRight}` : undefined,
             memo: memo || undefined,
             message: msgParts.join('\n'),
+            amount: Math.floor(totalPrice),
           });
         }
         if (!consultResult.ok || !consultResult.id) {
           setError(consultResult.message || '주문 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+          setSubmitting(false);
+          return;
+        }
+        if (!consultResult.orderId) {
+          // 결제 진행에 orders.id가 필요. 백엔드가 orders 생성에 실패한 경우.
+          setError('주문 등록은 완료되었으나 결제 정보 발급에 실패했습니다. 지사에 직접 연락해 주세요.');
           setSubmitting(false);
           return;
         }
@@ -244,6 +253,7 @@ function ConsultPageInner() {
             invoiceType,
             cashReceiptPhone: cashReceiptPhoneClean,
             message: msgParts.join('\n'),
+            orderId: consultResult.orderId,
             consultRequestId: consultResult.id,
           },
         );
