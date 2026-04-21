@@ -69,6 +69,15 @@ export interface PaginatedResponse<T> {
 }
 
 /** 상담 요청 */
+/** 결제 상태 (payments.status enum) */
+export type PaymentStatusBranchView =
+  | 'CREATED'
+  | 'PENDING'
+  | 'PAID'
+  | 'FAILED'
+  | 'CANCELED'
+  | 'REFUNDED';
+
 export interface ConsultRequest {
   id: number;
   branchId: number;
@@ -92,6 +101,14 @@ export interface ConsultRequest {
   status: 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   createdAt: string;
   updatedAt?: string;
+  // 결제 연동 필드 — 결제 없는 상담은 모두 null
+  orderId?: number | null;
+  orderNo?: string | null;
+  totalPrice?: number | null;
+  paymentStatus?: PaymentStatusBranchView | null;
+  paymentAmount?: number | null;
+  paymentProvider?: string | null;
+  paidAt?: string | null;
 }
 
 /** 배송 용도 */
