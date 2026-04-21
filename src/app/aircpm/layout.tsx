@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 const NAV: Array<{ href: string; label: string }> = [
   { href: '/aircpm/certs', label: '기기 인증' },
   { href: '/aircpm/users', label: '사용자' },
+  { href: '/aircpm/targetapps', label: '배차앱 설정' },
 ];
 
 const ALLOWED_ROLES = ['SUPER_ADMIN', 'ADMIN'];
