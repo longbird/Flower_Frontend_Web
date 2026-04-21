@@ -29,9 +29,9 @@ export default function PaymentPage() {
   const tossSecretRef = useRef<TossClientSecret | null>(null);
   const initStartedRef = useRef(false);
 
-  // 주문 데이터 없거나 consultRequestId 없으면 홈으로
+  // 주문 데이터 없거나 orderId 없으면 홈으로
   useEffect(() => {
-    if (!orderData || !orderData.consultRequestId) {
+    if (!orderData || !orderData.orderId) {
       router.replace(`/branch/${slug}`);
     }
   }, [orderData, router, slug]);
@@ -47,14 +47,14 @@ export default function PaymentPage() {
 
   // 결제 위젯 초기화: 백엔드에서 clientSecret(JSON) 수령 → 토스 SDK 로드
   useEffect(() => {
-    if (!orderData || !orderData.consultRequestId || loading) return;
+    if (!orderData || !orderData.orderId || loading) return;
     if (initStartedRef.current) return;
     initStartedRef.current = true;
 
     async function initWidget() {
       try {
         const created = await createPayment({
-          orderId: orderData!.consultRequestId!,
+          orderId: orderData!.orderId!,
           amount: Math.floor(orderData!.productPrice),
           method: 'CARD',
           goodName: orderData!.productName || '꽃배달 상품',
