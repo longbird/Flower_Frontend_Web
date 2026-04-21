@@ -3,11 +3,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk';
-import { fetchBranchInfo } from '@/lib/branch/api';
+import {
+  fetchBranchInfo,
+  createPayment,
+  parseTossClientSecret,
+  type TossClientSecret,
+} from '@/lib/branch/api';
 import type { BranchInfo } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
 import { usePaymentStore } from '@/lib/branch/payment-store';
-import { generateOrderId } from '@/lib/payments/constants';
 import { formatPrice } from '../consult/utils';
 
 export default function PaymentPage() {
@@ -21,11 +25,13 @@ export default function PaymentPage() {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
   const [widgetReady, setWidgetReady] = useState(false);
-  const widgetsRef = useRef<any>(null);
+  const widgetsRef = useRef<unknown>(null);
+  const tossSecretRef = useRef<TossClientSecret | null>(null);
+  const initStartedRef = useRef(false);
 
-  // 주문 데이터 없으면 홈으로
+  // 주문 데이터 없거나 consultRequestId 없으면 홈으로
   useEffect(() => {
-    if (!orderData) {
+    if (!orderData || !orderData.consultRequestId) {
       router.replace(`/branch/${slug}`);
     }
   }, [orderData, router, slug]);
@@ -39,19 +45,30 @@ export default function PaymentPage() {
     });
   }, [slug]);
 
-  // 결제 위젯 초기화
+  // 결제 위젯 초기화: 백엔드에서 clientSecret(JSON) 수령 → 토스 SDK 로드
   useEffect(() => {
-    if (!orderData || loading) return;
-
-    const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-    if (!clientKey) {
-      setError('결제 설정이 완료되지 않았습니다.');
-      return;
-    }
+    if (!orderData || !orderData.consultRequestId || loading) return;
+    if (initStartedRef.current) return;
+    initStartedRef.current = true;
 
     async function initWidget() {
       try {
-        const tossPayments = await loadTossPayments(clientKey!);
+        const created = await createPayment({
+          orderId: orderData!.consultRequestId!,
+          amount: Math.floor(orderData!.productPrice),
+          method: 'CARD',
+          goodName: orderData!.productName || '꽃배달 상품',
+          buyerName: orderData!.customerName || undefined,
+          buyerTel: orderData!.customerPhone || undefined,
+          buyerEmail: orderData!.customerEmail || undefined,
+        });
+        if (!created.clientSecret) {
+          throw new Error('결제 정보를 받지 못했습니다. 본사에 문의해 주세요.');
+        }
+        const secret = parseTossClientSecret(created.clientSecret);
+        tossSecretRef.current = secret;
+
+        const tossPayments = await loadTossPayments(secret.clientKey);
         const widgets = tossPayments.widgets({ customerKey: ANONYMOUS });
         widgetsRef.current = widgets;
 
@@ -60,37 +77,39 @@ export default function PaymentPage() {
           value: Math.floor(orderData!.productPrice),
         });
 
-        await widgets.renderPaymentMethods({
-          selector: '#payment-methods',
-        });
-
-        await widgets.renderAgreement({
-          selector: '#payment-agreement',
-        });
+        await widgets.renderPaymentMethods({ selector: '#payment-methods' });
+        await widgets.renderAgreement({ selector: '#payment-agreement' });
 
         setWidgetReady(true);
       } catch (err: unknown) {
         console.error('Widget init error:', err);
         const msg = err instanceof Error ? err.message : String(err);
-        setError(`결제 위젯 오류: ${msg}`);
+        // 지사 미설정 등 백엔드 5xx → 안내 문구로 변환
+        if (/no active toss/.test(msg) || /credentials/i.test(msg)) {
+          setError('결제 시스템 점검 중입니다. 본사로 문의 바랍니다.');
+        } else {
+          setError(`결제 위젯 오류: ${msg}`);
+        }
       }
     }
 
     initWidget();
   }, [orderData, loading]);
 
-  // 결제 요청
+  // 결제 요청 — 토스가 successUrl로 리다이렉트
   const handlePayment = async () => {
-    if (!widgetsRef.current || !orderData) return;
+    const widgets = widgetsRef.current as { requestPayment: (req: Record<string, unknown>) => Promise<void> } | null;
+    const secret = tossSecretRef.current;
+    if (!widgets || !secret || !orderData) return;
     setPaying(true);
     setError('');
 
     try {
-      const orderId = generateOrderId(slug);
       const origin = window.location.origin;
-
       const paymentRequest: Record<string, unknown> = {
-        orderId,
+        // 반드시 서버가 내려준 tossOrderId(RF_<id>_<ts>)를 그대로 사용해야
+        // successUrl에서 paymentService.confirmTossPayment의 정규식 매칭이 성공함.
+        orderId: secret.tossOrderId,
         orderName: orderData.productName || '꽃배달 상품',
         successUrl: `${origin}/branch/${slug}/payment/success`,
         failUrl: `${origin}/branch/${slug}/payment/fail`,
@@ -98,13 +117,15 @@ export default function PaymentPage() {
       if (orderData.customerName) {
         paymentRequest.customerName = orderData.customerName;
       }
-      // customerMobilePhone은 11자리 형식만 전달 (대표번호 제외)
       const phone = orderData.customerPhone?.replace(/\D/g, '');
       if (phone && phone.length === 11 && phone.startsWith('01')) {
         paymentRequest.customerMobilePhone = phone;
       }
+      if (orderData.customerEmail) {
+        paymentRequest.customerEmail = orderData.customerEmail;
+      }
 
-      await widgetsRef.current.requestPayment(paymentRequest);
+      await widgets.requestPayment(paymentRequest);
     } catch (err: unknown) {
       console.error('Payment request error:', err);
       const errObj = err as Record<string, unknown>;
@@ -190,7 +211,7 @@ export default function PaymentPage() {
         </div>
 
         {error && (
-          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm whitespace-pre-line">
             {error}
           </div>
         )}

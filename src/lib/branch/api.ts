@@ -114,7 +114,7 @@ export async function fetchRecommendedPhotoById(
 export async function submitOrderRequest(
   slug: string,
   data: FormData
-): Promise<{ ok: boolean; message?: string }> {
+): Promise<{ ok: boolean; message?: string; id?: number }> {
   try {
     const res = await fetch(`${API_BASE}/public/branch/${slug}/consult`, {
       method: 'POST',
@@ -124,17 +124,18 @@ export async function submitOrderRequest(
     if (!res.ok) {
       return { ok: false, message: json.message || '요청에 실패했습니다.' };
     }
-    return { ok: true };
+    const id = typeof json?.data?.id === 'number' ? json.data.id : undefined;
+    return { ok: true, id };
   } catch {
     return { ok: false, message: '네트워크 오류가 발생했습니다.' };
   }
 }
 
-/** 상담 요청 등록 (인증 불필요) */
+/** 상담 요청 등록 (인증 불필요). 성공 시 백엔드가 발급한 consult request id를 함께 반환. */
 export async function submitConsultRequest(
   slug: string,
   form: ConsultRequestForm
-): Promise<{ ok: boolean; message?: string }> {
+): Promise<{ ok: boolean; message?: string; id?: number }> {
   try {
     const res = await fetch(`${API_BASE}/public/branch/${slug}/consult`, {
       method: 'POST',
@@ -145,8 +146,97 @@ export async function submitConsultRequest(
     if (!res.ok) {
       return { ok: false, message: json.message || '요청에 실패했습니다.' };
     }
-    return { ok: true };
+    const id = typeof json?.data?.id === 'number' ? json.data.id : undefined;
+    return { ok: true, id };
   } catch {
     return { ok: false, message: '네트워크 오류가 발생했습니다.' };
   }
+}
+
+// ─── Toss payment integration (per-branch credentials) ───────
+//
+// 백엔드 흐름:
+//   1) submitOrderRequest/submitConsultRequest로 consult_request id 확보
+//   2) createPayment(consultId)로 clientSecret JSON 수령 (지사별 토스 키 포함)
+//   3) 토스 SDK widgets.requestPayment 호출 (orderId 인자에 tossOrderId 사용)
+//   4) successUrl 페이지에서 confirmTossPayment 호출 (멱등 보장)
+
+export interface CreatePaymentBody {
+  /** consult_request id 또는 orders.id (백엔드 payments.order_id에 들어감) */
+  orderId: number;
+  amount: number;
+  method?: string;
+  goodName?: string;
+  buyerName?: string;
+  buyerTel?: string;
+  buyerEmail?: string;
+}
+
+export interface CreatePaymentResponse {
+  paymentId: number;
+  status: string;
+  provider: string;
+  checkoutUrl: string | null;
+  /** JSON 문자열 (mid/clientKey/env/tossOrderId). 토스 외 PG는 형식 다를 수 있음 */
+  clientSecret: string | null;
+}
+
+export interface TossClientSecret {
+  mid: string;
+  clientKey: string;
+  env: 'TEST' | 'LIVE';
+  tossOrderId: string;
+}
+
+export async function createPayment(body: CreatePaymentBody): Promise<CreatePaymentResponse> {
+  const res = await fetch(`${API_BASE}/public/payments/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, provider: 'toss' }),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.message || `결제 생성에 실패했습니다 (HTTP ${res.status}).`);
+  }
+  return res.json();
+}
+
+export function parseTossClientSecret(raw: string): TossClientSecret {
+  const parsed = JSON.parse(raw);
+  if (!parsed?.clientKey || !parsed?.tossOrderId) {
+    throw new Error('clientSecret 형식이 올바르지 않습니다.');
+  }
+  return parsed;
+}
+
+export interface ConfirmTossPaymentBody {
+  /** 토스 paymentKey */
+  paymentKey: string;
+  /** 토스 orderId (RF_<consultId>_<ts>) — 서버가 발급한 값 그대로 */
+  orderId: string;
+  amount: number;
+}
+
+export interface ConfirmTossPaymentResponse {
+  ok: true;
+  paymentKey?: string;
+  alreadyPaid?: boolean;
+}
+
+export async function confirmTossPayment(
+  body: ConfirmTossPaymentBody,
+): Promise<ConfirmTossPaymentResponse> {
+  const res = await fetch(`${API_BASE}/public/payments/toss/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let json: { message?: string } = {};
+    try {
+      json = await res.json();
+    } catch {}
+    throw new Error(json.message || `결제 확정에 실패했습니다 (HTTP ${res.status}).`);
+  }
+  return res.json();
 }
