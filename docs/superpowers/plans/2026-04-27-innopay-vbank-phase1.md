@@ -115,18 +115,29 @@ src/__tests__/
 - [ ] **Backend repo**: `cd D:\Work\AI_Projects\RunFlower\src\run_flower_backend_final_repo && git checkout -b feat/innopay-foundation`
 - [ ] **Frontend repo**: `cd D:\Work\AI_Projects\RunFlower\src\Flower_Frontend_Web && git checkout -b feat/innopay-foundation`
 
-### Task 0.2: 이노페이 API 가이드 정독 + 사양 문서화
+### Task 0.2: 이노페이 API 가이드 정독 + 사양 문서화 ✅ 완료
 
-산출물: `docs/innopay-api-reference.md` (백엔드 레포)
+산출물: `docs/innopay-api-reference.md` (백엔드 레포) — **이미 작성됨** (2026-04-27, Playwright 자동 추출)
 
-- [ ] 가이드(https://web.innopay.co.kr/guide/vbank_api/, ID `testpay01` / PW `ars123!@#`) 정독
-- [ ] `docs/innopay-api-reference.md`에 다음 항목 확정 기재:
-  - **1회용 vbank 발급 endpoint**: 정확한 path, 요청 JSON 키 이름, 응답 키 이름, status 식별 방식
-  - **영구 가맹점 vbank 지원 여부**: 지원되면 endpoint, 미지원이면 본 plan **§Permanent VBank Fallback** 분기로 진입
-  - **Webhook 페이로드 형식**: payload JSON 구조, 헤더에 실리는 시그니처 헤더명, **서명 알고리즘**(HMAC-SHA256 / SHA1 / MD5+merchant_key 등)
-  - **Webhook 송신 IP 대역**: nginx allowlist 설정용
-  - **TEST/REAL 환경 구분 방법**: API base URL이 다른지, key prefix로 구분되는지
-- [ ] 본 문서가 작성되기 전에는 Task 3.1 / 3.3 / 4.5 진행 금지 (speculative endpoint/algorithm 코드 commit 방지)
+확정 사양 요약:
+- **API base URL**: `https://api.innopay.co.kr` (TEST/REAL 동일)
+- **인증**: JSON body에 `mid` + `licenseKey` 포함 (Bearer 헤더 X)
+- **Endpoints**:
+  - 발급: `POST /api/vbankApi`
+  - 발급상태조회/삭제: `POST /api/vacctInquery`
+  - 가상계좌 취소: `POST /api/vbankCancel`
+  - 통합 결제 취소: `POST /api/cancelApi`
+- **두 종류 vbank**:
+  - 채번형(one-time): `vbankExpDate=YYYYMMDD` → 고객 결제용 (Phase 2)
+  - 벌크형(영구): `vbankExpDate=99999999` → **지사 충전용 (Phase 1)** — 거래정보 저장 안 됨, vbankCancel 미지원
+- **Webhook (Noti)**:
+  - Content-Type: `application/x-www-form-urlencoded`
+  - 응답: plain text `"0000"` (성공) / 그 외 → 1분×10회 재전송
+  - **서명 검증 메커니즘 없음** → IP allowlist + payload `mid` 일치 검증 + 멱등 키(`transSeq`)로 보안
+- **결제 상태**: `status=25` 결제완료, `status=85` 결제취소 (가상계좌는 입금 후 2시간 30분 내 취소 가능)
+- **결제수단 코드**: 가상계좌 = `08`
+- **결과 코드**: `4100` 성공
+- **payload 핵심 필드**: `shopCode`(=mid), `transSeq`(이노페이 tid), `moid`(가맹점 주문번호 — 벌크형 임의), `vacctNo`(가상계좌번호), `vbankBankCd`, `vbankAcctNm`(송금자명), `goodsAmt`(입금금액), `mallReserved`(예비)
 
 ### Task 0.3: 백엔드 데이터 모델 확인 (table/guard 이름 확정)
 
@@ -186,7 +197,7 @@ CREATE TABLE IF NOT EXISTS innopay_credentials (
   merchant_id VARCHAR(100) NOT NULL,
   merchant_key_encrypted VARBINARY(512) NOT NULL COMMENT 'AES-256-GCM 암호화 키',
   api_base_url VARCHAR(255) NOT NULL,
-  webhook_secret_encrypted VARBINARY(512) NOT NULL COMMENT '서명 검증용 시크릿(암호화)',
+  license_key_encrypted VARBINARY(512) NOT NULL COMMENT '이노페이 licenseKey (암호화). API 인증 body에 포함',
   updated_by BIGINT NULL COMMENT 'admin_users.id',
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT ck_innopay_singleton CHECK (id = 1),
@@ -759,7 +770,16 @@ git commit -m "feat(payment): innopay credentials admin API (GET/PUT)"
 
 ## Chunk 3: Backend Innopay Client + Webhook Skeleton
 
-> **HARD-GATE**: Task 0.2(`docs/innopay-api-reference.md`) 작성 완료 후에만 본 chunk 진입. 미완 상태에서 endpoint URL/payload 키/시그니처 알고리즘을 추정해 commit 금지.
+> **HARD-GATE 통과**: `docs/innopay-api-reference.md` 작성 완료 (2026-04-27). 본 chunk의 모든 코드는 reference doc의 endpoint/필드명/응답 형식을 그대로 사용한다.
+
+**핵심 설계 변경 (사양 반영)**:
+- 인증은 JSON body의 `mid` + `licenseKey` (Bearer 헤더 X)
+- Webhook 페이로드는 `application/x-www-form-urlencoded` (JSON 아님), 응답은 plain text `"0000"`
+- **서명 검증 메커니즘 없음** → 다층 방어로 대체:
+  1. IP allowlist (nginx) — 운영 시 이노페이에 IP 대역 문의
+  2. payload `mid` 일치 검증 (본사 등록값과 비교)
+  3. 멱등 키: `transSeq` (이노페이 tid)
+  4. 금액 양수 가드
 
 ### Task 3.1: Innopay HTTP Client (vbank 발급 + 영구 가맹점 vbank 발급) [Backend]
 
@@ -891,51 +911,82 @@ export class InnopayClient {
     const cred = await this.credSvc.getDecrypted()
     if (!cred) throw new ServiceUnavailableException('Innopay credentials not configured')
     // [TODO 가이드 확인] 정확한 endpoint 경로 + 요청 필드명
+    // 채번형 (one-time): vbankExpDate = YYYYMMDD (오늘+N일)
+    const expDate = formatYYYYMMDD(addDays(new Date(), input.validHours ? Math.ceil(input.validHours / 24) : 1))
     const data = await this.http({
-      url: `${cred.apiBaseUrl}/api/v1/vbank/onetime`, // 가이드 확인 후 수정
+      url: `${cred.apiBaseUrl}/api/vbankApi`,
       method: 'POST',
-      headers: { 'X-Merchant-Id': cred.merchantId, 'Authorization': `Bearer ${cred.merchantKey}` },
+      headers: { 'Content-Type': 'application/json' },
       data: {
-        orderId: input.orderId,
-        amount: input.amount,
-        orderName: input.orderName,
-        customerName: input.customerName,
-        validHours: input.validHours ?? 24,
+        mid: cred.merchantId,
+        licenseKey: cred.licenseKey,
+        moid: input.orderId,
+        goodsCnt: '1',
+        goodsName: input.orderName,
+        amt: String(input.amount),
+        buyerName: input.customerName,
+        vbankBankCode: input.bankCode ?? '004', // 기본 KB. 사용자 선택 시 받아야 함 (Phase 2 입력 폼)
+        vbankExpDate: expDate,
+        vbankAccountName: input.customerName,
+        countryCode: 'KR',
+        socNo: input.socNo ?? '000000', // 가맹점 정책. 가이드는 필수.
+        accountTel: input.customerPhone ?? '00000000000',
       },
     })
-    if (data?.status !== 'OK') {
-      throw new ServiceUnavailableException(`Innopay vbank issue failed: ${data?.message ?? 'unknown'}`)
+    if (data?.resultCode !== '4100') {
+      throw new ServiceUnavailableException(`Innopay vbank issue failed (resultCode=${data?.resultCode}): ${data?.resultMsg ?? 'unknown'}`)
     }
     return {
       innopayTid: data.tid,
-      accountNumber: data.accountNo,
-      bankCode: data.bankCode,
-      bankName: data.bankName,
-      holderName: data.holderName,
-      dueDate: data.dueDate,
+      accountNumber: data.vbankNum,
+      bankCode: input.bankCode ?? '004',
+      bankName: data.vbankBankNm,
+      holderName: input.customerName,
+      dueDate: expDate,
     }
   }
 
+  /** 벌크형 가상계좌 발급 (지사 충전용 영구 계좌) */
   async issuePermanentVbank(input: IssuePermanentVbankInput): Promise<IssuedVbank> {
     const cred = await this.credSvc.getDecrypted()
     if (!cred) throw new ServiceUnavailableException('Innopay credentials not configured')
     const data = await this.http({
-      url: `${cred.apiBaseUrl}/api/v1/vbank/permanent`, // 가이드 확인 후 수정
+      url: `${cred.apiBaseUrl}/api/vbankApi`,
       method: 'POST',
-      headers: { 'X-Merchant-Id': cred.merchantId, 'Authorization': `Bearer ${cred.merchantKey}` },
-      data: { externalKey: input.externalKey, holderName: input.holderName },
+      headers: { 'Content-Type': 'application/json' },
+      data: {
+        mid: cred.merchantId,
+        licenseKey: cred.licenseKey,
+        moid: input.externalKey, // 'branch-{id}-topup' 등 임의값. 벌크형은 거래정보 미저장.
+        goodsName: `${input.holderName} 충전`,
+        amt: '0',  // 벌크형은 amt 미사용
+        buyerName: input.holderName,
+        vbankBankCode: input.bankCode ?? '004',
+        vbankExpDate: '99999999',  // 벌크형 영구 발급 매직값
+        vbankAccountName: input.holderName,
+        countryCode: 'KR',
+        socNo: '000000',
+        accountTel: '00000000000',
+      },
     })
-    if (data?.status !== 'OK') {
-      throw new ServiceUnavailableException(`Innopay permanent vbank issue failed: ${data?.message ?? 'unknown'}`)
+    if (data?.resultCode !== '4100') {
+      throw new ServiceUnavailableException(`Innopay bulk vbank issue failed (resultCode=${data?.resultCode}): ${data?.resultMsg ?? 'unknown'}`)
     }
     return {
-      innopayTid: data.tid,
-      accountNumber: data.accountNo,
-      bankCode: data.bankCode,
-      bankName: data.bankName,
-      holderName: data.holderName,
+      innopayTid: data.tid ?? `bulk-${data.vbankNum}`, // 벌크형은 tid가 없을 수 있음 — 계좌번호 fallback
+      accountNumber: data.vbankNum,
+      bankCode: input.bankCode ?? '004',
+      bankName: data.vbankBankNm,
+      holderName: input.holderName,
     }
   }
+}
+
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d); x.setDate(x.getDate() + n); return x
+}
+function formatYYYYMMDD(d: Date): string {
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
 }
 ```
 
@@ -1067,30 +1118,39 @@ git commit -m "feat(payment): webhook events 감사 로그 DAO"
 
 ---
 
-### Task 3.3: Webhook Service (서명 검증 + 멱등 + dispatch) [Backend]
+### Task 3.3: Webhook Service (mid 검증 + 멱등 + dispatch) [Backend]
+
+**중요**: 가이드에 서명 검증 메커니즘이 없으므로 **HMAC 검증 코드 없음**. 대신 다층 방어:
+1. nginx에서 이노페이 IP allowlist
+2. payload `mid`가 본사 등록 `mid`와 일치 검증
+3. `transSeq` 단위 멱등 처리
+4. `goodsAmt > 0` 가드
 
 **Files:**
 - Create: `apps/api/src/payments/providers/innopay/innopay-webhook.service.ts`
 - Create: `apps/api/src/payments/providers/innopay/innopay-webhook.service.spec.ts`
 - Create: `apps/api/src/payments/providers/innopay/dto/webhook-payload.dto.ts`
 
-- [ ] **Step 1: payload DTO**
+- [ ] **Step 1: payload DTO (form-urlencoded 파싱 결과)**
 ```typescript
 // dto/webhook-payload.dto.ts
-export interface InnopayWebhookPayload {
-  tid: string
-  type: 'DEPOSIT' | 'EXPIRED' | 'CANCEL'
-  amount: number
-  vbankAccountNo: string
-  bankCode: string
-  depositorName?: string
-  depositedAt?: string
-  // 추가 필드는 가이드 확인 후 보정
-}
-export interface InnopayWebhookEnvelope {
-  payload: InnopayWebhookPayload
-  signature: string
-  rawBody: string  // 서명 검증 원문
+// 이노페이 Noti는 form-urlencoded로 전송됨. NestJS body-parser가 객체로 파싱한 결과.
+export interface InnopayNotiPayload {
+  shopCode: string       // = mid (본사 등록값과 일치 검증 대상)
+  transSeq: string       // 이노페이 거래번호 — 멱등 키
+  moid: string           // 가맹점 주문번호 (벌크형은 임의값)
+  goodsName?: string
+  goodsAmt: string       // 입금금액 (문자열로 전송됨, parseInt 필요)
+  payMethod: string      // '08' = 가상계좌
+  status: string         // '25' = 결제완료, '85' = 결제취소
+  pgAppDate?: string
+  pgAppTime?: string
+  pgTid?: string
+  vacctNo: string        // 가상계좌번호 (지사 매핑용)
+  vbankBankCd?: string
+  vbankAcctNm?: string   // 송금자명
+  mallReserved?: string
+  // 그 외 필드는 reference doc 참조
 }
 ```
 
@@ -1099,11 +1159,6 @@ export interface InnopayWebhookEnvelope {
 ```typescript
 // innopay-webhook.service.spec.ts
 import { InnopayWebhookService } from './innopay-webhook.service'
-import * as crypto from 'crypto'
-
-function sign(secret: string, body: string): string {
-  return crypto.createHmac('sha256', secret).update(body).digest('hex')
-}
 
 describe('InnopayWebhookService', () => {
   let svc: InnopayWebhookService
@@ -1111,8 +1166,8 @@ describe('InnopayWebhookService', () => {
 
   beforeEach(() => {
     credSvc = { getDecrypted: jest.fn().mockResolvedValue({
-      mode: 'TEST', merchantId: 'm', merchantKey: 'k', apiBaseUrl: 'u',
-      webhookSecret: 'whsec', updatedAt: new Date(),
+      mode: 'TEST', merchantId: 'testpay01m', licenseKey: 'k', apiBaseUrl: 'u',
+      updatedAt: new Date(),
     }) }
     eventsDb = {
       insertReceived: jest.fn().mockResolvedValue(1),
@@ -1123,33 +1178,49 @@ describe('InnopayWebhookService', () => {
     svc = new InnopayWebhookService(credSvc, eventsDb, topupSvc)
   })
 
-  it('서명 검증 실패: 401 throw, signature_valid=false 기록, dispatch 호출 X', async () => {
-    const body = JSON.stringify({ tid: 't', type: 'DEPOSIT', amount: 1, vbankAccountNo: '1', bankCode: '004' })
-    await expect(svc.handle(body, 'wrong-sig')).rejects.toMatchObject({ status: 401 })
+  const validPayload = () => ({
+    shopCode: 'testpay01m', transSeq: 't1', moid: 'branch-1-topup',
+    goodsAmt: '50000', payMethod: '08', status: '25',
+    vacctNo: '1234567', vbankBankCd: '004', vbankAcctNm: '서울지사',
+  })
+
+  it('mid 불일치: 401 throw, dispatch 호출 X', async () => {
+    const p = { ...validPayload(), shopCode: 'WRONG' }
+    await expect(svc.handle(p)).rejects.toMatchObject({ status: 401 })
     expect(eventsDb.insertReceived).toHaveBeenCalledWith(expect.objectContaining({ signatureValid: false }))
     expect(topupSvc.handleDeposit).not.toHaveBeenCalled()
   })
 
-  it('서명 OK + DEPOSIT: topup 디스패치 후 markProcessed', async () => {
-    const body = JSON.stringify({ tid: 't', type: 'DEPOSIT', amount: 50000, vbankAccountNo: '1', bankCode: '004' })
-    await svc.handle(body, sign('whsec', body))
+  it('status=25 + mid 일치: topup 디스패치 후 markProcessed', async () => {
+    await svc.handle(validPayload())
     expect(topupSvc.handleDeposit).toHaveBeenCalledWith(
-      expect.objectContaining({ tid: 't', amount: 50000, vbankAccountNo: '1' }),
+      expect.objectContaining({ transSeq: 't1', goodsAmt: 50000, vacctNo: '1234567', isCancel: false }),
       expect.any(Number),
     )
     expect(eventsDb.markProcessed).toHaveBeenCalled()
   })
 
-  it('중복 webhook: 이미 processed면 dispatch 스킵하고 200', async () => {
+  it('status=85 (취소): 취소 분기로 dispatch (역방향 차감)', async () => {
+    await svc.handle({ ...validPayload(), status: '85' })
+    expect(topupSvc.handleDeposit).toHaveBeenCalledWith(
+      expect.objectContaining({ isCancel: true }),
+      expect.any(Number),
+    )
+  })
+
+  it('중복 webhook (이미 processed): dispatch 스킵', async () => {
     eventsDb.findByTid.mockResolvedValue({ id: 5, processed: 1 })
-    const body = JSON.stringify({ tid: 't', type: 'DEPOSIT', amount: 1, vbankAccountNo: '1', bankCode: '004' })
-    await svc.handle(body, sign('whsec', body))
+    await svc.handle(validPayload())
     expect(topupSvc.handleDeposit).not.toHaveBeenCalled()
+  })
+
+  it('금액 0 또는 음수: 거부 (4xx)', async () => {
+    await expect(svc.handle({ ...validPayload(), goodsAmt: '0' })).rejects.toMatchObject({ status: 400 })
   })
 
   it('credentials 미설정: 503 throw', async () => {
     credSvc.getDecrypted.mockResolvedValue(null)
-    await expect(svc.handle('{}', 'x')).rejects.toMatchObject({ status: 503 })
+    await expect(svc.handle(validPayload())).rejects.toMatchObject({ status: 503 })
   })
 })
 ```
@@ -1159,11 +1230,10 @@ describe('InnopayWebhookService', () => {
 ```typescript
 // innopay-webhook.service.ts
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common'
-import * as crypto from 'crypto'
 import { InnopayCredentialsService } from './innopay-credentials.service'
 import { WebhookEventsDb } from '../../webhook-events/webhook-events.db'
 import { InnopayTopupService } from './innopay-topup.service'
-import { InnopayWebhookPayload } from './dto/webhook-payload.dto'
+import { InnopayNotiPayload } from './dto/webhook-payload.dto'
 
 @Injectable()
 export class InnopayWebhookService {
@@ -1173,49 +1243,58 @@ export class InnopayWebhookService {
     private readonly topupSvc: InnopayTopupService,
   ) {}
 
-  async handle(rawBody: string, signature: string): Promise<{ ok: true }> {
+  /**
+   * 이노페이 Noti 처리. body는 form-urlencoded → NestJS가 객체로 파싱한 결과.
+   * 반환값을 controller가 plain text "0000"으로 응답 (실패 시 400/401/503 throw → controller가 다른 텍스트로 응답)
+   */
+  async handle(payload: InnopayNotiPayload): Promise<{ ok: true }> {
     const cred = await this.credSvc.getDecrypted()
     if (!cred) throw new HttpException('Innopay not configured', HttpStatus.SERVICE_UNAVAILABLE)
 
-    // 1. 서명 검증 (timing-safe)
-    // 알고리즘은 docs/innopay-api-reference.md (Task 0.2)에서 확정한 것을 사용. HMAC-SHA256은 가정.
-    const expected = crypto.createHmac('sha256', cred.webhookSecret).update(rawBody).digest('hex')
-    const sigBuf = Buffer.from(signature ?? '', 'utf8')
-    const expBuf = Buffer.from(expected, 'utf8')
-    const valid = sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)
-    let payload: InnopayWebhookPayload
-    try { payload = JSON.parse(rawBody) } catch { payload = {} as any }
-
-    // 2. 감사 로그 (서명 실패 포함)
+    // 1. mid 일치 검증 (서명 대체)
+    const midOk = payload?.shopCode === cred.merchantId
     const eventId = await this.eventsDb.insertReceived({
       source: 'INNOPAY',
-      eventType: payload?.type ?? 'UNKNOWN',
-      externalTid: payload?.tid ?? null,
+      eventType: `STATUS_${payload?.status ?? 'NA'}`,
+      externalTid: payload?.transSeq ?? null,
       rawPayload: payload,
-      signature,
-      signatureValid: valid,
+      signature: null,
+      signatureValid: midOk,
     })
-
-    if (!valid) {
-      // TODO: 텔레그램 알림 (별도 task)
-      throw new HttpException('Invalid signature', HttpStatus.UNAUTHORIZED)
+    if (!midOk) {
+      // TODO: 텔레그램 알림 (운영 시)
+      throw new HttpException('mid mismatch', HttpStatus.UNAUTHORIZED)
     }
 
-    // 3. 멱등 검사
-    const existing = await this.eventsDb.findByTid('INNOPAY', payload.tid)
+    // 2. 금액 가드
+    const amount = Number.parseInt(payload.goodsAmt ?? '0', 10)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      await this.eventsDb.markProcessed(eventId, 'invalid amount')
+      throw new HttpException('Invalid goodsAmt', HttpStatus.BAD_REQUEST)
+    }
+
+    // 3. 멱등: 이미 processed인 transSeq면 스킵
+    const existing = await this.eventsDb.findByTid('INNOPAY', payload.transSeq)
     if (existing && existing.id !== eventId && existing.processed === 1) {
       await this.eventsDb.markProcessed(eventId, 'duplicate')
       return { ok: true }
     }
 
-    // 4. dispatch by type
+    // 4. dispatch — Phase 1은 가상계좌(payMethod=08)만 처리
+    if (payload.payMethod !== '08') {
+      await this.eventsDb.markProcessed(eventId, `unsupported payMethod=${payload.payMethod}`)
+      return { ok: true } // 다른 결제수단은 무시 (Phase 2/Phase 3에서 처리)
+    }
+    const isCancel = payload.status === '85'
+    if (payload.status !== '25' && payload.status !== '85') {
+      await this.eventsDb.markProcessed(eventId, `unhandled status=${payload.status}`)
+      return { ok: true }
+    }
     try {
-      if (payload.type === 'DEPOSIT') {
-        await this.topupSvc.handleDeposit(payload, eventId)
-      } else if (payload.type === 'EXPIRED' || payload.type === 'CANCEL') {
-        // Phase 1에서는 충전용 vbank의 EXPIRED/CANCEL은 발생 가능성 낮음 (영구 계좌)
-        // Phase 2에서 1회용 vbank 처리 추가
-      }
+      await this.topupSvc.handleDeposit(
+        { ...payload, goodsAmt: amount, isCancel },
+        eventId,
+      )
       await this.eventsDb.markProcessed(eventId, null)
     } catch (err: any) {
       await this.eventsDb.markProcessed(eventId, err?.message ?? String(err))
@@ -1417,6 +1496,12 @@ git commit -m "feat(wallet): applyInnopayTopup — 이노페이 자동충전 멱
 ---
 
 ### Task 4.2: Innopay Topup Service [Backend]
+
+**매핑 규칙 (reference doc 기반)**:
+- 1차: `vacctNo`(가상계좌번호) → `organizations.topup_vbank_account_number` 매칭 (벌크형 영구 계좌)
+- 2차: `transSeq` 또는 `mallReserved`로 fallback (대부분 1차에서 끝남)
+- 매칭 실패 시 NotFoundException → webhook 재전송 사이클로 진입(운영자가 매핑 보정 후 재처리)
+- 취소(`status=85`): 동일 `transSeq`의 ledger 조회 → 충전금 역방향 차감 거래 추가
 
 **Files:**
 - Create: `apps/api/src/payments/providers/innopay/innopay-topup.service.ts`
@@ -1765,48 +1850,46 @@ git commit -m "feat(payment): 지사 관리자가 자기 충전용 vbank 조회"
 - Create: `apps/api/src/payments/providers/innopay/innopay-webhook.controller.ts`
 - Create: `apps/api/src/payments/providers/innopay/innopay.module.ts`
 
-- [ ] **Step 0: rawBody 캡처 검증/추가**
+- [ ] **Step 0: form-urlencoded body parser 검증/추가**
 
-Run: `grep -n "rawBody\|verify.*req.*buf\|bodyParser\.json" apps/api/src/main.ts`
-- 있으면: 그대로 사용
-- 없으면 `apps/api/src/main.ts`에 추가:
+Run: `grep -n "urlencoded\|bodyParser" apps/api/src/main.ts`
+- 있으면 그대로 사용. 없으면 `apps/api/src/main.ts`에 추가:
 ```typescript
 import * as bodyParser from 'body-parser'
-app.use(bodyParser.json({
-  verify: (req: any, _res, buf) => { req.rawBody = buf },
-  limit: '256kb',
-}))
+// 이노페이 Noti는 application/x-www-form-urlencoded — JSON parser와 별도 등록
+app.use('/admin/payments/innopay/webhook', bodyParser.urlencoded({ extended: false, limit: '64kb' }))
 ```
-> Webhook 서명은 raw body 바이트열에 대해 계산됨. JSON.stringify(req.body)로는 이노페이 서버가 보낸 원문과 바이트가 다를 수 있어 검증 실패 가능.
 
 - [ ] **Step 1: Controller**
 ```typescript
 // innopay-webhook.controller.ts
-import { Controller, Post, Req, Headers, BadRequestException } from '@nestjs/common'
-import { Request } from 'express'
+// CRITICAL: 가맹점 응답은 plain text "0000"이어야 이노페이가 성공으로 인식.
+// 실패 시(401/400/503 throw) NestJS는 JSON 응답을 보내지만 "0000" 외이므로 이노페이가 1분×10회 재시도.
+import { Body, Controller, Header, HttpCode, HttpException, HttpStatus, Post } from '@nestjs/common'
 import { InnopayWebhookService } from './innopay-webhook.service'
+import { InnopayNotiPayload } from './dto/webhook-payload.dto'
 
 @Controller('admin/payments/innopay/webhook')
 export class InnopayWebhookController {
   constructor(private readonly svc: InnopayWebhookService) {}
 
   @Post()
-  async handle(
-    @Req() req: Request,
-    // 정확한 헤더명은 docs/innopay-api-reference.md에서 확정. 'x-innopay-signature'는 가정.
-    @Headers('x-innopay-signature') signature: string,
-  ) {
-    const raw = (req as any).rawBody as Buffer | undefined
-    if (!raw) {
-      // main.ts의 rawBody 미들웨어가 실행되지 않은 경우 → fail-fast
-      throw new BadRequestException('rawBody not captured — check main.ts bodyParser.verify config')
+  @HttpCode(200)
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  async handle(@Body() body: InnopayNotiPayload): Promise<string> {
+    try {
+      await this.svc.handle(body)
+      return '0000'  // plain text 성공 응답 (이노페이 표준)
+    } catch (err) {
+      // 서비스가 throw하면 그대로 전파해 NestJS가 4xx/5xx 응답.
+      // 이노페이는 "0000" 외엔 실패로 간주하고 재시도 → 멱등 키로 안전.
+      throw err instanceof HttpException ? err : new HttpException('Internal', HttpStatus.INTERNAL_SERVER_ERROR)
     }
-    return this.svc.handle(raw.toString('utf8'), signature)
   }
 }
 ```
 
-> **IP allowlist (운영)**: 이노페이 webhook 송신 IP를 nginx 또는 운영 방화벽에서 허용. `docs/innopay-api-reference.md` Task 0.2에서 확보한 IP 대역을 nginx config에 반영. 본 plan에서는 코드 외 운영 작업으로 별도 task 없음 (서명 검증이 1차 방어, IP는 2차 방어).
+> **IP allowlist (운영)**: 이노페이 webhook 송신 IP를 nginx 또는 운영 방화벽에서 허용. `docs/innopay-api-reference.md`에 따라 운영 적용 시 이노페이에 IP 대역 문의 후 nginx config에 반영. 본 plan에서는 코드 외 운영 작업으로 별도 task 없음 (mid 검증 + 멱등 키가 1차 방어, IP는 2차 방어).
 
 - [ ] **Step 2: 모듈**
 ```typescript
