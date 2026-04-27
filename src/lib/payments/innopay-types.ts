@@ -1,3 +1,5 @@
+export * from './vbank-payment-types';
+
 export type InnopayMode = 'TEST' | 'REAL';
 
 export interface InnopayCredentialsMasked {
