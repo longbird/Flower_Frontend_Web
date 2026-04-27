@@ -53,18 +53,26 @@
 [5] 고객이 해당 계좌로 입금
         │
 [6] 이노페이 webhook → POST /api/proxy/admin/payments/innopay/webhook
-    └─ 백엔드 트랜잭션 (멱등):
-        - 이노페이 거래키로 중복 검사
+    └─ 백엔드 단일 트랜잭션 (atomic, 멱등):
+        - 서명 검증 실패 → 401 응답, DB 미접근, 본사 알림(텔레그램)
+        - 이노페이 거래키 + mode 복합 UNIQUE로 중복 검사 (TEST/REAL 격리)
         - payments.status = DONE, paidAt 기록
         - orders.status = PAYMENT_COMPLETED
         - wallet_transactions 추가: VBANK_SETTLE (amount: +(주문액 − orderFee), refType: PAYMENT, refId: paymentId)
+        - webhook_events 테이블에 raw payload + processed=true 기록
+    └─ 위 모든 변경이 단일 RDB 트랜잭션으로 commit. 폴링이 status=DONE을 보는 시점에 wallet 환원도 반드시 commit 완료된 상태(중간 상태 노출 X).
         │
-[7] 프론트 폴링이 status=DONE 감지 → /branch/{slug}/payment/success로 이동
+[7] 프론트 폴링이 다음 terminal 상태 중 하나 감지 시 종료:
+    - DONE      → /branch/{slug}/payment/success 이동
+    - EXPIRED   → /branch/{slug}/payment/fail 이동 (만료 안내)
+    - CANCELED  → /branch/{slug}/payment/fail 이동 (취소 안내)
+    - 마감시각 도달 (클라이언트 타임아웃)도 자동 종료 후 fail로 이동
 
-[만료/미입금 — 이노페이 webhook 또는 cron]
+[만료/미입금 처리 — webhook 경로 / cron 경로 동일]
     - payments.status = EXPIRED, orders.status = CANCELED
-    - wallet 차감은 그대로 유지 (지사 손실 확정)
+    - wallet 차감(VBANK_HOLD) 그대로 유지 (지사 손실 확정)
     - 별도 보상 거래 없음
+    - cron 경로(매시간)와 webhook 경로 모두 동일한 처리 함수를 호출 → 분기 코드 발산 방지
 ```
 
 ### 2.2 카드 결제 (변경 없음)
@@ -110,13 +118,14 @@
 
 #### `branches` 확장 (지사 충전용 vbank)
 ```
-+ topup_vbank_account_number   VARCHAR (이노페이 발급)
++ topup_vbank_account_number   VARCHAR  UNIQUE (이노페이 발급)
 + topup_vbank_bank_code         VARCHAR
 + topup_vbank_holder_name       VARCHAR
-+ topup_vbank_innopay_id        VARCHAR (이노페이 측 고유 식별자, webhook 매핑용)
++ topup_vbank_innopay_id        VARCHAR  UNIQUE (이노페이 측 고유 식별자, webhook 매핑용)
 + topup_vbank_issued_at         TIMESTAMP
 + topup_vbank_active            BOOLEAN
 ```
+> `topup_vbank_account_number`와 `topup_vbank_innopay_id` 모두 UNIQUE 제약. 동일 vbank가 두 지사에 매핑되는 사고 차단.
 
 #### `payments` 확장 (고객 결제용 vbank)
 ```
@@ -125,10 +134,30 @@
 + vbank_bank_code      VARCHAR
 + vbank_holder_name    VARCHAR
 + vbank_due_date       TIMESTAMP
-+ innopay_tid          VARCHAR (이노페이 거래 ID, UNIQUE)
++ innopay_tid          VARCHAR
++ innopay_mode         ENUM('TEST', 'REAL')
 + innopay_status_raw   VARCHAR (원시 상태값)
-+ paid_amount          INTEGER (실제 입금액 — 부분/초과 검증용)
++ amount               INTEGER (요구 결제액 — 주문 시 확정)
++ paid_amount          INTEGER (실제 입금액 — 입금 시 기록, NULL 가능)
++ UNIQUE (innopay_mode, innopay_tid)  -- TEST/REAL 격리
 ```
+> `amount`(요구액) ≠ `paid_amount`(실입금액)일 경우 v1은 자동 DONE 처리 안 함. webhook 수신·기록만 하고 본사 admin에 알림. 이 경우 `payments.status = REVIEW_REQUIRED`로 유지(추가 ENUM 값).
+
+#### `webhook_events` (신규, 감사 로그)
+```
+- id              (PK)
+- source          VARCHAR  (예: 'INNOPAY')
+- event_type      VARCHAR  (DEPOSIT/EXPIRED/CANCEL)
+- innopay_tid     VARCHAR
+- raw_payload     JSON
+- signature       VARCHAR
+- signature_valid BOOLEAN
+- processed       BOOLEAN
+- processing_error VARCHAR (NULL 가능)
+- received_at     TIMESTAMP
+- processed_at    TIMESTAMP (NULL 가능)
+```
+> 모든 webhook 수신 시점에 raw payload 기록(서명 검증 실패도 포함). 멱등 처리 후 `processed=true`. 누락/중복 분석용.
 
 #### `wallet_transactions` 타입 확장
 ```
@@ -157,11 +186,16 @@ WalletTxType ENUM:
 | `GET` | `/admin/payments/vbank` | 본사 admin | 가상계좌 결제 모니터링(필터: 상태/지사/기간) |
 | `GET` | `/branch/{slug}/topup-vbank` | 지사 관리자 | 자기 충전용 가상계좌 정보 조회 |
 
-### 3.3 멱등성 보장
+### 3.3 멱등성 및 보안
 
-- `payments.innopay_tid`에 UNIQUE 제약
-- webhook 중복 수신 시 같은 `tid`는 무시 (HTTP 200 응답으로 재시도 차단)
-- 충전 자동 입금도 이노페이 거래키 + 지사 매핑으로 멱등 키 구성
+- `payments`에 `(innopay_mode, innopay_tid)` 복합 UNIQUE — TEST/REAL 격리, 중복 입금통보 방어
+- webhook 중복 수신 시 같은 `(mode, tid)`는 200으로 즉시 응답 (재시도 차단), DB 변경 없음
+- 충전 자동 입금도 동일 키 구조(`(mode, innopay_tid)`)로 멱등 처리, 충전 거래에는 `refType='INNOPAY_TOPUP'` + `refId=tid` 저장
+- **서명 검증**: 이노페이가 webhook 페이로드와 함께 서명 전달 → 백엔드는 `webhook_secret`으로 검증. 실패 시:
+  - HTTP 401 응답
+  - DB 변경 없음 (`webhook_events`에는 `signature_valid=false`로 기록)
+  - 본사 텔레그램 알림 (`reference_telegram.md`의 봇 채널)
+- IP allowlist는 인프라/nginx 단에서 추가 적용 (선택, 이중 방어)
 
 ---
 
@@ -179,11 +213,11 @@ WalletTxType ENUM:
 | `/admin/payments/vbank` | 신규 | 가상계좌 모니터링 (입금대기/완료/만료/취소 필터, 지사·기간 필터) |
 | `/admin/branches/[id]` | 수정 | 충전용 vbank 발급/재발급/조회 패널 추가 |
 | `/admin/branches/[id]/wallet` | 수정 | `VBANK_HOLD`/`VBANK_SETTLE` 거래 라벨·색상 추가 |
-| `/branch/admin/topup` (또는 기존 지사 관리자 대시보드 수정) | 신규/수정 | 지사가 자기 충전용 가상계좌 정보 확인 |
+| `/branch/[slug]/manage/wallet` (지사 관리자 대시보드 내) | 수정 | 지사가 자기 충전용 가상계좌 정보(은행/계좌번호/예금주) 표시 + 잔고 + 거래내역 |
 
-### 4.2 신규 타입
+### 4.2 신규 프론트엔드 타입
 
-`src/lib/payments/types.ts`:
+`src/lib/payments/types.ts` — 프론트엔드가 호출/소비하는 타입만:
 ```typescript
 export interface InnopayVbankIssueRequest {
   orderId: string
@@ -205,15 +239,10 @@ export interface InnopayVbankIssueResponse {
   amount: number
 }
 
-export interface InnopayWebhookPayload {
-  tid: string
-  type: 'DEPOSIT' | 'EXPIRED' | 'CANCEL'
-  amount: number
-  vbankAccountNumber: string
-  bankCode: string
-  depositorName?: string
-  depositedAt?: string
-  signature: string  // 검증용
+export interface VbankPaymentStatusResponse {
+  status: 'WAITING_FOR_DEPOSIT' | 'DONE' | 'EXPIRED' | 'CANCELED' | 'REVIEW_REQUIRED'
+  paidAt?: string
+  paidAmount?: number
 }
 
 export interface BranchTopupVbank {
@@ -226,6 +255,7 @@ export interface BranchTopupVbank {
   issuedAt: string
 }
 ```
+> Webhook payload(`InnopayWebhookPayload`)는 백엔드 전용 타입이므로 본 프론트엔드 spec 범위 외.
 
 ### 4.3 신규 클라이언트 함수
 
@@ -262,7 +292,7 @@ export async function listVbankPayments(filters: VbankPaymentFilters): Promise<P
 |------|------|------|
 | 본사 수수료 단가 | 기존 `orderFee`(default 500원, 지사별 override) 통합 사용 | 카드/가상계좌 동일 단가. 별도 vbank 단가 불필요 |
 | 자격증명 보관 | DB `innopay_credentials` 단일 행, 본사 admin UI 관리 | env var 사용 안 함 |
-| 충전금 부족 처리 | 가상계좌 발급 시점 사전 검사 → 거부, 사용자에게 "현재 가상계좌 결제를 사용할 수 없습니다" 안내. 카드 결제는 정상 진행 가능 | 본사에 알림 전송 |
+| 충전금 부족 처리 | 가상계좌 발급 시점 사전 검사 → 거부, 사용자에게 "현재 가상계좌 결제를 사용할 수 없습니다" 안내. 카드 결제는 정상 진행 가능 | 본사 텔레그램 봇 채널(`reference_telegram.md`)로 알림 |
 | 부분/초과 입금 | v1 범위 외. 전액 일치만 자동 DONE. 그 외엔 webhook 기록 + 본사 admin 알림 | v2에서 자동처리 검토 |
 | 환불 | 본사가 별도 송금 + `ADJUST` 수동 등록 | 자동 환불 API v1 범위 외 |
 | Toss 가상계좌 옵션 | Toss 위젯에서 가상계좌 옵션 비노출 | 가상계좌는 이노페이로만 |
@@ -275,16 +305,19 @@ export async function listVbankPayments(filters: VbankPaymentFilters): Promise<P
 
 ## 6. 작업 단계
 
+본 spec은 세 개의 하위 시스템(자격증명·고객 vbank 결제·지사 충전 자동화)을 하나로 묶었지만, 인프라(webhook·자격증명·매핑)를 공유하므로 단일 plan으로 진행한다. 단계별 독립 배포 가능 여부를 명시한다.
+
 1. **이노페이 API 가이드 정독** + 백엔드 API 사양 확정 (별도 작업, 본 레포 외)
 2. **본 레포 프런트 단계**:
-   1. 타입 정의(`src/lib/payments/types.ts`) + 클라이언트 함수
-   2. 본사 admin 자격증명 페이지(`/admin/innopay-credentials`) — 백엔드 mock 응답으로 먼저
-   3. 지사 결제 페이지: 결제수단 선택 + 가상계좌 발급/안내 페이지
-   4. 본사 admin 모니터링 페이지(`/admin/payments/vbank`)
-   5. 지사 상세 페이지: 충전용 vbank 발급 패널
-   6. 지사 admin: 자기 충전용 vbank 정보 표시
-3. **백엔드 연동 후 e2e 테스트** (테스트 키 testpay01)
-4. **운영 키 발급 후 프로덕션 배포** (zero-downtime, 기존 deploy-zerodt.sh 흐름)
+   1. 타입 정의(`src/lib/payments/types.ts`) + 클라이언트 함수 — _독립 배포 가능_
+   2. 본사 admin 자격증명 페이지(`/admin/innopay-credentials`) — _독립 배포 가능_ (백엔드 mock 응답으로 먼저)
+   3. 본사 admin: 지사 상세 페이지 충전용 vbank 발급 패널 — _독립 배포 가능_
+   4. 지사 결제 페이지: 결제수단 선택 + 가상계좌 발급/안내 페이지 — 백엔드 vbank API + webhook 필요
+   5. 본사 admin 모니터링 페이지(`/admin/payments/vbank`) — 백엔드 vbank 데이터 필요
+   6. 지사 admin: 자기 충전용 vbank 정보 표시 + wallet 거래내역 신규 라벨 — _독립 배포 가능_ (mock 또는 점진 노출)
+3. **백엔드 연동 후 e2e 테스트** (테스트 키 testpay01 / 모드 TEST)
+4. **운영 키 발급** + `innopay_credentials.mode` REAL로 전환 + 프로덕션 배포 (zero-downtime, 기존 `deploy-zerodt.sh`)
+5. **롤아웃**: 한 지사부터 시범 운영(충전용 vbank 발급 + 가상계좌 결제 일부 시간대), 1~2주 모니터링 후 전 지사 확대
 
 ---
 
@@ -294,10 +327,12 @@ export async function listVbankPayments(filters: VbankPaymentFilters): Promise<P
 |------|------|------|
 | 이노페이 webhook 누락/지연 | 결제 완료 안 보임, 충전금 환원 누락 | 폴링 보완(고객 화면), 본사 admin 수동 정산 페이지(거래키로 강제 SETTLE) 제공 |
 | 충전금 차감 후 vbank 발급 실패 | 충전금만 차감되고 결제 미진행 | 백엔드에서 단일 트랜잭션으로 묶어 발급 성공 후에만 HOLD 거래 commit |
-| 멱등 키 충돌 | 같은 입금이 두 번 SETTLE → 충전금 과다 환원 | `innopay_tid` UNIQUE + webhook 트랜잭션 SELECT FOR UPDATE |
+| 멱등 키 충돌 | 같은 입금이 두 번 SETTLE → 충전금 과다 환원 | `(innopay_mode, innopay_tid)` 복합 UNIQUE + webhook 트랜잭션 SELECT FOR UPDATE |
 | 만료 webhook 미수신 | 차감 그대로 남고 주문 상태도 PENDING | 백엔드 cron(매 시간) — 이노페이 조회 API로 만료 검증, 주문 EXPIRED 처리 |
 | 충전용 vbank 분실/오발급 | 지사가 입금했는데 충전금 미반영 | 본사 admin 수동 매칭 페이지 (이노페이 입금 내역에서 거래키로 찾아 지사 매핑) |
-| TEST 키 → REAL 키 전환 시 누락 | 테스트 결제가 운영 환경에 섞임 | `innopay_credentials.mode`로 명확히 구분, 운영 환경에선 REAL만 허용하는 가드 |
+| TEST 키 → REAL 키 전환 시 누락 | 테스트 결제가 운영 환경에 섞임 | `innopay_credentials.mode`로 명확히 구분, `payments.innopay_mode` 컬럼 + UNIQUE `(mode, tid)` 복합 제약, 프로덕션 환경 배포 시 REAL만 허용하는 가드 |
+| 부분/초과 입금 (paid_amount ≠ amount) | 자동 정산 시 잘못된 금액으로 환원 | v1: `payments.status = REVIEW_REQUIRED`로 두고 자동 SETTLE 안 함, 본사 텔레그램 알림 → 본사 admin이 수동으로 처리 결정 |
+| 폴링과 webhook 처리 시점 race | 클라이언트가 DONE 보지만 wallet 환원 미완 | webhook 처리 전체를 단일 RDB 트랜잭션으로 commit, 폴링은 commit 후 상태만 조회 (READ COMMITTED 격리에서도 안전) |
 
 ---
 
