@@ -57,6 +57,7 @@ const navEntries: NavEntry[] = [
     items: [
       { href: '/admin/payments', label: '결제 관리', icon: <PaymentIcon /> },
       { href: '/admin/payments/key-in', label: '수동 결제', icon: <PaymentIcon /> },
+      { href: '/admin/innopay-credentials', label: '이노페이 설정', icon: <PaymentIcon /> },
     ],
   },
   {

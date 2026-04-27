@@ -1,5 +1,6 @@
 import { useBranchAuthStore } from './auth-store';
 import type { ConsultRequest } from './types';
+import type { BranchTopupVbank } from '@/lib/payments/innopay-types';
 
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const API_BASE = RAW_API_BASE ? '/api/proxy' : '';
@@ -294,4 +295,11 @@ export interface BranchSurcharge {
 
 export async function fetchBranchSurcharges() {
   return branchApi<{ ok: boolean; data: BranchSurcharge[] }>('/branch/surcharges');
+}
+
+// ─── Top-up Virtual Account (Innopay) ─────────
+
+/** 내 지사의 충전용 가상계좌 조회 (없으면 null) */
+export async function getMyTopupVbank(): Promise<BranchTopupVbank | null> {
+  return branchApi<BranchTopupVbank | null>('/branch/me/topup-vbank');
 }
