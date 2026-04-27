@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import BranchAccounts from './branch-accounts';
+import { BranchTopupVbankPanel } from './topup-vbank-panel';
 
 const TYPE_LABELS: Record<string, string> = {
   HEADQUARTERS: '본사',
@@ -332,6 +333,9 @@ export default function BranchDetailPage({ params }: { params: Promise<{ id: str
           </p>
         </CardContent>
       </Card>
+
+      {/* 충전용 가상계좌 (이노페이) */}
+      <BranchTopupVbankPanel branchId={Number(id)} />
 
       {/* 충전금 (본사 관리자) */}
       <Card>
