@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   fetchMyBranchWallet,
   fetchMyBranchWalletTransactions,
+  getMyTopupVbank,
   type BranchWalletTxType,
 } from '@/lib/branch/branch-api';
 
@@ -32,6 +33,46 @@ const TX_TYPE_LABELS: Record<BranchWalletTxType, { label: string; className: str
   SMS_FEE:   { label: 'SMS',       className: 'bg-slate-100 text-slate-700' },
   ADJUST:    { label: '조정',      className: 'bg-amber-100 text-amber-700' },
 };
+
+export function MyTopupVbankCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['my-topup-vbank'],
+    queryFn: getMyTopupVbank,
+  });
+
+  if (isLoading) return null;
+
+  if (!data || !data.active) {
+    return (
+      <div className="rounded-xl border p-4 text-sm text-slate-500">
+        충전용 가상계좌가 아직 발급되지 않았습니다. 본사에 문의해 주세요.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-[var(--branch-rose-light)] bg-white p-5">
+      <h2 className="text-sm font-semibold text-[var(--branch-text)] mb-1">충전용 가상계좌</h2>
+      <p className="text-xs text-[var(--branch-text-light)] mb-3">
+        아래 계좌로 입금하면 자동으로 충전금에 반영됩니다.
+      </p>
+      <dl className="grid grid-cols-3 gap-4 text-sm">
+        <div>
+          <dt className="text-[var(--branch-text-light)] text-xs mb-0.5">은행</dt>
+          <dd className="font-medium text-[var(--branch-text)]">{data.bankName ?? data.bankCode}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--branch-text-light)] text-xs mb-0.5">계좌번호</dt>
+          <dd className="font-mono font-medium text-[var(--branch-text)]">{data.accountNumber}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--branch-text-light)] text-xs mb-0.5">예금주</dt>
+          <dd className="font-medium text-[var(--branch-text)]">{data.holderName}</dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
 
 export default function MyBranchWalletPage() {
   const [filterType, setFilterType] = useState<BranchWalletTxType | ''>('');
@@ -70,6 +111,9 @@ export default function MyBranchWalletPage() {
           SMS 발송과 주문 처리 수수료에 사용됩니다. 잔액이 최소 기준 미만이 되면 본사에 충전 요청을 주세요.
         </p>
       </div>
+
+      {/* 충전용 가상계좌 */}
+      <MyTopupVbankCard />
 
       {/* 잔액 카드 */}
       <div className={`rounded-2xl border p-6 shadow-sm ${summary.isLow ? 'bg-red-50/70 border-red-200' : 'bg-white border-[var(--branch-rose-light)]'}`}>
