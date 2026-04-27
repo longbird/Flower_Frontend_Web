@@ -27,11 +27,13 @@ function fmtDateTime(iso: string | null) {
 }
 
 const TX_TYPE_LABELS: Record<BranchWalletTxType, { label: string; className: string }> = {
-  CHARGE:    { label: '충전',      className: 'bg-emerald-100 text-emerald-700' },
-  REFUND:    { label: '환불',      className: 'bg-blue-100 text-blue-700' },
-  ORDER_FEE: { label: '주문수수료', className: 'bg-slate-100 text-slate-700' },
-  SMS_FEE:   { label: 'SMS',       className: 'bg-slate-100 text-slate-700' },
-  ADJUST:    { label: '조정',      className: 'bg-amber-100 text-amber-700' },
+  CHARGE:       { label: '충전',          className: 'bg-emerald-100 text-emerald-700' },
+  REFUND:       { label: '환불',          className: 'bg-blue-100 text-blue-700' },
+  ORDER_FEE:    { label: '주문수수료',    className: 'bg-slate-100 text-slate-700' },
+  SMS_FEE:      { label: 'SMS',           className: 'bg-slate-100 text-slate-700' },
+  ADJUST:       { label: '조정',          className: 'bg-amber-100 text-amber-700' },
+  VBANK_HOLD:   { label: '가상계좌 차감', className: 'bg-rose-100 text-rose-700' },
+  VBANK_SETTLE: { label: '가상계좌 환원', className: 'bg-emerald-100 text-emerald-700' },
 };
 
 export function MyTopupVbankCard() {
@@ -155,7 +157,7 @@ export default function MyBranchWalletPage() {
           <h2 className="text-sm font-semibold text-[var(--branch-text)]">거래 내역</h2>
           <div className="flex gap-1.5 flex-wrap">
             <FilterButton value="" current={filterType} setter={(v) => { setFilterType(v); setPage(1); }}>전체</FilterButton>
-            {(['CHARGE','REFUND','ORDER_FEE','SMS_FEE','ADJUST'] as BranchWalletTxType[]).map((t) => (
+            {(['CHARGE','REFUND','ORDER_FEE','SMS_FEE','ADJUST','VBANK_HOLD','VBANK_SETTLE'] as BranchWalletTxType[]).map((t) => (
               <FilterButton key={t} value={t} current={filterType} setter={(v) => { setFilterType(v); setPage(1); }}>
                 {TX_TYPE_LABELS[t].label}
               </FilterButton>

@@ -349,7 +349,7 @@ export async function deactivateConsultRequestPublicLink(consultId: number) {
 }
 
 // ─── Branch Wallets (충전금) ─────────
-export type WalletTxType = 'CHARGE' | 'REFUND' | 'ORDER_FEE' | 'SMS_FEE' | 'ADJUST';
+export type WalletTxType = 'CHARGE' | 'REFUND' | 'ORDER_FEE' | 'SMS_FEE' | 'ADJUST' | 'VBANK_HOLD' | 'VBANK_SETTLE';
 
 export interface WalletSummary {
   branchId: number;
