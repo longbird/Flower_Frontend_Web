@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import type { IssueVbankResponse } from '@/lib/payments/innopay-types';
 
 /** 결제 방법 */
 export type PaymentMethodChoice = 'card' | 'virtual-account';
@@ -40,6 +41,12 @@ interface PaymentStore {
   orderData: OrderPaymentData | null;
   setOrderData: (data: OrderPaymentData) => void;
   clear: () => void;
+  // Phase 2 vbank state
+  vbankInfo: IssueVbankResponse | null;
+  setVbankInfo: (info: IssueVbankResponse | null) => void;
+  clearVbankInfo: () => void;
+  pollingActive: boolean;
+  setPollingActive: (active: boolean) => void;
 }
 
 export const usePaymentStore = create<PaymentStore>()(
@@ -47,12 +54,17 @@ export const usePaymentStore = create<PaymentStore>()(
     (set) => ({
       orderData: null,
       setOrderData: (data) => set({ orderData: data }),
-      clear: () => set({ orderData: null }),
+      clear: () => set({ orderData: null, vbankInfo: null, pollingActive: false }),
+      vbankInfo: null,
+      setVbankInfo: (info) => set({ vbankInfo: info }),
+      clearVbankInfo: () => set({ vbankInfo: null, pollingActive: false }),
+      pollingActive: false,
+      setPollingActive: (active) => set({ pollingActive: active }),
     }),
     {
       name: 'payment-order-data',
       storage: createJSONStorage(() => sessionStorage),
-      partialize: (state) => ({ orderData: state.orderData }),
+      partialize: (state) => ({ orderData: state.orderData, vbankInfo: state.vbankInfo }),
     },
   ),
 );
