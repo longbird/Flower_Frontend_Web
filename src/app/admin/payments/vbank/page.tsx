@@ -5,10 +5,17 @@ import { VbankPaymentsTable } from './vbank-payments-table';
 import { VbankPaymentsFilters } from './vbank-payments-filters';
 import type { AdminVbankPaymentsFilters } from '@/lib/payments/innopay-types';
 
+function getTodayKST(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+}
+
 export default function AdminVbankPaymentsPage() {
+  const today = getTodayKST();
   const [filters, setFilters] = useState<AdminVbankPaymentsFilters>({
     page: 1,
     pageSize: 20,
+    from: today,
+    to: today,
   });
 
   return (
