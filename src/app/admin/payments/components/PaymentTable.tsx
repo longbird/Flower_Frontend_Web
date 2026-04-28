@@ -28,6 +28,7 @@ interface PaymentTableProps {
   orderInfo?: OrderInfoMap;
   orderNames?: Record<string, string>;
   isLoading: boolean;
+  isEnriching?: boolean; // orderInfo / orderNames 가 아직 안 도착한 상태
   onViewDetail: (paymentKey: string) => void;
   onCancel: (paymentKey: string) => void;
 }
@@ -70,12 +71,16 @@ function isCancelDisabled(status: string): boolean {
   return status === 'CANCELED' || status === 'EXPIRED' || status === 'ABORTED';
 }
 
-/** 주문 메타 → 사람이 읽는 한 줄 요약. 우선순위: orders 매칭 > Toss orderName > orderId truncate. */
+/**
+ * 주문 메타 → 사람이 읽는 한 줄 요약.
+ * 우선순위: orders 매칭 > Toss orderName > (enrichment 진행 중이면 placeholder) > orderId truncate.
+ */
 function orderLabel(
   tx: TossTransaction,
   info: OrderInfo | undefined,
   orderName: string | undefined,
-): { primary: string; secondary: string | null } {
+  enriching: boolean,
+): { primary: string; secondary: string | null; pending: boolean } {
   if (info) {
     const typeLabel = info.orderType ? (ORDER_TYPE_LABELS[info.orderType] ?? info.orderType) : null;
     const primary = info.ordererName ?? (info.orderNo ?? tx.orderId);
@@ -87,15 +92,21 @@ function orderLabel(
     return {
       primary,
       secondary: secondaryParts.length > 0 ? secondaryParts.join(' · ') : null,
+      pending: false,
     };
   }
   if (orderName) {
-    return { primary: orderName, secondary: null };
+    return { primary: orderName, secondary: null, pending: false };
+  }
+  // 아직 enrichment 진행 중 → orderId 노출 대신 placeholder (깜빡임 방지)
+  if (enriching) {
+    return { primary: '주문명 불러오는 중…', secondary: null, pending: true };
   }
   // 최종 fallback: orderId 앞 30자 truncate
   return {
     primary: tx.orderId.length > 30 ? tx.orderId.slice(0, 30) + '…' : tx.orderId,
     secondary: null,
+    pending: false,
   };
 }
 
@@ -181,16 +192,18 @@ function MobileCard({
   tx,
   info,
   orderName,
+  enriching,
   onViewDetail,
   onCancel,
 }: {
   tx: TossTransaction;
   info: OrderInfo | undefined;
   orderName: string | undefined;
+  enriching: boolean;
   onViewDetail: (k: string) => void;
   onCancel: (k: string) => void;
 }) {
-  const label = orderLabel(tx, info, orderName);
+  const label = orderLabel(tx, info, orderName, enriching);
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -209,7 +222,9 @@ function MobileCard({
         onClick={() => onViewDetail(tx.paymentKey)}
         className="block w-full text-left"
       >
-        <div className="text-sm font-medium text-slate-900 truncate">{label.primary}</div>
+        <div className={cn('text-sm font-medium truncate', label.pending ? 'text-slate-400 italic' : 'text-slate-900')}>
+          {label.primary}
+        </div>
         {label.secondary && (
           <div className="text-xs text-slate-500 truncate mt-0.5">{label.secondary}</div>
         )}
@@ -223,7 +238,7 @@ function MobileCard({
   );
 }
 
-export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, isLoading, onViewDetail, onCancel }: PaymentTableProps) {
+export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, isLoading, isEnriching = false, onViewDetail, onCancel }: PaymentTableProps) {
   return (
     <>
       {/* 데스크탑: 테이블 */}
@@ -248,7 +263,7 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
               <tbody>
                 {transactions.map((tx) => {
                   const info = orderInfo[tx.orderId];
-                  const label = orderLabel(tx, info, orderNames[tx.paymentKey]);
+                  const label = orderLabel(tx, info, orderNames[tx.paymentKey], isEnriching);
                   return (
                     <tr
                       key={tx.transactionKey}
@@ -266,7 +281,9 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
                           className="text-left hover:underline focus:underline focus:outline-none"
                           title="상세 보기"
                         >
-                          <div className="font-medium text-slate-900">{label.primary}</div>
+                          <div className={cn('font-medium', label.pending ? 'text-slate-400 italic' : 'text-slate-900')}>
+                            {label.primary}
+                          </div>
                           {label.secondary && (
                             <div className="text-xs text-slate-500 mt-0.5">{label.secondary}</div>
                           )}
@@ -314,6 +331,7 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
                 tx={tx}
                 info={orderInfo[tx.orderId]}
                 orderName={orderNames[tx.paymentKey]}
+                enriching={isEnriching}
                 onViewDetail={onViewDetail}
                 onCancel={onCancel}
               />

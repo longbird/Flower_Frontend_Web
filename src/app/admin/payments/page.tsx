@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth/store';
 import { api } from '@/lib/api/client';
 import type { TossTransaction, PaymentStatus } from '@/lib/payments/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { PaymentTable, type OrderInfoMap } from './components/PaymentTable';
 import PaymentDetailModal from './components/PaymentDetailModal';
 import CancelPaymentModal from './components/CancelPaymentModal';
@@ -100,6 +101,12 @@ export default function PaymentsPage() {
   });
   const orderNames: Record<string, string> = orderNamesQuery.data ?? {};
 
+  // 어느 한 enrichment 라도 첫 결과가 아직 없으면 행마다 placeholder 표시.
+  const isEnriching =
+    transactions.length > 0 &&
+    ((enrichQuery.isFetching && !enrichQuery.data) ||
+      (orderNamesQuery.isFetching && !orderNamesQuery.data));
+
   const refetch = () => {
     txsQuery.refetch();
     enrichQuery.refetch();
@@ -127,8 +134,30 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">결제 관리</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900">결제 관리</h1>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                  aria-label="조회 안내"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs text-xs leading-relaxed">
+                결제 내역은 토스페이먼츠 외부 API 에서 실시간으로 조회합니다.
+                <br />
+                응답 시간이 외부 상황에 따라 길어질 수 있으며, 기간을 길게 잡을수록 더 오래 걸립니다.
+                <br />
+                조회 후 30초 안에는 캐시로 즉시 응답합니다.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -191,6 +220,7 @@ export default function PaymentsPage() {
         orderInfo={orderInfo}
         orderNames={orderNames}
         isLoading={isLoading}
+        isEnriching={isEnriching}
         onViewDetail={handleViewDetail}
         onCancel={handleCancel}
       />
