@@ -24,8 +24,11 @@ function formatAmount(amount: number): string {
   return `${amount.toLocaleString('ko-KR')}원`;
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('ko-KR', {
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
