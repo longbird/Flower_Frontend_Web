@@ -4,19 +4,12 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/auth/store'
 import { generateOrderId } from '@/lib/payments/constants'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import CardInputForm from '../components/CardInputForm'
 import type { CardFormData } from '../components/CardInputForm'
+import { OrderSearch, type OrderSearchResult } from './order-search'
 
 type Tab = 'existing' | 'new'
-
-interface OrderInfo {
-  orderId: string
-  customerName: string
-  productName: string
-  amount: number
-}
 
 interface PaymentResult {
   paymentKey: string
@@ -50,9 +43,8 @@ export default function KeyInPaymentPage() {
   const [activeTab, setActiveTab] = useState<Tab>('existing')
 
   // --- Tab 1: existing order ---
-  const [searchOrderNumber, setSearchOrderNumber] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
-  const [foundOrder, setFoundOrder] = useState<OrderInfo | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<OrderSearchResult | null>(null)
+  const [overrideAmount, setOverrideAmount] = useState('')
   const [existingSubmitting, setExistingSubmitting] = useState(false)
 
   // --- Tab 2: new order ---
@@ -64,46 +56,36 @@ export default function KeyInPaymentPage() {
   // --- Common result ---
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null)
 
-  const handleSearch = useCallback(async () => {
-    if (!searchOrderNumber.trim()) {
-      toast.error('주문번호를 입력해주세요')
-      return
-    }
-
-    setIsSearching(true)
-    setFoundOrder(null)
-
-    try {
-      // TODO: 실제 주문 조회 API 연동 필요
-      // 현재는 mock 데이터를 표시합니다
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setFoundOrder({
-        orderId: searchOrderNumber.trim(),
-        customerName: '홍길동 (mock)',
-        productName: '장미 꽃다발 (mock)',
-        amount: 55000,
-      })
-      toast.info('TODO: 실제 주문 조회 API가 연동되면 실제 데이터가 표시됩니다')
-    } catch {
-      toast.error('주문 조회에 실패했습니다')
-    } finally {
-      setIsSearching(false)
-    }
-  }, [searchOrderNumber])
+  const handleOrderSelect = useCallback((order: OrderSearchResult) => {
+    setSelectedOrder(order)
+    setOverrideAmount(String(order.totalPrice))
+    setPaymentResult(null)
+  }, [])
 
   const handleExistingOrderPayment = useCallback(
     async (cardData: CardFormData) => {
-      if (!foundOrder) return
+      if (!selectedOrder) return
+      const parsedAmount = Number(overrideAmount)
+      if (!parsedAmount || parsedAmount <= 0) {
+        toast.error('유효한 결제금액을 입력해주세요')
+        return
+      }
 
       setExistingSubmitting(true)
       setPaymentResult(null)
 
       try {
+        // 매번 신규 Toss orderId 생성 — 같은 주문에 여러 번 결제 시도하는 경우 대비.
+        // 백엔드 측에서 추후 selectedOrder.id ↔ payment 연결 필요 (현재 TODO).
+        const tossOrderId = generateOrderId('admin')
+        const orderName = selectedOrder.receiverName
+          ? `${selectedOrder.receiverName} 배송 (${selectedOrder.orderNo})`
+          : selectedOrder.orderNo
         const result = await requestKeyInPayment({
-          orderId: foundOrder.orderId,
-          amount: foundOrder.amount,
-          orderName: foundOrder.productName,
-          customerName: foundOrder.customerName,
+          orderId: tossOrderId,
+          amount: parsedAmount,
+          orderName,
+          customerName: selectedOrder.receiverName ?? undefined,
           ...cardData,
         })
         setPaymentResult(result)
@@ -114,7 +96,7 @@ export default function KeyInPaymentPage() {
         setExistingSubmitting(false)
       }
     },
-    [foundOrder],
+    [selectedOrder, overrideAmount],
   )
 
   const handleNewOrderPayment = useCallback(
@@ -201,53 +183,57 @@ export default function KeyInPaymentPage() {
       {/* Tab 1: Existing Order */}
       {activeTab === 'existing' && (
         <div className="space-y-5">
-          {/* Order Search */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">주문번호 검색</label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="주문번호를 입력하세요"
-                value={searchOrderNumber}
-                onChange={(e) => setSearchOrderNumber(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSearch()
-                }}
-                className="border-gray-200"
-              />
-              <Button
-                type="button"
-                onClick={handleSearch}
-                disabled={isSearching}
-                variant="outline"
-              >
-                {isSearching ? '검색 중...' : '검색'}
-              </Button>
-            </div>
-          </div>
+          <OrderSearch
+            onSelect={handleOrderSelect}
+            selectedOrderId={selectedOrder?.id ?? null}
+          />
 
-          {/* Order Summary */}
-          {foundOrder && (
+          {/* Selected Order Summary */}
+          {selectedOrder && (
             <>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <h3 className="mb-3 text-sm font-semibold text-gray-700">주문 정보</h3>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <dt className="text-gray-500">주문번호</dt>
-                  <dd className="font-medium">{foundOrder.orderId}</dd>
-                  <dt className="text-gray-500">고객명</dt>
-                  <dd className="font-medium">{foundOrder.customerName}</dd>
-                  <dt className="text-gray-500">상품</dt>
-                  <dd className="font-medium">{foundOrder.productName}</dd>
-                  <dt className="text-gray-500">결제금액</dt>
-                  <dd className="font-medium text-blue-600">
-                    {foundOrder.amount.toLocaleString()}원
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-blue-900">선택된 주문</h3>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                  <dt className="text-blue-700">주문번호</dt>
+                  <dd className="font-medium">{selectedOrder.orderNo}</dd>
+                  <dt className="text-blue-700">받는분</dt>
+                  <dd className="font-medium">{selectedOrder.receiverName ?? '-'}</dd>
+                  <dt className="text-blue-700">고객 전화</dt>
+                  <dd className="font-medium">{selectedOrder.customerPhone ?? '-'}</dd>
+                  <dt className="text-blue-700">주문 일시</dt>
+                  <dd>
+                    {new Date(selectedOrder.createdAt).toLocaleString('ko-KR', {
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </dd>
+                  <dt className="text-blue-700">주문 금액</dt>
+                  <dd className="font-medium">
+                    {selectedOrder.totalPrice.toLocaleString('ko-KR')}원
                   </dd>
                 </dl>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">결제 금액 (조정 가능)</label>
+                <Input
+                  type="number"
+                  value={overrideAmount}
+                  onChange={(e) => setOverrideAmount(e.target.value)}
+                  min={0}
+                  className="border-gray-200"
+                />
+                <p className="text-xs text-gray-500">
+                  주문 금액과 다른 금액으로 결제하려면 위 값을 수정하세요.
+                </p>
               </div>
 
               <CardInputForm
                 onSubmit={handleExistingOrderPayment}
                 isLoading={existingSubmitting}
-                submitLabel="결제하기"
+                submitLabel={`${Number(overrideAmount).toLocaleString('ko-KR')}원 결제하기`}
               />
             </>
           )}

@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/auth/store';
+import { api } from '@/lib/api/client';
 import type { TossTransaction, PaymentStatus } from '@/lib/payments/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PaymentTable } from './components/PaymentTable';
+import { PaymentTable, type OrderInfoMap } from './components/PaymentTable';
 import PaymentDetailModal from './components/PaymentDetailModal';
 import CancelPaymentModal from './components/CancelPaymentModal';
 
@@ -41,30 +42,52 @@ export default function PaymentsPage() {
   const [detailPaymentKey, setDetailPaymentKey] = useState<string | null>(null);
   const [cancelPaymentKey, setCancelPaymentKey] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['admin-payments', queryStartDate, queryEndDate, queryStatus],
+  // 1) Toss 거래 목록 — 페이지 진입 시 즉시 호출
+  const txsQuery = useQuery({
+    queryKey: ['admin-payments-toss', queryStartDate, queryEndDate, queryStatus],
     queryFn: async () => {
       const token = useAuthStore.getState().accessToken;
       const params = new URLSearchParams();
       params.set('startDate', queryStartDate);
       params.set('endDate', queryEndDate);
-      if (queryStatus) {
-        params.set('status', queryStatus);
-      }
-
+      if (queryStatus) params.set('status', queryStatus);
       const res = await fetch(`/api/payments/list?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) {
-        throw new Error('결제 내역 조회 실패');
-      }
-
-      return res.json() as Promise<{ ok: boolean; data: TossTransaction[] }>;
+      if (!res.ok) throw new Error('결제 내역 조회 실패');
+      const json = (await res.json()) as { ok: boolean; data: TossTransaction[] };
+      return json.data ?? [];
     },
+    staleTime: 30_000,           // 30초 동안 cache 활용 — 다른 페이지 갔다 와도 즉시
+    placeholderData: (prev) => prev, // 필터 변경 시 빈 화면 안 뜨게 이전 결과 유지
   });
 
-  const transactions = data?.data ?? [];
+  const transactions = txsQuery.data ?? [];
+  const isLoading = txsQuery.isLoading;
+
+  // 2) Enrichment — Toss 결과 도착 후 즉시 시작. UI 는 Toss 결과만으로도 일단 렌더.
+  const orderIds = transactions.map((t) => t.orderId).join(',');
+  const enrichQuery = useQuery({
+    queryKey: ['admin-payments-orderinfo', orderIds],
+    enabled: orderIds.length > 0,
+    queryFn: async () => {
+      try {
+        return await api<OrderInfoMap>(
+          `/admin/payments/order-info?orderIds=${encodeURIComponent(orderIds)}`,
+          { method: 'GET' },
+        );
+      } catch {
+        return {} as OrderInfoMap; // enrichment 실패 시 빈 map (UI fallback)
+      }
+    },
+    staleTime: 60_000,
+  });
+  const orderInfo: OrderInfoMap = enrichQuery.data ?? {};
+
+  const refetch = () => {
+    txsQuery.refetch();
+    enrichQuery.refetch();
+  };
 
   const filteredTransactions = statusFilter
     ? transactions.filter((tx) => tx.status === statusFilter)
@@ -129,6 +152,7 @@ export default function PaymentsPage() {
 
       <PaymentTable
         transactions={filteredTransactions}
+        orderInfo={orderInfo}
         isLoading={isLoading}
         onViewDetail={handleViewDetail}
         onCancel={handleCancel}
