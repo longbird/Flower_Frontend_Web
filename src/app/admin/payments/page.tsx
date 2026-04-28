@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth/store';
 import { api } from '@/lib/api/client';
 import type { TossTransaction, PaymentStatus } from '@/lib/payments/types';
@@ -59,6 +60,7 @@ export default function PaymentsPage() {
 
   const transactions = txsQuery.data ?? [];
   const isLoading = txsQuery.isLoading;
+  const isFetching = txsQuery.isFetching; // background refetch (재진입/재검색) 표시용
 
   // 2) Enrichment — Toss 결과 도착 후 백그라운드로 시작. UI 는 Toss 결과만으로도 일단 렌더.
   const orderIds = transactions.map((t) => t.orderId).join(',');
@@ -159,9 +161,28 @@ export default function PaymentsPage() {
             ))}
           </select>
 
-          <Button type="submit" size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830] shrink-0">
-            검색
+          <Button
+            type="submit"
+            size="sm"
+            disabled={isFetching}
+            className="bg-[#5B7A3D] hover:bg-[#4A6830] shrink-0"
+          >
+            {isFetching ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                조회 중...
+              </>
+            ) : (
+              '검색'
+            )}
           </Button>
+
+          {isFetching && !isLoading && (
+            <span className="ml-auto text-xs text-slate-500 flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              결제 내역 갱신 중
+            </span>
+          )}
         </form>
       </div>
 
