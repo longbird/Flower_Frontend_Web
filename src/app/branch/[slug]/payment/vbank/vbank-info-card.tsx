@@ -35,9 +35,13 @@ export function VbankInfoCard({ bankName, bankCode, accountNumber, holderName, a
             </span>
             <button
               type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(accountNumber);
-                toast.success('계좌번호 복사됨');
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(accountNumber);
+                  toast.success('계좌번호 복사됨');
+                } catch {
+                  toast.error('계좌번호 복사 실패 — 직접 선택해 주세요');
+                }
               }}
               className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               aria-label="계좌번호 복사"

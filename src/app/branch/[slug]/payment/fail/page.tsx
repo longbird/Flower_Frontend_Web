@@ -12,7 +12,8 @@ function PaymentFailInner() {
 
   const code = searchParams.get('code') || '';
   const reason = searchParams.get('reason') || '';
-  const queryMessage = searchParams.get('message') || '';
+  // ?? 연산자로 fallback chain을 구성하므로 빈 문자열이 아닌 null/undefined로 유지.
+  const queryMessage = searchParams.get('message') || null;
 
   // Vbank reason → 한국어 메시지 매핑
   const VBANK_REASON_MESSAGES: Record<string, { title: string; sub: string }> = {

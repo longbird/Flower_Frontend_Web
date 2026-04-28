@@ -3,12 +3,11 @@ import { usePaymentStore } from '@/lib/branch/payment-store';
 
 describe('payment-store vbank state', () => {
   beforeEach(() => {
-    usePaymentStore.setState({ orderData: null, vbankInfo: null, pollingActive: false });
+    usePaymentStore.setState({ orderData: null, vbankInfo: null });
   });
 
-  it('initial state: vbankInfo null, pollingActive false', () => {
+  it('initial state: vbankInfo null', () => {
     expect(usePaymentStore.getState().vbankInfo).toBeNull();
-    expect(usePaymentStore.getState().pollingActive).toBe(false);
   });
 
   it('setVbankInfo stores issue response', () => {
@@ -34,21 +33,22 @@ describe('payment-store vbank state', () => {
     expect(usePaymentStore.getState().vbankInfo).toBeNull();
   });
 
-  it('clearVbankInfo resets vbankInfo and pollingActive', () => {
+  it('clearVbankInfo resets vbankInfo', () => {
     usePaymentStore.setState({
       vbankInfo: { paymentId: 999 } as any,
-      pollingActive: true,
     });
     usePaymentStore.getState().clearVbankInfo();
     expect(usePaymentStore.getState().vbankInfo).toBeNull();
-    expect(usePaymentStore.getState().pollingActive).toBe(false);
   });
 
-  it('setPollingActive toggles state', () => {
-    usePaymentStore.getState().setPollingActive(true);
-    expect(usePaymentStore.getState().pollingActive).toBe(true);
-    usePaymentStore.getState().setPollingActive(false);
-    expect(usePaymentStore.getState().pollingActive).toBe(false);
+  it('clear() resets both orderData and vbankInfo', () => {
+    usePaymentStore.setState({
+      orderData: { slug: 's' } as any,
+      vbankInfo: { paymentId: 1 } as any,
+    });
+    usePaymentStore.getState().clear();
+    expect(usePaymentStore.getState().orderData).toBeNull();
+    expect(usePaymentStore.getState().vbankInfo).toBeNull();
   });
 
   it('does not affect existing orderData', () => {

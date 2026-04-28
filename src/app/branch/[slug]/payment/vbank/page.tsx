@@ -24,9 +24,13 @@ function VbankPageInner() {
     }
   }, [vbankInfo, paymentIdQuery, router, slug]);
 
+  // vbankInfo가 없거나 paymentId 미일치 시 위 useEffect가 redirect 수행. 그 사이
+  // useVbankPoll이 의도치 않은 폴링을 시작하지 않도록 enabled 가드.
+  const pollEnabled = !!vbankInfo && vbankInfo.paymentId === paymentIdQuery;
   useVbankPoll({
     paymentId: paymentIdQuery,
-    dueDate: vbankInfo?.dueDate ?? new Date(Date.now() - 1).toISOString(),
+    dueDate: vbankInfo?.dueDate ?? new Date(0).toISOString(),
+    enabled: pollEnabled,
     onTerminal: (result) => {
       if (result.status === 'PAID') {
         clearVbankInfo();

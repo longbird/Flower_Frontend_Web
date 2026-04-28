@@ -41,12 +41,10 @@ interface PaymentStore {
   orderData: OrderPaymentData | null;
   setOrderData: (data: OrderPaymentData) => void;
   clear: () => void;
-  // Phase 2 vbank state
+  // Phase 2 vbank state — sessionStorage에 persist 되어 새로고침 후에도 vbank 페이지 진입 가능
   vbankInfo: IssueVbankResponse | null;
   setVbankInfo: (info: IssueVbankResponse | null) => void;
   clearVbankInfo: () => void;
-  pollingActive: boolean;
-  setPollingActive: (active: boolean) => void;
 }
 
 export const usePaymentStore = create<PaymentStore>()(
@@ -54,12 +52,10 @@ export const usePaymentStore = create<PaymentStore>()(
     (set) => ({
       orderData: null,
       setOrderData: (data) => set({ orderData: data }),
-      clear: () => set({ orderData: null, vbankInfo: null, pollingActive: false }),
+      clear: () => set({ orderData: null, vbankInfo: null }),
       vbankInfo: null,
       setVbankInfo: (info) => set({ vbankInfo: info }),
-      clearVbankInfo: () => set({ vbankInfo: null, pollingActive: false }),
-      pollingActive: false,
-      setPollingActive: (active) => set({ pollingActive: active }),
+      clearVbankInfo: () => set({ vbankInfo: null }),
     }),
     {
       name: 'payment-order-data',

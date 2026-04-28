@@ -33,16 +33,34 @@ describe('useVbankPoll', () => {
     expect(onTerminal.mock.calls[0][0].paidAmount).toBe(50000);
   });
 
-  it('calls onExpired when dueDate is in the past', async () => {
+  it('does NOT short-circuit expiry from local clock alone — server status is authoritative', async () => {
+    // dueDate가 과거이지만 grace period 안이면 서버 status가 PAID라고 응답할 시 PAID로 처리.
+    const pollSpy = vi.spyOn(branchApi, 'pollVbankStatus');
+    pollSpy.mockResolvedValue({ status: 'PAID', paidAt: '2026-04-28T10:00:00Z', paidAmount: 50000 });
+
+    const onExpired = vi.fn();
+    const onTerminal = vi.fn();
+    const past = new Date(Date.now() - 1000).toISOString(); // 1초 전 (grace 1h 안)
+    renderHook(() => useVbankPoll({ paymentId: 999, dueDate: past, onTerminal, onExpired }));
+
+    await vi.advanceTimersByTimeAsync(0);
+    await waitFor(() => expect(onTerminal).toHaveBeenCalled());
+    expect(onExpired).not.toHaveBeenCalled();
+  });
+
+  it('calls onExpired only when server still PENDING + dueDate + 1h grace 초과', async () => {
+    // grace 1h를 넘긴 시점 (예: 70분 전 만료). 서버는 여전히 PENDING(cron이 아직 안 돈 상태).
     const pollSpy = vi.spyOn(branchApi, 'pollVbankStatus');
     pollSpy.mockResolvedValue({ status: 'PENDING', paidAt: null, paidAmount: null });
 
     const onExpired = vi.fn();
-    const past = new Date(Date.now() - 1000).toISOString();
-    renderHook(() => useVbankPoll({ paymentId: 999, dueDate: past, onExpired }));
+    const onTerminal = vi.fn();
+    const wayPast = new Date(Date.now() - 70 * 60 * 1000).toISOString();
+    renderHook(() => useVbankPoll({ paymentId: 999, dueDate: wayPast, onTerminal, onExpired }));
 
     await vi.advanceTimersByTimeAsync(0);
     await waitFor(() => expect(onExpired).toHaveBeenCalled());
+    expect(onTerminal).not.toHaveBeenCalled();
   });
 
   it('cleanup stops interval on unmount', async () => {
@@ -58,6 +76,28 @@ describe('useVbankPoll', () => {
     unmount();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(pollSpy).toHaveBeenCalledTimes(1); // no further calls
+  });
+
+  it('does not poll when enabled=false', async () => {
+    const pollSpy = vi.spyOn(branchApi, 'pollVbankStatus');
+    pollSpy.mockResolvedValue({ status: 'PENDING', paidAt: null, paidAmount: null });
+
+    const future = new Date(Date.now() + 60 * 60_000).toISOString();
+    renderHook(() => useVbankPoll({ paymentId: 999, dueDate: future, enabled: false }));
+
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(pollSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not poll when paymentId is 0 (sentinel for missing data)', async () => {
+    const pollSpy = vi.spyOn(branchApi, 'pollVbankStatus');
+    pollSpy.mockResolvedValue({ status: 'PENDING', paidAt: null, paidAmount: null });
+
+    const future = new Date(Date.now() + 60 * 60_000).toISOString();
+    renderHook(() => useVbankPoll({ paymentId: 0, dueDate: future }));
+
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(pollSpy).not.toHaveBeenCalled();
   });
 
   it('tolerates intermittent errors (continues polling and recovers)', async () => {

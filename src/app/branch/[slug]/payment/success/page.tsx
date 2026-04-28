@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { confirmTossPayment } from '@/lib/branch/api';
+import { confirmTossPayment, pollVbankStatus } from '@/lib/branch/api';
 import { usePaymentStore } from '@/lib/branch/payment-store';
 
 function PaymentSuccessInner() {
@@ -13,6 +13,8 @@ function PaymentSuccessInner() {
 
   const method = searchParams.get('method'); // 'vbank' for vbank flow
   const isVbank = method === 'vbank';
+  const vbankPaymentIdRaw = searchParams.get('paymentId');
+  const vbankPaymentId = vbankPaymentIdRaw ? Number(vbankPaymentIdRaw) : null;
 
   const paymentKey = searchParams.get('paymentKey');
   const tossOrderId = searchParams.get('orderId'); // RF_<consultId>_<ts>
@@ -29,10 +31,33 @@ function PaymentSuccessInner() {
     if (processedRef.current) return;
     processedRef.current = true;
 
-    // Vbank flow: backend already SETTLED via webhook. No Toss confirm needed.
+    // Vbank flow: backend already SETTLED via webhook. Verify by polling status —
+    // never trust the query parameter alone, otherwise anyone with the URL could
+    // see a "성공" screen for an unpaid order.
     if (isVbank) {
-      clearStore();
-      setStatus('success');
+      if (!vbankPaymentId || !Number.isFinite(vbankPaymentId)) {
+        setStatus('error');
+        setErrorMessage('가상계좌 결제 정보가 올바르지 않습니다.');
+        return;
+      }
+      void (async () => {
+        try {
+          const res = await pollVbankStatus(vbankPaymentId);
+          if (res.status === 'PAID') {
+            clearStore();
+            setStatus('success');
+          } else {
+            setStatus('error');
+            setErrorMessage(
+              `가상계좌 결제가 아직 완료되지 않았습니다 (현재 상태: ${res.status}).`,
+            );
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setStatus('error');
+          setErrorMessage(`결제 상태 확인 실패: ${msg}`);
+        }
+      })();
       return;
     }
 
@@ -69,7 +94,7 @@ function PaymentSuccessInner() {
     }
 
     processPayment();
-  }, [paymentKey, tossOrderId, amount, slug, clearStore, isVbank]);
+  }, [paymentKey, tossOrderId, amount, slug, clearStore, isVbank, vbankPaymentId]);
 
   if (status === 'loading') {
     return (
