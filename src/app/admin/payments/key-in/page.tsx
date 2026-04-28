@@ -143,9 +143,14 @@ export default function KeyInPaymentPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
-      <h1 className="text-2xl font-bold">수기결제 (Key-in)</h1>
+      <div className="flex items-center gap-2 flex-wrap">
+        <h1 className="text-2xl font-bold">수기결제 (Key-in)</h1>
+        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
+          토스 카드 결제
+        </span>
+      </div>
       <p className="text-sm text-gray-500">
-        전화 주문 등 카드 정보를 직접 입력하여 결제를 처리합니다.
+        전화 주문 등 카드 정보를 직접 입력하여 토스페이먼츠로 결제를 처리합니다.
       </p>
 
       {/* Tab Buttons */}

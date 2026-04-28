@@ -55,10 +55,12 @@ const navEntries: NavEntry[] = [
     icon: <PaymentIcon />,
     color: 'text-violet-600',
     items: [
+      // 토스 결제
       { href: '/admin/payments', label: '결제 관리', icon: <PaymentIcon /> },
       { href: '/admin/payments/key-in', label: '수동 결제', icon: <PaymentIcon /> },
-      { href: '/admin/innopay-credentials', label: '이노페이 설정', icon: <PaymentIcon /> },
+      // 이노페이 가상계좌
       { href: '/admin/payments/vbank', label: '가상계좌 결제', icon: <PaymentIcon /> },
+      { href: '/admin/innopay-credentials', label: '가상계좌 설정', icon: <PaymentIcon /> },
     ],
   },
   {
