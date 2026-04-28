@@ -31,12 +31,18 @@ async function requestKeyInPayment(
     body: JSON.stringify(body),
   })
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => null)
-    throw new Error(err?.message ?? `결제 요청 실패 (${res.status})`)
+  const json = (await res.json().catch(() => null)) as
+    | { ok: true; data: PaymentResult }
+    | { ok: false; message?: string }
+    | null
+
+  if (!res.ok || !json || json.ok === false) {
+    const message =
+      json && 'message' in json ? json.message : `결제 요청 실패 (${res.status})`
+    throw new Error(message ?? `결제 요청 실패 (${res.status})`)
   }
 
-  return res.json()
+  return json.data
 }
 
 export default function KeyInPaymentPage() {
