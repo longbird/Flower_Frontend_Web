@@ -12,8 +12,10 @@ export default function AdminVbankPaymentsPage() {
   });
 
   return (
-    <div className="space-y-4 p-6">
-      <h1 className="text-2xl font-bold text-slate-800">가상계좌 결제 모니터링</h1>
+    <div className="space-y-4 p-4 md:p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">가상계좌 결제</h1>
+      </div>
       <VbankPaymentsFilters value={filters} onChange={setFilters} />
       <VbankPaymentsTable
         filters={filters}

@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api/client';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import type {
   AdminVbankPaymentsFilters,
@@ -13,113 +14,129 @@ interface Props {
   onChange: (next: AdminVbankPaymentsFilters) => void;
 }
 
-const STATUS_OPTIONS: VbankPaymentStatus[] = ['PENDING', 'PAID', 'CANCELED', 'REVIEW_REQUIRED', 'FAILED'];
-const STATUS_LABELS: Record<VbankPaymentStatus, string> = {
-  PENDING: '입금대기', PAID: '입금완료', CANCELED: '취소/만료',
-  REVIEW_REQUIRED: '검토필요', FAILED: '실패',
-};
+interface BranchOption { id: number; name: string }
+
+const STATUS_OPTIONS: { value: VbankPaymentStatus; label: string }[] = [
+  { value: 'PENDING',         label: '입금대기' },
+  { value: 'PAID',            label: '입금완료' },
+  { value: 'CANCELED',        label: '취소/만료' },
+  { value: 'REVIEW_REQUIRED', label: '검토필요' },
+  { value: 'FAILED',          label: '실패' },
+];
 
 export function VbankPaymentsFilters({ value, onChange }: Props) {
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await api<BranchOption[] | { data: BranchOption[] }>('/admin/branches');
+        const list = Array.isArray(res) ? res : (res.data ?? []);
+        setBranches(list.map((b) => ({ id: Number(b.id), name: b.name })));
+      } catch {
+        // ignore — branch dropdown will be empty
+      }
+    })();
+  }, []);
+
   const toggleStatus = (s: VbankPaymentStatus) => {
     const cur = new Set(value.status ?? []);
-    if (cur.has(s)) cur.delete(s);
-    else cur.add(s);
+    if (cur.has(s)) cur.delete(s); else cur.add(s);
     onChange({ ...value, status: cur.size > 0 ? Array.from(cur) : undefined, page: 1 });
   };
 
+  const hasFilters =
+    !!value.status?.length || !!value.branchId || !!value.from || !!value.to || !!value.mode;
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
-      {/* Status multi-select */}
-      <div className="space-y-2">
-        <Label className="text-sm text-slate-600">상태</Label>
-        <div className="flex flex-wrap gap-2">
-          {STATUS_OPTIONS.map((s) => {
-            const selected = value.status?.includes(s) ?? false;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => toggleStatus(s)}
-                className={`px-3 py-1 rounded-md border text-xs transition-colors ${
-                  selected
-                    ? 'bg-slate-900 border-slate-900 text-white'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                {STATUS_LABELS[s]}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="branchId" className="text-sm text-slate-600">지사 ID</Label>
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      {/* Row 1: Date + Branch + Mode + Reset */}
+      <div className="flex items-center gap-2 px-4 py-2.5 flex-wrap border-b border-slate-100">
+        <div className="flex items-center gap-1.5">
           <Input
-            id="branchId"
-            type="number"
-            inputMode="numeric"
-            value={value.branchId ?? ''}
-            onChange={(e) => {
-              const v = e.target.value;
-              onChange({ ...value, branchId: v ? Number(v) : undefined, page: 1 });
-            }}
-            placeholder="전체"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="from" className="text-sm text-slate-600">시작일</Label>
-          <Input
-            id="from"
             type="date"
             value={value.from ?? ''}
             onChange={(e) => onChange({ ...value, from: e.target.value || undefined, page: 1 })}
+            className="h-9 w-36 border-slate-200"
+            aria-label="시작일"
           />
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="to" className="text-sm text-slate-600">종료일</Label>
+          <span className="text-slate-400 text-sm">~</span>
           <Input
-            id="to"
             type="date"
             value={value.to ?? ''}
             onChange={(e) => onChange({ ...value, to: e.target.value || undefined, page: 1 })}
+            className="h-9 w-36 border-slate-200"
+            aria-label="종료일"
           />
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-sm text-slate-600">모드</Label>
-          <div className="flex gap-2">
-            {(['TEST', 'REAL'] as const).map((m) => (
-              <Button
-                key={m}
-                type="button"
-                size="sm"
-                variant={value.mode === m ? 'default' : 'outline'}
-                onClick={() => onChange({ ...value, mode: value.mode === m ? undefined : m, page: 1 })}
-              >
-                {m}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </div>
+        <select
+          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white h-9"
+          value={value.branchId ?? ''}
+          onChange={(e) => {
+            const v = e.target.value;
+            onChange({ ...value, branchId: v ? Number(v) : undefined, page: 1 });
+          }}
+          aria-label="지사"
+        >
+          <option value="">지사 전체</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
 
-      {/* Reset button */}
-      {(value.status?.length || value.branchId || value.from || value.to || value.mode) && (
-        <div className="flex justify-end">
+        <select
+          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white h-9"
+          value={value.mode ?? ''}
+          onChange={(e) => {
+            const v = e.target.value;
+            onChange({
+              ...value,
+              mode: v === 'TEST' || v === 'REAL' ? v : undefined,
+              page: 1,
+            });
+          }}
+          aria-label="모드"
+        >
+          <option value="">모드 전체</option>
+          <option value="TEST">TEST</option>
+          <option value="REAL">REAL</option>
+        </select>
+
+        {hasFilters && (
           <Button
             type="button"
             size="sm"
             variant="ghost"
             onClick={() => onChange({ page: 1, pageSize: value.pageSize ?? 20 })}
+            className="ml-auto h-9 text-slate-500 hover:text-slate-700"
           >
             초기화
           </Button>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Row 2: Status pills */}
+      <div className="flex items-center gap-2 px-4 py-2 flex-wrap">
+        <span className="text-xs text-slate-500 mr-1">상태</span>
+        {STATUS_OPTIONS.map((opt) => {
+          const selected = value.status?.includes(opt.value) ?? false;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => toggleStatus(opt.value)}
+              className={`px-2.5 py-1 rounded-md text-xs transition-colors ring-1 ${
+                selected
+                  ? 'bg-[#5B7A3D] text-white ring-[#5B7A3D] hover:bg-[#4A6830]'
+                  : 'bg-white text-slate-600 ring-slate-200 hover:ring-slate-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
