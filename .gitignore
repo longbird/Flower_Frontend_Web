@@ -46,3 +46,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 src/app/.next/
+
+# screenshots / inspection scripts (local dev only)
+/screenshots/
+/docs/innopay-guide-raw/
+/scripts/inspect-payments-response.ts
+/scripts/screenshot-payments-mobile.ts
+/scripts/screenshot-vbank-admin.ts

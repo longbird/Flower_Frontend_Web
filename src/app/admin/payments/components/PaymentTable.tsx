@@ -146,7 +146,7 @@ function MobileCard({
         <span className="text-lg font-semibold text-slate-900">{formatAmount(tx.amount)}</span>
         <span className="text-xs text-slate-500">{tx.method || '-'}</span>
       </div>
-      <div className="text-xs text-slate-400">{formatDate(tx.createdAt)}</div>
+      <div className="text-xs text-slate-400">{formatDate(tx.transactionAt)}</div>
     </div>
   );
 }
@@ -194,7 +194,7 @@ export function PaymentTable({ transactions, isLoading, onViewDetail, onCancel }
                       {tx.method || '-'}
                     </td>
                     <td className="px-4 py-3 text-slate-500 text-xs">
-                      {formatDate(tx.createdAt)}
+                      {formatDate(tx.transactionAt)}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <ActionMenu
