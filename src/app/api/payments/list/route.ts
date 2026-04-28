@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTossClient, TossPaymentError } from '@/lib/payments/toss-client';
+import type { TossTransaction } from '@/lib/payments/types';
+
+// 단일 admin 페이지 왔다갔다 빠르게 하기 위한 짧은 인메모리 캐시.
+// PM2 cluster 인스턴스별로 분리되지만 hit 만 나도 외부 Toss API 1회 절약.
+const CACHE_TTL_MS = 30_000;
+type CacheEntry = { data: TossTransaction[]; expiresAt: number };
+const cache = new Map<string, CacheEntry>();
+
+function cacheKey(start: string, end: string, startingAfter: string | undefined, limit: number) {
+  return `${start}|${end}|${startingAfter ?? ''}|${limit}`;
+}
 
 export async function GET(request: NextRequest) {
   const token = request.headers.get('authorization');
@@ -32,11 +43,26 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const startingAfter = searchParams.get('startingAfter') ?? undefined;
+  const limit = Number(searchParams.get('limit') ?? '100');
+  const key = cacheKey(startDate, endDate, startingAfter, limit);
+  const now = Date.now();
+
+  const hit = cache.get(key);
+  if (hit && hit.expiresAt > now) {
+    return NextResponse.json({ ok: true, data: hit.data, cached: true });
+  }
+
   try {
     const client = getTossClient();
-    const startingAfter = searchParams.get('startingAfter') ?? undefined;
-    const limit = Number(searchParams.get('limit') ?? '100');
     const transactions = await client.getTransactions(startDate, endDate, { startingAfter, limit });
+    cache.set(key, { data: transactions, expiresAt: now + CACHE_TTL_MS });
+    // 작은 housekeeping — 만료 항목 제거 (cache size 폭발 방지)
+    if (cache.size > 50) {
+      for (const [k, v] of cache.entries()) {
+        if (v.expiresAt <= now) cache.delete(k);
+      }
+    }
     return NextResponse.json({ ok: true, data: transactions });
   } catch (error) {
     if (error instanceof TossPaymentError) {

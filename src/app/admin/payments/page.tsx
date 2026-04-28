@@ -65,7 +65,7 @@ export default function PaymentsPage() {
   const transactions = txsQuery.data ?? [];
   const isLoading = txsQuery.isLoading;
 
-  // 2) Enrichment — Toss 결과 도착 후 즉시 시작. UI 는 Toss 결과만으로도 일단 렌더.
+  // 2) Enrichment — Toss 결과 도착 후 백그라운드로 시작. UI 는 Toss 결과만으로도 일단 렌더.
   const orderIds = transactions.map((t) => t.orderId).join(',');
   const enrichQuery = useQuery({
     queryKey: ['admin-payments-orderinfo', orderIds],
@@ -84,9 +84,29 @@ export default function PaymentsPage() {
   });
   const orderInfo: OrderInfoMap = enrichQuery.data ?? {};
 
+  // 3) Toss orderName enrichment — DB 에 없는 결제 (충전금/구독/외부) 의 사람이 읽는 라벨.
+  const paymentKeys = transactions.map((t) => t.paymentKey).join(',');
+  const orderNamesQuery = useQuery({
+    queryKey: ['admin-payments-ordernames', paymentKeys],
+    enabled: paymentKeys.length > 0,
+    queryFn: async () => {
+      const token = useAuthStore.getState().accessToken;
+      const res = await fetch(
+        `/api/payments/order-names?paymentKeys=${encodeURIComponent(paymentKeys)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) return {} as Record<string, string>;
+      const json = (await res.json()) as { ok: boolean; data: Record<string, string> };
+      return json.data ?? {};
+    },
+    staleTime: 5 * 60_000, // orderName 은 한 번 받으면 안 변함
+  });
+  const orderNames: Record<string, string> = orderNamesQuery.data ?? {};
+
   const refetch = () => {
     txsQuery.refetch();
     enrichQuery.refetch();
+    orderNamesQuery.refetch();
   };
 
   const filteredTransactions = statusFilter
@@ -153,6 +173,7 @@ export default function PaymentsPage() {
       <PaymentTable
         transactions={filteredTransactions}
         orderInfo={orderInfo}
+        orderNames={orderNames}
         isLoading={isLoading}
         onViewDetail={handleViewDetail}
         onCancel={handleCancel}

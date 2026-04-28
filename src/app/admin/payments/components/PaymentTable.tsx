@@ -26,6 +26,7 @@ export type OrderInfoMap = Record<string, OrderInfo | undefined>;
 interface PaymentTableProps {
   transactions: TossTransaction[];
   orderInfo?: OrderInfoMap;
+  orderNames?: Record<string, string>;
   isLoading: boolean;
   onViewDetail: (paymentKey: string) => void;
   onCancel: (paymentKey: string) => void;
@@ -69,22 +70,32 @@ function isCancelDisabled(status: string): boolean {
   return status === 'CANCELED' || status === 'EXPIRED' || status === 'ABORTED';
 }
 
-/** 주문 메타 → 사람이 읽는 한 줄 요약. info 없으면 orderId truncate fallback. */
-function orderLabel(tx: TossTransaction, info: OrderInfo | undefined): { primary: string; secondary: string | null } {
-  if (!info) {
-    // fallback: orderId 앞 30자 truncate
-    return { primary: tx.orderId.length > 30 ? tx.orderId.slice(0, 30) + '…' : tx.orderId, secondary: null };
+/** 주문 메타 → 사람이 읽는 한 줄 요약. 우선순위: orders 매칭 > Toss orderName > orderId truncate. */
+function orderLabel(
+  tx: TossTransaction,
+  info: OrderInfo | undefined,
+  orderName: string | undefined,
+): { primary: string; secondary: string | null } {
+  if (info) {
+    const typeLabel = info.orderType ? (ORDER_TYPE_LABELS[info.orderType] ?? info.orderType) : null;
+    const primary = info.ordererName ?? (info.orderNo ?? tx.orderId);
+    const secondaryParts: string[] = [];
+    if (typeLabel) secondaryParts.push(typeLabel);
+    if (info.receiverName) secondaryParts.push(`→ ${info.receiverName}`);
+    const delivery = formatDeliveryDate(info.deliveryAt);
+    if (delivery) secondaryParts.push(delivery);
+    return {
+      primary,
+      secondary: secondaryParts.length > 0 ? secondaryParts.join(' · ') : null,
+    };
   }
-  const typeLabel = info.orderType ? (ORDER_TYPE_LABELS[info.orderType] ?? info.orderType) : null;
-  const primary = info.ordererName ?? (info.orderNo ?? tx.orderId);
-  const secondaryParts: string[] = [];
-  if (typeLabel) secondaryParts.push(typeLabel);
-  if (info.receiverName) secondaryParts.push(`→ ${info.receiverName}`);
-  const delivery = formatDeliveryDate(info.deliveryAt);
-  if (delivery) secondaryParts.push(delivery);
+  if (orderName) {
+    return { primary: orderName, secondary: null };
+  }
+  // 최종 fallback: orderId 앞 30자 truncate
   return {
-    primary,
-    secondary: secondaryParts.length > 0 ? secondaryParts.join(' · ') : null,
+    primary: tx.orderId.length > 30 ? tx.orderId.slice(0, 30) + '…' : tx.orderId,
+    secondary: null,
   };
 }
 
@@ -169,15 +180,17 @@ function ActionMenu({
 function MobileCard({
   tx,
   info,
+  orderName,
   onViewDetail,
   onCancel,
 }: {
   tx: TossTransaction;
   info: OrderInfo | undefined;
+  orderName: string | undefined;
   onViewDetail: (k: string) => void;
   onCancel: (k: string) => void;
 }) {
-  const label = orderLabel(tx, info);
+  const label = orderLabel(tx, info, orderName);
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -210,7 +223,7 @@ function MobileCard({
   );
 }
 
-export function PaymentTable({ transactions, orderInfo = {}, isLoading, onViewDetail, onCancel }: PaymentTableProps) {
+export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, isLoading, onViewDetail, onCancel }: PaymentTableProps) {
   return (
     <>
       {/* 데스크탑: 테이블 */}
@@ -235,7 +248,7 @@ export function PaymentTable({ transactions, orderInfo = {}, isLoading, onViewDe
               <tbody>
                 {transactions.map((tx) => {
                   const info = orderInfo[tx.orderId];
-                  const label = orderLabel(tx, info);
+                  const label = orderLabel(tx, info, orderNames[tx.paymentKey]);
                   return (
                     <tr
                       key={tx.transactionKey}
@@ -300,6 +313,7 @@ export function PaymentTable({ transactions, orderInfo = {}, isLoading, onViewDe
                 key={tx.transactionKey}
                 tx={tx}
                 info={orderInfo[tx.orderId]}
+                orderName={orderNames[tx.paymentKey]}
                 onViewDetail={onViewDetail}
                 onCancel={onCancel}
               />
