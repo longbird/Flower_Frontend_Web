@@ -44,11 +44,13 @@ function fmtDateTime(iso: string | null) {
 }
 
 const TX_TYPE_LABELS: Record<WalletTxType, { label: string; className: string }> = {
-  CHARGE:    { label: '충전',      className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  REFUND:    { label: '환불/조정',  className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  ORDER_FEE: { label: '주문수수료', className: 'bg-slate-100 text-slate-700 border-slate-200' },
-  SMS_FEE:   { label: 'SMS',       className: 'bg-slate-100 text-slate-700 border-slate-200' },
-  ADJUST:    { label: '조정',      className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  CHARGE:       { label: '충전',          className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  REFUND:       { label: '환불/조정',     className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  ORDER_FEE:    { label: '주문수수료',    className: 'bg-slate-100 text-slate-700 border-slate-200' },
+  SMS_FEE:      { label: 'SMS',           className: 'bg-slate-100 text-slate-700 border-slate-200' },
+  ADJUST:       { label: '조정',          className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  VBANK_HOLD:   { label: '가상계좌 차감', className: 'bg-rose-100 text-rose-700 border-rose-200' },
+  VBANK_SETTLE: { label: '가상계좌 환원', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
 };
 
 export default function BranchWalletPage({ params }: { params: Promise<{ id: string }> }) {
@@ -233,7 +235,7 @@ export default function BranchWalletPage({ params }: { params: Promise<{ id: str
             <CardTitle className="text-base">거래 내역</CardTitle>
             <div className="flex gap-1.5 flex-wrap">
               <FilterButton value="" current={filterType} setter={(v) => { setFilterType(v); setPage(1); }}>전체</FilterButton>
-              {(['CHARGE','REFUND','ORDER_FEE','SMS_FEE','ADJUST'] as WalletTxType[]).map((t) => (
+              {(['CHARGE','REFUND','ORDER_FEE','SMS_FEE','ADJUST','VBANK_HOLD','VBANK_SETTLE'] as WalletTxType[]).map((t) => (
                 <FilterButton key={t} value={t} current={filterType} setter={(v) => { setFilterType(v); setPage(1); }}>
                   {TX_TYPE_LABELS[t].label}
                 </FilterButton>

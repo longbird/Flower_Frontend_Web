@@ -11,6 +11,9 @@ function PaymentSuccessInner() {
   const searchParams = useSearchParams();
   const slug = params.slug as string;
 
+  const method = searchParams.get('method'); // 'vbank' for vbank flow
+  const isVbank = method === 'vbank';
+
   const paymentKey = searchParams.get('paymentKey');
   const tossOrderId = searchParams.get('orderId'); // RF_<consultId>_<ts>
   const amount = searchParams.get('amount');
@@ -25,6 +28,13 @@ function PaymentSuccessInner() {
   useEffect(() => {
     if (processedRef.current) return;
     processedRef.current = true;
+
+    // Vbank flow: backend already SETTLED via webhook. No Toss confirm needed.
+    if (isVbank) {
+      clearStore();
+      setStatus('success');
+      return;
+    }
 
     async function processPayment() {
       if (!paymentKey || !tossOrderId || !amount) {
@@ -59,7 +69,7 @@ function PaymentSuccessInner() {
     }
 
     processPayment();
-  }, [paymentKey, tossOrderId, amount, slug, clearStore]);
+  }, [paymentKey, tossOrderId, amount, slug, clearStore, isVbank]);
 
   if (status === 'loading') {
     return (
@@ -104,10 +114,16 @@ function PaymentSuccessInner() {
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          {alreadyPaid ? '이미 결제가 완료된 주문입니다' : '결제가 완료되었습니다'}
+          {isVbank
+            ? '입금이 확인되었습니다'
+            : alreadyPaid
+            ? '이미 결제가 완료된 주문입니다'
+            : '결제가 완료되었습니다'}
         </h1>
         <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-          빠른 시간 내에 연락드리겠습니다.<br />감사합니다.
+          {isVbank
+            ? '가상계좌 입금이 자동으로 처리되었습니다. 빠른 시간 내에 연락드리겠습니다.'
+            : <>빠른 시간 내에 연락드리겠습니다.<br />감사합니다.</>}
         </p>
         <Link
           href={`/branch/${slug}`}

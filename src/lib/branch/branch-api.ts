@@ -209,7 +209,7 @@ export async function fetchBranchProducts() {
 }
 
 // ─── Branch Wallet (충전금) ─────────
-export type BranchWalletTxType = 'CHARGE' | 'REFUND' | 'ORDER_FEE' | 'SMS_FEE' | 'ADJUST';
+export type BranchWalletTxType = 'CHARGE' | 'REFUND' | 'ORDER_FEE' | 'SMS_FEE' | 'ADJUST' | 'VBANK_HOLD' | 'VBANK_SETTLE';
 
 export interface MyBranchWalletSummary {
   branchId: number;

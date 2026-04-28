@@ -1,4 +1,5 @@
 import type { BranchInfo, BranchProduct, RecommendedPhoto, PaginatedResponse, ConsultRequestForm } from './types';
+import type { IssueVbankRequest, IssueVbankResponse, PollVbankStatus } from '@/lib/payments/innopay-types';
 
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const API_BASE = RAW_API_BASE ? '/api/proxy' : '';
@@ -246,5 +247,34 @@ export async function confirmTossPayment(
     } catch {}
     throw new Error(json.message || `결제 확정에 실패했습니다 (HTTP ${res.status}).`);
   }
+  return res.json();
+}
+
+// ─── Innopay virtual bank payment ──────────────────────────────────
+//
+// 가상계좌 발급 및 상태 폴링 API 헬퍼
+
+export async function issueInnopayVbank(body: IssueVbankRequest): Promise<IssueVbankResponse> {
+  const res = await fetch(`${API_BASE}/public/payments/vbank`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let message: string | undefined;
+    try {
+      const j = await res.json();
+      message = j?.message;
+    } catch {
+      // body not JSON
+    }
+    throw new Error(message ?? `vbank issue failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function pollVbankStatus(paymentId: number): Promise<PollVbankStatus> {
+  const res = await fetch(`${API_BASE}/public/payments/vbank/${paymentId}/status`);
+  if (!res.ok) throw new Error(`poll failed (${res.status})`);
   return res.json();
 }

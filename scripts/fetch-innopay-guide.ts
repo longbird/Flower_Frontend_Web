@@ -95,15 +95,15 @@ async function main() {
 
     // Walk to a few related guide pages discovered via main links (filter to /guide/* under same host)
     const interesting = main.links.filter(
-      (l) =>
+      (l: { text: string; href: string }) =>
         l.href.startsWith(BASE_URL) &&
         !l.href.endsWith('vbank_api/') &&
         !l.href.endsWith('/guide/') &&
         !l.href.includes('#'),
     );
-    const dedup = Array.from(new Map(interesting.map((l) => [l.href, l])).values()).slice(0, 12);
+    const dedup = Array.from(new Map(interesting.map((l: { text: string; href: string }) => [l.href, l])).values()).slice(0, 12);
 
-    for (const l of dedup) {
+    for (const l of dedup as Array<{ text: string; href: string }>) {
       const slug = l.href.replace(BASE_URL, '').replace(/\/$/, '').replace(/[^a-zA-Z0-9_-]/g, '_') || 'page';
       try {
         await extractPage(page, l.href, slug);
@@ -115,7 +115,7 @@ async function main() {
     // Index file
     await fs.writeFile(
       path.join(OUTPUT_DIR, 'INDEX.md'),
-      `# 이노페이 가이드 raw\n\n수집 시각: ${new Date().toISOString()}\n\n## 메인\n- vbank_api.txt / .html / -code.json\n\n## 관련 페이지\n${dedup.map((l) => `- ${l.text} — ${l.href}`).join('\n')}\n`,
+      `# 이노페이 가이드 raw\n\n수집 시각: ${new Date().toISOString()}\n\n## 메인\n- vbank_api.txt / .html / -code.json\n\n## 관련 페이지\n${(dedup as Array<{ text: string; href: string }>).map((l) => `- ${l.text} — ${l.href}`).join('\n')}\n`,
       'utf8',
     );
     console.log('Saved INDEX.md.');

@@ -11,7 +11,36 @@ function PaymentFailInner() {
   const slug = params.slug as string;
 
   const code = searchParams.get('code') || '';
-  const message = searchParams.get('message') || '결제가 취소되었습니다.';
+  const reason = searchParams.get('reason') || '';
+  const queryMessage = searchParams.get('message') || '';
+
+  // Vbank reason → 한국어 메시지 매핑
+  const VBANK_REASON_MESSAGES: Record<string, { title: string; sub: string }> = {
+    expired: {
+      title: '입금 시간이 만료되었습니다',
+      sub: '마감 시간 내에 입금이 확인되지 않았습니다. 다시 결제를 시도해 주세요.',
+    },
+    canceled: {
+      title: '결제가 취소되었습니다',
+      sub: '본사 또는 PG에서 결제 취소 처리되었습니다.',
+    },
+    'review-required': {
+      title: '입금액 확인이 필요합니다',
+      sub: '입금액이 결제 요청 금액과 다릅니다. 본사가 확인 후 처리합니다.',
+    },
+    'missing-vbank-info': {
+      title: '결제 정보를 찾을 수 없습니다',
+      sub: '주문 페이지로 돌아가 다시 시도해 주세요.',
+    },
+    failed: {
+      title: '결제에 실패했습니다',
+      sub: '결제 처리 중 오류가 발생했습니다. 다시 시도해 주세요.',
+    },
+  };
+
+  const vbankMsg = reason ? VBANK_REASON_MESSAGES[reason] : null;
+  const title = vbankMsg?.title ?? '결제에 실패했습니다';
+  const message = vbankMsg?.sub ?? queryMessage ?? '결제가 취소되었습니다.';
   const clearStore = usePaymentStore((s) => s.clear);
 
   useEffect(() => {
@@ -26,7 +55,7 @@ function PaymentFailInner() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">결제에 실패했습니다</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">{title}</h1>
         <p className="text-gray-500 text-sm mb-2 leading-relaxed">{message}</p>
         {code && (
           <p className="text-gray-400 text-xs mb-8">오류 코드: {code}</p>

@@ -7,8 +7,10 @@ import {
   fetchBranchInfo,
   createPayment,
   parseTossClientSecret,
+  issueInnopayVbank,
   type TossClientSecret,
 } from '@/lib/branch/api';
+import { PaymentMethodSelector } from './payment-method-selector';
 import type { BranchInfo } from '@/lib/branch/types';
 import { getTheme, themeToStyle } from '@/lib/branch/themes';
 import { usePaymentStore } from '@/lib/branch/payment-store';
@@ -25,6 +27,9 @@ export default function PaymentPage() {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
   const [widgetReady, setWidgetReady] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<'card' | 'virtual-account' | null>(null);
+  const [methodLoading, setMethodLoading] = useState<'card' | 'virtual-account' | null>(null);
+  const setVbankInfo = usePaymentStore((s) => s.setVbankInfo);
   const widgetsRef = useRef<unknown>(null);
   const tossSecretRef = useRef<TossClientSecret | null>(null);
   const initStartedRef = useRef(false);
@@ -47,6 +52,7 @@ export default function PaymentPage() {
 
   // 결제 위젯 초기화: 백엔드에서 clientSecret(JSON) 수령 → 토스 SDK 로드
   useEffect(() => {
+    if (selectedMethod !== 'card') return;
     if (!orderData || !orderData.orderId || loading) return;
     if (initStartedRef.current) return;
     initStartedRef.current = true;
@@ -94,7 +100,38 @@ export default function PaymentPage() {
     }
 
     initWidget();
-  }, [orderData, loading]);
+  }, [orderData, loading, selectedMethod]);
+
+  const handleMethodSelect = async (method: 'card' | 'virtual-account') => {
+    if (!orderData || !orderData.orderId) {
+      setError('주문 정보가 누락되었습니다.');
+      return;
+    }
+    setMethodLoading(method);
+    setError('');
+
+    if (method === 'card') {
+      setSelectedMethod('card');
+      setMethodLoading(null);
+      return;
+    }
+
+    // virtual-account: 가상계좌 발급 → 폴링 페이지로 이동
+    try {
+      const issued = await issueInnopayVbank({
+        orderId: orderData.orderId,
+        orderName: orderData.productName || '꽃배달 상품',
+        customerName: orderData.customerName || undefined,
+        customerPhone: orderData.customerPhone || undefined,
+      });
+      setVbankInfo(issued);
+      router.push(`/branch/${slug}/payment/vbank?paymentId=${issued.paymentId}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`가상계좌 발급에 실패했습니다: ${msg}`);
+      setMethodLoading(null);
+    }
+  };
 
   // 결제 요청 — 토스가 successUrl로 리다이렉트
   const handlePayment = async () => {
@@ -200,15 +237,23 @@ export default function PaymentPage() {
           </div>
         </div>
 
-        {/* 결제 위젯 영역 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div id="payment-methods" className="min-h-[200px]" />
-        </div>
+        {selectedMethod === null && (
+          <PaymentMethodSelector onSelect={handleMethodSelect} loading={methodLoading} />
+        )}
 
-        {/* 이용약관 위젯 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div id="payment-agreement" />
-        </div>
+        {selectedMethod === 'card' && (
+          <>
+            {/* 결제 위젯 영역 */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div id="payment-methods" className="min-h-[200px]" />
+            </div>
+
+            {/* 이용약관 위젯 */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div id="payment-agreement" />
+            </div>
+          </>
+        )}
 
         {error && (
           <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm whitespace-pre-line">
@@ -217,13 +262,15 @@ export default function PaymentPage() {
         )}
 
         {/* 결제 버튼 */}
-        <button
-          onClick={handlePayment}
-          disabled={paying || !widgetReady}
-          className="w-full py-4 bg-[var(--branch-green)] text-white rounded-2xl text-base font-semibold hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {paying ? '처리 중...' : `${formatPrice(orderData.productPrice)} 결제하기`}
-        </button>
+        {selectedMethod === 'card' && (
+          <button
+            onClick={handlePayment}
+            disabled={paying || !widgetReady}
+            className="w-full py-4 bg-[var(--branch-green)] text-white rounded-2xl text-base font-semibold hover:bg-[var(--branch-green-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {paying ? '처리 중...' : `${formatPrice(orderData.productPrice)} 결제하기`}
+          </button>
+        )}
       </div>
     </div>
   );
