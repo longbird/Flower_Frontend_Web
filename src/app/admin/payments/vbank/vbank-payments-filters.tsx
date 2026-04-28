@@ -24,8 +24,27 @@ const STATUS_OPTIONS: { value: VbankPaymentStatus; label: string }[] = [
   { value: 'FAILED',          label: '실패' },
 ];
 
+type Mode = 'TEST' | 'REAL' | '';
+
 export function VbankPaymentsFilters({ value, onChange }: Props) {
   const [branches, setBranches] = useState<BranchOption[]>([]);
+
+  // 결제 관리 페이지와 동일한 패턴 — 입력은 버퍼에 두고 '조회' 클릭 시에만 적용.
+  // 상태 pill 토글 / 초기화는 즉시 반영 (관습대로).
+  const [draftFrom, setDraftFrom] = useState<string>(value.from ?? '');
+  const [draftTo, setDraftTo] = useState<string>(value.to ?? '');
+  const [draftBranchId, setDraftBranchId] = useState<string>(
+    value.branchId ? String(value.branchId) : '',
+  );
+  const [draftMode, setDraftMode] = useState<Mode>((value.mode as Mode) ?? '');
+
+  // 외부에서 value 가 바뀌면 (초기화 / status pill 적용 후) 버퍼도 동기화
+  useEffect(() => {
+    setDraftFrom(value.from ?? '');
+    setDraftTo(value.to ?? '');
+    setDraftBranchId(value.branchId ? String(value.branchId) : '');
+    setDraftMode((value.mode as Mode) ?? '');
+  }, [value.from, value.to, value.branchId, value.mode]);
 
   useEffect(() => {
     void (async () => {
@@ -45,26 +64,41 @@ export function VbankPaymentsFilters({ value, onChange }: Props) {
     onChange({ ...value, status: cur.size > 0 ? Array.from(cur) : undefined, page: 1 });
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    onChange({
+      ...value,
+      from: draftFrom || undefined,
+      to: draftTo || undefined,
+      branchId: draftBranchId ? Number(draftBranchId) : undefined,
+      mode: draftMode || undefined,
+      page: 1,
+    });
+  };
+
   const hasFilters =
     !!value.status?.length || !!value.branchId || !!value.from || !!value.to || !!value.mode;
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-      {/* Row 1: Date + Branch + Mode + Reset */}
-      <div className="flex items-center gap-2 px-4 py-2.5 flex-wrap border-b border-slate-100">
+      {/* Row 1: Date + Branch + Mode + 조회 + Reset */}
+      <form
+        onSubmit={handleSearch}
+        className="flex items-center gap-2 px-4 py-2.5 flex-wrap border-b border-slate-100"
+      >
         <div className="flex items-center gap-1.5">
           <Input
             type="date"
-            value={value.from ?? ''}
-            onChange={(e) => onChange({ ...value, from: e.target.value || undefined, page: 1 })}
+            value={draftFrom}
+            onChange={(e) => setDraftFrom(e.target.value)}
             className="h-9 w-36 border-slate-200"
             aria-label="시작일"
           />
           <span className="text-slate-400 text-sm">~</span>
           <Input
             type="date"
-            value={value.to ?? ''}
-            onChange={(e) => onChange({ ...value, to: e.target.value || undefined, page: 1 })}
+            value={draftTo}
+            onChange={(e) => setDraftTo(e.target.value)}
             className="h-9 w-36 border-slate-200"
             aria-label="종료일"
           />
@@ -72,11 +106,8 @@ export function VbankPaymentsFilters({ value, onChange }: Props) {
 
         <select
           className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white h-9"
-          value={value.branchId ?? ''}
-          onChange={(e) => {
-            const v = e.target.value;
-            onChange({ ...value, branchId: v ? Number(v) : undefined, page: 1 });
-          }}
+          value={draftBranchId}
+          onChange={(e) => setDraftBranchId(e.target.value)}
           aria-label="지사"
         >
           <option value="">지사 전체</option>
@@ -87,21 +118,22 @@ export function VbankPaymentsFilters({ value, onChange }: Props) {
 
         <select
           className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm bg-white h-9"
-          value={value.mode ?? ''}
-          onChange={(e) => {
-            const v = e.target.value;
-            onChange({
-              ...value,
-              mode: v === 'TEST' || v === 'REAL' ? v : undefined,
-              page: 1,
-            });
-          }}
+          value={draftMode}
+          onChange={(e) => setDraftMode(e.target.value as Mode)}
           aria-label="모드"
         >
           <option value="">모드 전체</option>
           <option value="TEST">TEST</option>
           <option value="REAL">REAL</option>
         </select>
+
+        <Button
+          type="submit"
+          size="sm"
+          className="bg-[#5B7A3D] hover:bg-[#4A6830] shrink-0"
+        >
+          조회
+        </Button>
 
         {hasFilters && (
           <Button
@@ -114,7 +146,7 @@ export function VbankPaymentsFilters({ value, onChange }: Props) {
             초기화
           </Button>
         )}
-      </div>
+      </form>
 
       {/* Row 2: Status pills */}
       <div className="flex items-center gap-2 px-4 py-2 flex-wrap">
