@@ -19,14 +19,9 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
 ];
 
 function getDefaultDateRange(): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 7);
-
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
+  // 한국 시간 기준 당일 (UTC 변환 시 새벽 시간 어긋남 방지).
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  return { start: today, end: today };
 }
 
 export default function PaymentsPage() {
