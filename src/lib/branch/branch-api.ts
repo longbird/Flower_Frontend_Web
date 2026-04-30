@@ -318,11 +318,15 @@ export async function fetchMyBranchWallet() {
 
 export async function fetchMyBranchWalletTransactions(params: {
   type?: BranchWalletTxType | '';
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   size?: number;
 } = {}) {
   const sp = new URLSearchParams();
   if (params.type) sp.set('type', params.type);
+  if (params.dateFrom) sp.set('dateFrom', params.dateFrom);
+  if (params.dateTo) sp.set('dateTo', params.dateTo);
   if (params.page) sp.set('page', String(params.page));
   if (params.size) sp.set('size', String(params.size));
   const qs = sp.toString();

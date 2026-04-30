@@ -36,6 +36,10 @@ const TX_TYPE_LABELS: Record<BranchWalletTxType, { label: string; className: str
   VBANK_SETTLE: { label: '가상계좌 환원', className: 'bg-emerald-100 text-emerald-700' },
 };
 
+function getTodayDate() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+}
+
 export function MyTopupVbankCard() {
   const { data, isLoading } = useQuery({
     queryKey: ['my-topup-vbank'],
@@ -77,7 +81,10 @@ export function MyTopupVbankCard() {
 }
 
 export default function MyBranchWalletPage() {
+  const today = getTodayDate();
   const [filterType, setFilterType] = useState<BranchWalletTxType | ''>('');
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
   const [page, setPage] = useState(1);
 
   const walletQ = useQuery({
@@ -86,10 +93,12 @@ export default function MyBranchWalletPage() {
   });
 
   const txQ = useQuery({
-    queryKey: ['my-branch-wallet-tx', filterType, page],
+    queryKey: ['my-branch-wallet-tx', filterType, dateFrom, dateTo, page],
     queryFn: () =>
       fetchMyBranchWalletTransactions({
         type: filterType || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
         page,
         size: 20,
       }),
@@ -164,6 +173,26 @@ export default function MyBranchWalletPage() {
             ))}
           </div>
         </div>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <DateFilter label="시작일" value={dateFrom} onChange={(v) => { setDateFrom(v); setPage(1); }} />
+          <DateFilter label="종료일" value={dateTo} onChange={(v) => { setDateTo(v); setPage(1); }} />
+          <button
+            type="button"
+            onClick={() => { setDateFrom(today); setDateTo(today); setPage(1); }}
+            className="h-9 rounded-lg border border-[var(--branch-rose-light)] bg-white px-3 text-sm text-[var(--branch-text)]"
+          >
+            당일
+          </button>
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
+              className="h-9 rounded-lg border border-[var(--branch-rose-light)] bg-white px-3 text-sm text-[var(--branch-text)]"
+            >
+              전체 기간
+            </button>
+          )}
+        </div>
 
         {txQ.isLoading ? (
           <div className="text-center py-8 text-[var(--branch-text-light)]">로딩 중...</div>
@@ -232,6 +261,24 @@ function FeeItem({ label, value }: { label: string; value: number }) {
       <dt className="text-[var(--branch-text-light)] text-xs">{label}</dt>
       <dd className="font-medium tabular-nums text-[var(--branch-text)]">{value.toLocaleString()}원</dd>
     </div>
+  );
+}
+
+function DateFilter({ label, value, onChange }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-xs text-[var(--branch-text-light)]">
+      {label}
+      <input
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 rounded-lg border border-[var(--branch-rose-light)] bg-white px-3 text-sm text-[var(--branch-text)]"
+      />
+    </label>
   );
 }
 
