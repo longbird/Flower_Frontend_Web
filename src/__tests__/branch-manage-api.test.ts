@@ -141,6 +141,28 @@ describe('branchAdminLogin', () => {
     );
   });
 
+  it('should throw credential message when login response has ok false', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: false, error: 'invalid credentials' }),
+    });
+
+    await expect(branchAdminLogin('user', 'wrong')).rejects.toThrow(
+      '아이디 또는 비밀번호가 일치하지 않습니다.'
+    );
+  });
+
+  it('should throw disabled message when login response has account disabled', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: false, error: 'account disabled' }),
+    });
+
+    await expect(branchAdminLogin('user', 'pass')).rejects.toThrow(
+      '비활성화된 계정입니다.'
+    );
+  });
+
   it('should throw default error when server provides no message', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,

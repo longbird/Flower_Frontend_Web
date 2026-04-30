@@ -5,6 +5,14 @@ import type { BranchTopupVbank } from '@/lib/payments/innopay-types';
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const API_BASE = RAW_API_BASE ? '/api/proxy' : '';
 
+function loginErrorMessage(data: { message?: string; error?: string }) {
+  if (data.message) return data.message;
+  if (data.error === 'invalid credentials') return '아이디 또는 비밀번호가 일치하지 않습니다.';
+  if (data.error === 'account disabled') return '비활성화된 계정입니다.';
+  if (data.error === 'missing credentials') return '아이디와 비밀번호를 입력해 주세요.';
+  return '로그인에 실패했습니다.';
+}
+
 /** 지사 관리자 로그인 (같은 admin auth 엔드포인트 사용) */
 export async function branchAdminLogin(username: string, password: string) {
   const res = await fetch(`${API_BASE}/admin/auth/login`, {
@@ -15,10 +23,14 @@ export async function branchAdminLogin(username: string, password: string) {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.message || '로그인에 실패했습니다.');
+    throw new Error(loginErrorMessage(data));
   }
 
   const data = await res.json();
+
+  if (data?.ok === false) {
+    throw new Error(loginErrorMessage(data));
+  }
 
   // BRANCH_ADMIN 역할 체크
   const role = data.admin?.role;
