@@ -78,7 +78,11 @@ export function VbankPaymentsTable({ filters, onPageChange, onSelect }: Props) {
               </tr>
             )}
             {items.map((row) => (
-              <tr key={row.paymentId} className="hover:bg-slate-50">
+              <tr
+                key={row.paymentId}
+                className="cursor-pointer hover:bg-slate-50"
+                onClick={() => onSelect?.(row)}
+              >
                 <td className="px-3 py-2 font-mono">
                   <button
                     type="button"

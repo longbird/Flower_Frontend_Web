@@ -175,4 +175,19 @@ describe('AdminVbankOperationsPage', () => {
     expect(screen.getAllByText('ORD-20260430-001').length).toBeGreaterThan(0);
     expect(screen.getByText('국민은행')).toBeInTheDocument();
   });
+
+  it('opens a detail dialog when clicking a payment table row', async () => {
+    render(
+      <Wrapper>
+        <AdminVbankPaymentsPage />
+      </Wrapper>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '결제' }));
+    const row = await screen.findByRole('row', { name: /77 123 서울지사/ });
+    fireEvent.click(row);
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('가상계좌 상세');
+    expect(screen.getByText('pool-77')).toBeInTheDocument();
+  });
 });
