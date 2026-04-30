@@ -16,8 +16,11 @@ import {
 const PERMISSION_OPTIONS = [
   { key: 'consults', label: '상담 요청' },
   { key: 'products', label: '상품 관리' },
+  { key: 'wallet', label: '충전금/결제/가상계좌' },
   { key: 'settings', label: '기본 정보' },
 ] as const;
+
+const DEFAULT_PERMISSIONS = PERMISSION_OPTIONS.map((opt) => opt.key);
 
 interface BranchAccount {
   id: number;
@@ -40,6 +43,9 @@ interface CreateAccountForm {
   permissions: string[];
 }
 
+const getErrorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : fallback;
+
 export default function BranchAccounts({ branchId }: { branchId: string }) {
   const queryClient = useQueryClient();
   const queryKey = ['admin-branch-accounts', branchId];
@@ -47,7 +53,7 @@ export default function BranchAccounts({ branchId }: { branchId: string }) {
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState<CreateAccountForm>({
     username: '', password: '', managerName: '', managerPhone: '',
-    permissions: ['consults', 'products', 'settings'],
+    permissions: [...DEFAULT_PERMISSIONS],
   });
 
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -66,7 +72,7 @@ export default function BranchAccounts({ branchId }: { branchId: string }) {
       } catch {
         // Fallback to old single-account API
         try {
-          const single = await api<any>(`/admin/branches/${branchId}/account`);
+          const single = await api<Partial<BranchAccount>>(`/admin/branches/${branchId}/account`);
           if (single && single.status !== 'PENDING' && single.id) {
             return [{
               ...single,
@@ -89,10 +95,10 @@ export default function BranchAccounts({ branchId }: { branchId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       setShowCreate(false);
-      setCreateForm({ username: '', password: '', managerName: '', managerPhone: '', permissions: ['consults', 'products', 'settings'] });
+      setCreateForm({ username: '', password: '', managerName: '', managerPhone: '', permissions: [...DEFAULT_PERMISSIONS] });
       toast.success('계정이 생성되었습니다');
     },
-    onError: (err: any) => toast.error(err?.message || '계정 생성 실패'),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, '계정 생성 실패')),
   });
 
   const resetPasswordMutation = useMutation({
@@ -186,7 +192,7 @@ export default function BranchAccounts({ branchId }: { branchId: string }) {
               className="bg-blue-600 hover:bg-blue-700 text-white"
               size="sm"
               onClick={() => {
-                setCreateForm({ username: '', password: '', managerName: '', managerPhone: '', permissions: ['consults', 'products', 'settings'] });
+                setCreateForm({ username: '', password: '', managerName: '', managerPhone: '', permissions: [...DEFAULT_PERMISSIONS] });
                 setShowCreate(true);
               }}
             >
@@ -324,7 +330,7 @@ export default function BranchAccounts({ branchId }: { branchId: string }) {
             </div>
           </div>
           {createMutation.isError && (
-            <div className="text-sm text-red-500">계정 생성 실패: {(createMutation.error as any)?.message || '오류가 발생했습니다'}</div>
+            <div className="text-sm text-red-500">계정 생성 실패: {getErrorMessage(createMutation.error, '오류가 발생했습니다')}</div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>취소</Button>
