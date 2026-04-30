@@ -17,6 +17,11 @@ import {
   combinePaymentRows,
   mapPaymentStatusToVbankStatuses,
 } from './payments-list';
+import {
+  buildTransactionPaymentDetail,
+  VbankDetailDialog,
+  type VbankDetail,
+} from './vbank/vbank-detail-dialog';
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: '전체' },
@@ -51,6 +56,7 @@ export default function PaymentsPage() {
   const [queryStatus, setQueryStatus] = useState('');
 
   const [detailPaymentKey, setDetailPaymentKey] = useState<string | null>(null);
+  const [vbankDetail, setVbankDetail] = useState<VbankDetail | null>(null);
   const [cancelPaymentKey, setCancelPaymentKey] = useState<string | null>(null);
 
   // 1) Toss 거래 목록 — 페이지 진입 시 즉시 호출
@@ -154,6 +160,11 @@ export default function PaymentsPage() {
   };
 
   const handleViewDetail = (paymentKey: string) => {
+    const tx = combinedTransactions.find((row) => row.paymentKey === paymentKey);
+    if (tx?.source === 'INNOPAY_VBANK') {
+      setVbankDetail(buildTransactionPaymentDetail(tx));
+      return;
+    }
     setDetailPaymentKey(paymentKey);
   };
 
@@ -260,6 +271,8 @@ export default function PaymentsPage() {
           onClose={() => setDetailPaymentKey(null)}
         />
       )}
+
+      <VbankDetailDialog detail={vbankDetail} onClose={() => setVbankDetail(null)} />
 
       {cancelPaymentKey && (
         <CancelPaymentModal

@@ -182,7 +182,17 @@ function ActionMenu({
   onCancel: (k: string) => void;
 }) {
   if (source === 'INNOPAY_VBANK') {
-    return <span className="text-xs text-slate-400">-</span>;
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-8 px-2 text-xs"
+        onClick={() => onViewDetail(paymentKey)}
+      >
+        상세
+      </Button>
+    );
   }
 
   return (
@@ -241,11 +251,8 @@ function MobileCard({
       </div>
       <button
         type="button"
-        onClick={() => {
-          if (tx.source !== 'INNOPAY_VBANK') onViewDetail(tx.paymentKey);
-        }}
-        disabled={tx.source === 'INNOPAY_VBANK'}
-        className="block w-full text-left disabled:cursor-default"
+        onClick={() => onViewDetail(tx.paymentKey)}
+        className="block w-full text-left"
       >
         <div className={cn('text-sm font-medium truncate', label.pending ? 'text-slate-400 italic' : 'text-slate-900')}>
           {label.primary}
@@ -307,11 +314,8 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
                       <td className="px-4 py-3">
                         <button
                           type="button"
-                          onClick={() => {
-                            if (tx.source !== 'INNOPAY_VBANK') onViewDetail(tx.paymentKey);
-                          }}
-                          disabled={tx.source === 'INNOPAY_VBANK'}
-                          className="text-left enabled:hover:underline enabled:focus:underline focus:outline-none disabled:cursor-default"
+                          onClick={() => onViewDetail(tx.paymentKey)}
+                          className="text-left hover:underline focus:underline focus:outline-none"
                           title={tx.source === 'INNOPAY_VBANK' ? '가상계좌 결제' : '상세 보기'}
                         >
                           <div className={cn('font-medium', label.pending ? 'text-slate-400 italic' : 'text-slate-900')}>

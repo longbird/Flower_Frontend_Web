@@ -61,8 +61,56 @@ describe('AdminVbankOperationsPage', () => {
       page: 1,
       pageSize: 20,
     });
-    (listVbankLogs as ReturnType<typeof vi.fn>).mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 30 });
-    (listVbankPayments as ReturnType<typeof vi.fn>).mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
+    (listVbankLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [{
+        occurredAt: '2026-04-30T01:10:00Z',
+        category: 'WEBHOOK',
+        severity: 'INFO',
+        eventType: 'DEPOSIT',
+        message: '가상계좌 입금 웹훅 수신',
+        paymentId: 77,
+        orderId: 123,
+        branchId: 9,
+        branchName: '서울지사',
+        accountNumber: '08205040497612',
+        amount: 55000,
+        status: '1',
+        sourceId: 'webhook:77',
+        metadata: { transSeq: 'T-1' },
+      }],
+      total: 1,
+      page: 1,
+      pageSize: 30,
+    });
+    (listVbankPayments as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [{
+        paymentId: 77,
+        orderId: 123,
+        orderNo: 'ORD-20260430-001',
+        ordererName: '홍길동',
+        receiverName: '김수령',
+        deliveryAt: '2026-05-01T02:30:00Z',
+        orderType: 'GENERAL',
+        branchId: 9,
+        branchName: '서울지사',
+        status: 'PENDING',
+        amountTotal: 55000,
+        paidAmount: null,
+        vbankAccountNumber: '08205040497612',
+        vbankBankCode: '004',
+        vbankBankName: '국민은행',
+        vbankHolderName: '달려라꽃배달',
+        vbankDueDate: '2026-05-01T15:00:00Z',
+        paidAt: null,
+        canceledAt: null,
+        createdAt: '2026-04-30T01:00:00Z',
+        innopayMode: 'TEST',
+        innopayTid: 'pool-77',
+      }],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    });
     (listVbankPool as ReturnType<typeof vi.fn>).mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 30 });
   });
 
@@ -95,5 +143,36 @@ describe('AdminVbankOperationsPage', () => {
     await waitFor(() => expect(listVbankIssues).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'RESOLVED' }),
     ));
+  });
+
+  it('opens a detail dialog from timeline rows', async () => {
+    render(
+      <Wrapper>
+        <AdminVbankPaymentsPage />
+      </Wrapper>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '타임라인' }));
+    await screen.findByText('DEPOSIT');
+    fireEvent.click(screen.getByRole('button', { name: /DEPOSIT/ }));
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('가상계좌 상세');
+    expect(screen.getByText('webhook:77')).toBeInTheDocument();
+    expect(screen.getByText(/T-1/)).toBeInTheDocument();
+  });
+
+  it('opens a detail dialog from payment rows', async () => {
+    render(
+      <Wrapper>
+        <AdminVbankPaymentsPage />
+      </Wrapper>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '결제' }));
+    fireEvent.click(await screen.findByRole('button', { name: /결제 77/ }));
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('가상계좌 상세');
+    expect(screen.getAllByText('ORD-20260430-001').length).toBeGreaterThan(0);
+    expect(screen.getByText('국민은행')).toBeInTheDocument();
   });
 });

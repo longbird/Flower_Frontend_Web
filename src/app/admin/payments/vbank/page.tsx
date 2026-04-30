@@ -8,6 +8,13 @@ import { VbankIssuesTable } from './vbank-issues-table';
 import { VbankLogsTable } from './vbank-logs-table';
 import { VbankPoolTable } from './vbank-pool-table';
 import type { AdminVbankPaymentsFilters } from '@/lib/payments/innopay-types';
+import {
+  buildIssueDetail,
+  buildLogDetail,
+  buildPaymentDetail,
+  VbankDetailDialog,
+  type VbankDetail,
+} from './vbank-detail-dialog';
 
 type TabKey = 'issues' | 'logs' | 'payments' | 'pool';
 
@@ -24,6 +31,7 @@ export default function AdminVbankPaymentsPage() {
     page: 1,
     pageSize: 20,
   });
+  const [detail, setDetail] = useState<VbankDetail | null>(null);
 
   return (
     <div className="space-y-4 p-6">
@@ -50,18 +58,21 @@ export default function AdminVbankPaymentsPage() {
         ))}
       </div>
 
-      {tab === 'issues' && <VbankIssuesTable />}
-      {tab === 'logs' && <VbankLogsTable />}
+      {tab === 'issues' && <VbankIssuesTable onSelect={(row) => setDetail(buildIssueDetail(row))} />}
+      {tab === 'logs' && <VbankLogsTable onSelect={(row) => setDetail(buildLogDetail(row))} />}
       {tab === 'payments' && (
         <div className="space-y-4">
           <VbankPaymentsFilters value={filters} onChange={setFilters} />
           <VbankPaymentsTable
             filters={filters}
             onPageChange={(page) => setFilters((f) => ({ ...f, page }))}
+            onSelect={(row) => setDetail(buildPaymentDetail(row))}
           />
         </div>
       )}
       {tab === 'pool' && <VbankPoolTable />}
+
+      <VbankDetailDialog detail={detail} onClose={() => setDetail(null)} />
     </div>
   );
 }

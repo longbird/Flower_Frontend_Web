@@ -5,11 +5,13 @@ import { listVbankPayments } from '@/lib/api/admin-payments-vbank';
 import { VbankStatusBadge } from './vbank-status-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import type { AdminVbankPaymentRow } from '@/lib/payments/vbank-payment-types';
 import type { AdminVbankPaymentsFilters } from '@/lib/payments/innopay-types';
 
 interface Props {
   filters: AdminVbankPaymentsFilters;
   onPageChange: (page: number) => void;
+  onSelect?: (row: AdminVbankPaymentRow) => void;
 }
 
 function fmtKRW(v: number | null): string {
@@ -22,7 +24,7 @@ function fmtDateTime(iso: string | null): string {
   return new Date(iso).toLocaleString('ko-KR');
 }
 
-export function VbankPaymentsTable({ filters, onPageChange }: Props) {
+export function VbankPaymentsTable({ filters, onPageChange, onSelect }: Props) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin-vbank-payments', filters],
     queryFn: () => listVbankPayments(filters),
@@ -77,7 +79,16 @@ export function VbankPaymentsTable({ filters, onPageChange }: Props) {
             )}
             {items.map((row) => (
               <tr key={row.paymentId} className="hover:bg-slate-50">
-                <td className="px-3 py-2 font-mono">{row.paymentId}</td>
+                <td className="px-3 py-2 font-mono">
+                  <button
+                    type="button"
+                    onClick={() => onSelect?.(row)}
+                    className="hover:underline focus:underline focus:outline-none"
+                    aria-label={`결제 ${row.paymentId} 상세`}
+                  >
+                    {row.paymentId}
+                  </button>
+                </td>
                 <td className="px-3 py-2 font-mono">{row.orderId}</td>
                 <td className="px-3 py-2">
                   {row.branchName ?? <span className="text-slate-400">{row.branchId ?? '-'}</span>}

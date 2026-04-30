@@ -25,7 +25,7 @@ function fmtDateTime(iso: string | null): string {
   return new Date(iso).toLocaleString('ko-KR');
 }
 
-function IssueRow({ row }: { row: AdminVbankIssueRow }) {
+function IssueRow({ row, onSelect }: { row: AdminVbankIssueRow; onSelect?: (row: AdminVbankIssueRow) => void }) {
   const qc = useQueryClient();
   const onSettled = () => {
     qc.invalidateQueries({ queryKey: ['admin-vbank-issues'] });
@@ -42,7 +42,13 @@ function IssueRow({ row }: { row: AdminVbankIssueRow }) {
         </span>
       </td>
       <td className="px-3 py-2">
-        <div className="font-medium text-slate-900">{row.title}</div>
+        <button
+          type="button"
+          onClick={() => onSelect?.(row)}
+          className="text-left font-medium text-slate-900 hover:underline focus:underline focus:outline-none"
+        >
+          {row.title}
+        </button>
         <div className="text-xs text-slate-500">{row.message}</div>
       </td>
       <td className="px-3 py-2 text-xs">{row.branchName ?? row.branchId ?? '-'}</td>
@@ -60,7 +66,7 @@ function IssueRow({ row }: { row: AdminVbankIssueRow }) {
   );
 }
 
-export function VbankIssuesTable() {
+export function VbankIssuesTable({ onSelect }: { onSelect?: (row: AdminVbankIssueRow) => void }) {
   const [status, setStatus] = useState<VbankIssueStatus | 'ALL'>('OPEN');
   const { data, isLoading, isError } = useQuery({
     queryKey: ['admin-vbank-issues', { status }],
@@ -108,7 +114,7 @@ export function VbankIssuesTable() {
             {items.length === 0 && (
               <tr><td colSpan={8} className="px-3 py-8 text-center text-slate-400">조회된 문제가 없습니다.</td></tr>
             )}
-            {items.map((row) => <IssueRow key={row.id} row={row} />)}
+            {items.map((row) => <IssueRow key={row.id} row={row} onSelect={onSelect} />)}
           </tbody>
         </table>
       </div>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { listVbankLogs } from '@/lib/api/admin-payments-vbank';
 import { Input } from '@/components/ui/input';
-import type { VbankLogCategory } from '@/lib/payments/vbank-payment-types';
+import type { AdminVbankLogRow, VbankLogCategory } from '@/lib/payments/vbank-payment-types';
 
 const CATEGORIES: Array<VbankLogCategory | ''> = ['', 'WEBHOOK', 'ALERT', 'ACCOUNT', 'PAYMENT', 'WALLET'];
 
@@ -13,7 +13,7 @@ function fmtDateTime(iso: string | null): string {
   return new Date(iso).toLocaleString('ko-KR');
 }
 
-export function VbankLogsTable() {
+export function VbankLogsTable({ onSelect }: { onSelect?: (row: AdminVbankLogRow) => void }) {
   const [category, setCategory] = useState<VbankLogCategory | ''>('');
   const [accountNumber, setAccountNumber] = useState('');
   const { data, isLoading, isError } = useQuery({
@@ -70,8 +70,14 @@ export function VbankLogsTable() {
                 <td className="px-3 py-2">{row.category}</td>
                 <td className="px-3 py-2">{row.severity}</td>
                 <td className="px-3 py-2">
-                  <div className="font-medium">{row.eventType}</div>
-                  <div className="text-xs text-slate-500">{row.message}</div>
+                  <button
+                    type="button"
+                    onClick={() => onSelect?.(row)}
+                    className="text-left hover:underline focus:underline focus:outline-none"
+                  >
+                    <div className="font-medium">{row.eventType}</div>
+                    <div className="text-xs text-slate-500">{row.message}</div>
+                  </button>
                 </td>
                 <td className="px-3 py-2 text-xs">{row.branchName ?? row.branchId ?? '-'}</td>
                 <td className="px-3 py-2 font-mono text-xs">{row.accountNumber ?? '-'}</td>
