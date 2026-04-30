@@ -55,12 +55,8 @@ const navEntries: NavEntry[] = [
     icon: <PaymentIcon />,
     color: 'text-violet-600',
     items: [
-      // 토스 결제
       { href: '/admin/payments', label: '결제 관리', icon: <PaymentIcon /> },
       { href: '/admin/payments/key-in', label: '수동 결제', icon: <PaymentIcon /> },
-      // 이노페이 가상계좌 (UI 배포, 백엔드는 보류 중)
-      { href: '/admin/payments/vbank', label: '가상계좌 결제', icon: <PaymentIcon /> },
-      { href: '/admin/innopay-credentials', label: '가상계좌 설정', icon: <PaymentIcon /> },
     ],
   },
   {
@@ -98,6 +94,7 @@ const navEntries: NavEntry[] = [
     items: [
       { href: '/admin/call-logs', label: '통화내역', icon: <CallIcon /> },
       { href: '/admin/audit', label: '감사로그', icon: <AuditIcon /> },
+      { href: '/admin/payments/vbank', label: '가상계좌 운영 로그', icon: <AuditIcon /> },
       { href: '/admin/sessions', label: '세션', icon: <SessionIcon /> },
       { href: '/admin/monitoring', label: '모니터링', icon: <MonitorIcon /> },
       { href: '/admin/backup-status', label: '백업현황', icon: <BackupIcon /> },
@@ -109,6 +106,7 @@ const navEntries: NavEntry[] = [
     color: 'text-slate-500',
     items: [
       { href: '/admin/cid-settings', label: 'CID설정', icon: <CidIcon /> },
+      { href: '/admin/innopay-credentials', label: '가상계좌 설정', icon: <PaymentIcon /> },
       { href: '/admin/announcements', label: '공지사항', icon: <AnnouncementIcon /> },
     ],
   },
@@ -116,7 +114,7 @@ const navEntries: NavEntry[] = [
 
 /**
  * navEntries 전체 중 pathname 과 가장 길게 일치하는 leaf href를 반환.
- * `/admin/payments/vbank` 일 때 `/admin/payments` 가 아닌 정확한 leaf 만 활성으로 처리.
+ * `/admin/payments/vbank` 처럼 다른 leaf href를 prefix로 갖는 경로도 가장 긴 leaf만 활성으로 처리.
  */
 function getActiveHref(pathname: string, allHrefs: string[]): string | null {
   const matching = allHrefs.filter(
@@ -253,7 +251,7 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
   const [collapsed, setCollapsed] = useState(false);
 
   // 모든 leaf href를 모아서 longest matching href를 활성으로 처리.
-  // /admin/payments/vbank 일 때 /admin/payments 가 활성되지 않도록.
+  // prefix가 겹치는 경로에서도 가장 긴 leaf만 활성으로 처리.
   const allHrefs = navEntries.flatMap((e) =>
     isGroup(e) ? e.items.map((i) => i.href) : [(e as NavItem).href],
   );
