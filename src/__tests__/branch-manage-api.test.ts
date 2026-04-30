@@ -42,6 +42,8 @@ import {
   fetchConsultRequests,
   updateConsultRequestStatus,
   fetchBranchProducts as fetchBranchProductsAdmin,
+  fetchBranchPayments,
+  fetchBranchVbankLogs,
   updateBranchProduct,
   bulkUpdateBranchSurcharge,
   fetchBranchSurcharges,
@@ -745,5 +747,53 @@ describe('branchApi 204 No Content handling', () => {
     const result = await updateBranchProduct(1, { isVisible: true });
 
     expect(result).toBeUndefined();
+  });
+});
+
+// ===========================================================================
+// branch payments and vbank logs
+// ===========================================================================
+describe('branch payment operations', () => {
+  it('should fetch branch payments with filters', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], total: 0, page: 2, size: 10 }),
+    });
+
+    const result = await fetchBranchPayments({
+      status: 'PAID',
+      method: 'CARD',
+      page: 2,
+      size: 10,
+    });
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toContain('/branch/payments?');
+    expect(calledUrl).toContain('status=PAID');
+    expect(calledUrl).toContain('method=CARD');
+    expect(calledUrl).toContain('page=2');
+    expect(calledUrl).toContain('size=10');
+    expect(result.total).toBe(0);
+  });
+
+  it('should fetch branch vbank logs with filters', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], total: 0, page: 1, size: 20 }),
+    });
+
+    await fetchBranchVbankLogs({
+      purpose: 'TOPUP',
+      status: 'ACTIVE',
+      page: 1,
+      size: 20,
+    });
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toContain('/branch/vbank-logs?');
+    expect(calledUrl).toContain('purpose=TOPUP');
+    expect(calledUrl).toContain('status=ACTIVE');
   });
 });

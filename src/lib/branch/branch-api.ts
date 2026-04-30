@@ -259,6 +259,59 @@ export interface MyBranchWalletTransaction {
   createdAt: string;
 }
 
+export interface BranchPaymentRow {
+  paymentId: number;
+  orderId: number | null;
+  provider: string;
+  method: string;
+  status: string;
+  amount: number | null;
+  paidAt: string | null;
+  createdAt: string | null;
+  pgOrderId: string | null;
+  pgPaymentKey: string | null;
+  vbankAccountNumber: string | null;
+  vbankBankName: string | null;
+  vbankHolderName: string | null;
+  vbankDueAt: string | null;
+  orderNo: string | null;
+  ordererName: string | null;
+  receiverName: string | null;
+  deliveryAt: string | null;
+  orderType: string | null;
+}
+
+export interface BranchVbankLogRow {
+  allocationId: number;
+  purpose: 'TOPUP' | 'CUSTOMER_ORDER' | string;
+  status: string;
+  accountNumber: string;
+  bankCode: string;
+  bankName: string | null;
+  expectedAmount: number | null;
+  paidAmount: number | null;
+  depositorName: string | null;
+  assignedAt: string | null;
+  dueAt: string | null;
+  paidAt: string | null;
+  releasedAt: string | null;
+  releaseReason: string | null;
+  paymentId: number | null;
+  orderId: number | null;
+  orderNo: string | null;
+  ordererName: string | null;
+  webhookEventId: number | null;
+  webhookProcessed: boolean | null;
+  webhookError: string | null;
+}
+
+export interface BranchPagedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+}
+
 export async function fetchMyBranchWallet() {
   return branchApi<{ summary: MyBranchWalletSummary; config: MyBranchWalletConfig }>('/branch/wallet');
 }
@@ -275,6 +328,40 @@ export async function fetchMyBranchWalletTransactions(params: {
   const qs = sp.toString();
   return branchApi<{ items: MyBranchWalletTransaction[]; total: number; page: number; size: number }>(
     `/branch/wallet/transactions${qs ? `?${qs}` : ''}`,
+  );
+}
+
+export async function fetchBranchPayments(params: {
+  status?: string;
+  method?: string;
+  page?: number;
+  size?: number;
+} = {}) {
+  const sp = new URLSearchParams();
+  if (params.status) sp.set('status', params.status);
+  if (params.method) sp.set('method', params.method);
+  if (params.page) sp.set('page', String(params.page));
+  if (params.size) sp.set('size', String(params.size));
+  const qs = sp.toString();
+  return branchApi<BranchPagedResult<BranchPaymentRow>>(
+    `/branch/payments${qs ? `?${qs}` : ''}`,
+  );
+}
+
+export async function fetchBranchVbankLogs(params: {
+  purpose?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+} = {}) {
+  const sp = new URLSearchParams();
+  if (params.purpose) sp.set('purpose', params.purpose);
+  if (params.status) sp.set('status', params.status);
+  if (params.page) sp.set('page', String(params.page));
+  if (params.size) sp.set('size', String(params.size));
+  const qs = sp.toString();
+  return branchApi<BranchPagedResult<BranchVbankLogRow>>(
+    `/branch/vbank-logs${qs ? `?${qs}` : ''}`,
   );
 }
 
