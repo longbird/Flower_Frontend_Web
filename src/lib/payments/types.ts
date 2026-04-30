@@ -89,7 +89,10 @@ export interface TossPayment {
   currency: string
 }
 
-/** Toss 거래 내역 */
+/**
+ * Toss 거래 내역 (`/v1/transactions` 응답).
+ * Toss API 실제 필드명에 맞춤 — `createdAt`이 아니라 `transactionAt`.
+ */
 export interface TossTransaction {
   mId: string
   transactionKey: string
@@ -97,12 +100,12 @@ export interface TossTransaction {
   orderId: string
   method: string
   customerKey: string | null
-  amount: number
+  useEscrow: boolean
+  receiptUrl: string | null
   status: PaymentStatus
-  createdAt: string
-  approvedAt: string | null
-  statusChangedAt: string
-  receipt: { url: string } | null
+  transactionAt: string
+  currency: string
+  amount: number
 }
 
 /** 결제창 승인 요청 */

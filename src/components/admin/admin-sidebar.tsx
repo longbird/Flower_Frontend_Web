@@ -55,10 +55,12 @@ const navEntries: NavEntry[] = [
     icon: <PaymentIcon />,
     color: 'text-violet-600',
     items: [
+      // 토스 결제
       { href: '/admin/payments', label: '결제 관리', icon: <PaymentIcon /> },
       { href: '/admin/payments/key-in', label: '수동 결제', icon: <PaymentIcon /> },
-      { href: '/admin/innopay-credentials', label: '이노페이 설정', icon: <PaymentIcon /> },
+      // 이노페이 가상계좌 (UI 배포, 백엔드는 보류 중)
       { href: '/admin/payments/vbank', label: '가상계좌 결제', icon: <PaymentIcon /> },
+      { href: '/admin/innopay-credentials', label: '가상계좌 설정', icon: <PaymentIcon /> },
     ],
   },
   {
@@ -112,9 +114,21 @@ const navEntries: NavEntry[] = [
   },
 ];
 
+/**
+ * navEntries 전체 중 pathname 과 가장 길게 일치하는 leaf href를 반환.
+ * `/admin/payments/vbank` 일 때 `/admin/payments` 가 아닌 정확한 leaf 만 활성으로 처리.
+ */
+function getActiveHref(pathname: string, allHrefs: string[]): string | null {
+  const matching = allHrefs.filter(
+    (h) => pathname === h || pathname.startsWith(h + '/'),
+  );
+  if (matching.length === 0) return null;
+  return matching.sort((a, b) => b.length - a.length)[0];
+}
+
 /* ── 축소 모드: 아이콘만 표시하는 단일 항목 ── */
-function CollapsedNavItem({ entry, pathname, onNavClick }: { entry: NavItem; pathname: string; onNavClick: () => void }) {
-  const isActive = pathname.startsWith(entry.href);
+function CollapsedNavItem({ entry, activeHref, onNavClick }: { entry: NavItem; activeHref: string | null; onNavClick: () => void }) {
+  const isActive = activeHref === entry.href;
   return (
     <Link
       href={entry.href}
@@ -133,8 +147,8 @@ function CollapsedNavItem({ entry, pathname, onNavClick }: { entry: NavItem; pat
 }
 
 /* ── 축소 모드: 그룹 → 호버 시 하위 메뉴 팝업 ── */
-function CollapsedNavGroup({ group, pathname, onNavClick }: { group: NavGroup; pathname: string; onNavClick: () => void }) {
-  const hasActiveChild = group.items.some((item) => pathname.startsWith(item.href));
+function CollapsedNavGroup({ group, activeHref, onNavClick }: { group: NavGroup; activeHref: string | null; onNavClick: () => void }) {
+  const hasActiveChild = group.items.some((item) => activeHref === item.href);
   const [hover, setHover] = useState(false);
 
   return (
@@ -160,7 +174,7 @@ function CollapsedNavGroup({ group, pathname, onNavClick }: { group: NavGroup; p
         <div className="absolute left-full top-0 ml-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[140px]">
           <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase">{group.label}</div>
           {group.items.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const isActive = activeHref === item.href;
             return (
               <Link
                 key={item.href}
@@ -185,8 +199,8 @@ function CollapsedNavGroup({ group, pathname, onNavClick }: { group: NavGroup; p
 }
 
 /* ── 확장 모드: 그룹 (기존) ── */
-function NavGroupItem({ group, pathname, onNavClick }: { group: NavGroup; pathname: string; onNavClick: () => void }) {
-  const hasActiveChild = group.items.some((item) => pathname.startsWith(item.href));
+function NavGroupItem({ group, activeHref, onNavClick }: { group: NavGroup; activeHref: string | null; onNavClick: () => void }) {
+  const hasActiveChild = group.items.some((item) => activeHref === item.href);
   const [open, setOpen] = useState(hasActiveChild);
 
   return (
@@ -205,7 +219,7 @@ function NavGroupItem({ group, pathname, onNavClick }: { group: NavGroup; pathna
       {open && (
         <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-200 pl-2">
           {group.items.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const isActive = activeHref === item.href;
             return (
               <Link
                 key={item.href}
@@ -237,6 +251,13 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
   const router = useRouter();
   const { user, refreshToken, logout } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
+
+  // 모든 leaf href를 모아서 longest matching href를 활성으로 처리.
+  // /admin/payments/vbank 일 때 /admin/payments 가 활성되지 않도록.
+  const allHrefs = navEntries.flatMap((e) =>
+    isGroup(e) ? e.items.map((i) => i.href) : [(e as NavItem).href],
+  );
+  const activeHref = getActiveHref(pathname, allHrefs);
 
   // localStorage에서 축소 상태 복원
   useEffect(() => {
@@ -318,16 +339,16 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
             if (collapsed) {
               // 축소 모드
               if (isGroup(entry)) {
-                return <CollapsedNavGroup key={i} group={entry} pathname={pathname} onNavClick={handleNavClick} />;
+                return <CollapsedNavGroup key={i} group={entry} activeHref={activeHref} onNavClick={handleNavClick} />;
               }
-              return <CollapsedNavItem key={(entry as NavItem).href} entry={entry as NavItem} pathname={pathname} onNavClick={handleNavClick} />;
+              return <CollapsedNavItem key={(entry as NavItem).href} entry={entry as NavItem} activeHref={activeHref} onNavClick={handleNavClick} />;
             }
             // 확장 모드
             if (isGroup(entry)) {
-              return <NavGroupItem key={i} group={entry} pathname={pathname} onNavClick={handleNavClick} />;
+              return <NavGroupItem key={i} group={entry} activeHref={activeHref} onNavClick={handleNavClick} />;
             }
             const item = entry as NavItem;
-            const isActive = pathname.startsWith(item.href);
+            const isActive = activeHref === item.href;
             return (
               <Link
                 key={item.href}

@@ -95,9 +95,13 @@ export default function CardInputForm({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value.replace(/\D/g, '').slice(0, 16)
       e.target.value = formatCardNumber(raw)
-      setValue('cardNumber', raw, { shouldValidate: raw.length >= 15 })
+      // Amex(34/37) 만 15자리, 그 외 (Visa/Mastercard/JCB/국내카드) 는 16자리.
+      // 15자리 시점에 점프하면 16자리 카드의 마지막 글자가 다음 필드로 흘러들어감.
+      const isAmex = /^3[47]/.test(raw)
+      const fullLength = isAmex ? 15 : 16
+      setValue('cardNumber', raw, { shouldValidate: raw.length >= fullLength })
 
-      if (raw.length >= 15) {
+      if (raw.length >= fullLength) {
         expirationMonthRef.current?.focus()
       }
     },

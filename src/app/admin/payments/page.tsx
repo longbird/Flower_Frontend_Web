@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Loader2, Info } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth/store';
+import { api } from '@/lib/api/client';
 import type { TossTransaction, PaymentStatus } from '@/lib/payments/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PaymentTable } from './components/PaymentTable';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { PaymentTable, type OrderInfoMap } from './components/PaymentTable';
 import PaymentDetailModal from './components/PaymentDetailModal';
 import CancelPaymentModal from './components/CancelPaymentModal';
 
@@ -18,14 +21,9 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
 ];
 
 function getDefaultDateRange(): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 7);
-
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
+  // 한국 시간 기준 당일 (UTC 변환 시 새벽 시간 어긋남 방지).
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  return { start: today, end: today };
 }
 
 export default function PaymentsPage() {
@@ -41,30 +39,79 @@ export default function PaymentsPage() {
   const [detailPaymentKey, setDetailPaymentKey] = useState<string | null>(null);
   const [cancelPaymentKey, setCancelPaymentKey] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['admin-payments', queryStartDate, queryEndDate, queryStatus],
+  // 1) Toss 거래 목록 — 페이지 진입 시 즉시 호출
+  const txsQuery = useQuery({
+    queryKey: ['admin-payments-toss', queryStartDate, queryEndDate, queryStatus],
     queryFn: async () => {
       const token = useAuthStore.getState().accessToken;
       const params = new URLSearchParams();
       params.set('startDate', queryStartDate);
       params.set('endDate', queryEndDate);
-      if (queryStatus) {
-        params.set('status', queryStatus);
-      }
-
+      if (queryStatus) params.set('status', queryStatus);
       const res = await fetch(`/api/payments/list?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) {
-        throw new Error('결제 내역 조회 실패');
-      }
-
-      return res.json() as Promise<{ ok: boolean; data: TossTransaction[] }>;
+      if (!res.ok) throw new Error('결제 내역 조회 실패');
+      const json = (await res.json()) as { ok: boolean; data: TossTransaction[] };
+      return json.data ?? [];
     },
+    staleTime: 30_000,           // 30초 동안 cache 활용 — 다른 페이지 갔다 와도 즉시
+    placeholderData: (prev) => prev, // 필터 변경 시 빈 화면 안 뜨게 이전 결과 유지
   });
 
-  const transactions = data?.data ?? [];
+  const transactions = txsQuery.data ?? [];
+  const isLoading = txsQuery.isLoading;
+  const isFetching = txsQuery.isFetching; // background refetch (재진입/재검색) 표시용
+
+  // 2) Enrichment — Toss 결과 도착 후 백그라운드로 시작. UI 는 Toss 결과만으로도 일단 렌더.
+  const orderIds = transactions.map((t) => t.orderId).join(',');
+  const enrichQuery = useQuery({
+    queryKey: ['admin-payments-orderinfo', orderIds],
+    enabled: orderIds.length > 0,
+    queryFn: async () => {
+      try {
+        return await api<OrderInfoMap>(
+          `/admin/payments/order-info?orderIds=${encodeURIComponent(orderIds)}`,
+          { method: 'GET' },
+        );
+      } catch {
+        return {} as OrderInfoMap; // enrichment 실패 시 빈 map (UI fallback)
+      }
+    },
+    staleTime: 60_000,
+  });
+  const orderInfo: OrderInfoMap = enrichQuery.data ?? {};
+
+  // 3) Toss orderName enrichment — DB 에 없는 결제 (충전금/구독/외부) 의 사람이 읽는 라벨.
+  const paymentKeys = transactions.map((t) => t.paymentKey).join(',');
+  const orderNamesQuery = useQuery({
+    queryKey: ['admin-payments-ordernames', paymentKeys],
+    enabled: paymentKeys.length > 0,
+    queryFn: async () => {
+      const token = useAuthStore.getState().accessToken;
+      const res = await fetch(
+        `/api/payments/order-names?paymentKeys=${encodeURIComponent(paymentKeys)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) return {} as Record<string, string>;
+      const json = (await res.json()) as { ok: boolean; data: Record<string, string> };
+      return json.data ?? {};
+    },
+    staleTime: 5 * 60_000, // orderName 은 한 번 받으면 안 변함
+  });
+  const orderNames: Record<string, string> = orderNamesQuery.data ?? {};
+
+  // 어느 한 enrichment 라도 첫 결과가 아직 없으면 행마다 placeholder 표시.
+  const isEnriching =
+    transactions.length > 0 &&
+    ((enrichQuery.isFetching && !enrichQuery.data) ||
+      (orderNamesQuery.isFetching && !orderNamesQuery.data));
+
+  const refetch = () => {
+    txsQuery.refetch();
+    enrichQuery.refetch();
+    orderNamesQuery.refetch();
+  };
 
   const filteredTransactions = statusFilter
     ? transactions.filter((tx) => tx.status === statusFilter)
@@ -87,8 +134,30 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">결제 관리</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900">결제 관리</h1>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                  aria-label="조회 안내"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs text-xs leading-relaxed">
+                결제 내역은 토스페이먼츠 외부 API 에서 실시간으로 조회합니다.
+                <br />
+                응답 시간이 외부 상황에 따라 길어질 수 있으며, 기간을 길게 잡을수록 더 오래 걸립니다.
+                <br />
+                조회 후 30초 안에는 캐시로 즉시 응답합니다.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -121,15 +190,37 @@ export default function PaymentsPage() {
             ))}
           </select>
 
-          <Button type="submit" size="sm" className="bg-[#5B7A3D] hover:bg-[#4A6830] shrink-0">
-            검색
+          <Button
+            type="submit"
+            size="sm"
+            disabled={isFetching}
+            className="bg-[#5B7A3D] hover:bg-[#4A6830] shrink-0"
+          >
+            {isFetching ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                조회 중...
+              </>
+            ) : (
+              '검색'
+            )}
           </Button>
+
+          {isFetching && !isLoading && (
+            <span className="ml-auto text-xs text-slate-500 flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              결제 내역 갱신 중
+            </span>
+          )}
         </form>
       </div>
 
       <PaymentTable
         transactions={filteredTransactions}
+        orderInfo={orderInfo}
+        orderNames={orderNames}
         isLoading={isLoading}
+        isEnriching={isEnriching}
         onViewDetail={handleViewDetail}
         onCancel={handleCancel}
       />
