@@ -52,13 +52,17 @@ function methodLabel(row: BranchPaymentRow) {
 export default function BranchPaymentsPage() {
   const [status, setStatus] = useState('');
   const [method, setMethod] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
 
   const paymentsQ = useQuery({
-    queryKey: ['branch-payments', status, method, page],
+    queryKey: ['branch-payments', status, method, dateFrom, dateTo, page],
     queryFn: () => fetchBranchPayments({
       status: status || undefined,
       method: method || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
       page,
       size: 20,
     }),
@@ -92,6 +96,17 @@ export default function BranchPaymentsPage() {
             ['CARD', '카드'],
             ['VBANK', '가상계좌'],
           ]} />
+          <DateFilter label="시작일" value={dateFrom} onChange={(v) => { setDateFrom(v); setPage(1); }} />
+          <DateFilter label="종료일" value={dateTo} onChange={(v) => { setDateTo(v); setPage(1); }} />
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
+              className="h-9 rounded-lg border border-[var(--branch-rose-light)] bg-white px-3 text-sm text-[var(--branch-text)]"
+            >
+              기간 초기화
+            </button>
+          )}
         </div>
       </div>
 
@@ -186,6 +201,24 @@ function SelectFilter({ label, value, onChange, options }: {
       >
         {options.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
       </select>
+    </label>
+  );
+}
+
+function DateFilter({ label, value, onChange }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-xs text-[var(--branch-text-light)]">
+      {label}
+      <input
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 rounded-lg border border-[var(--branch-rose-light)] bg-white px-3 text-sm text-[var(--branch-text)]"
+      />
     </label>
   );
 }

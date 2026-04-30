@@ -334,12 +334,16 @@ export async function fetchMyBranchWalletTransactions(params: {
 export async function fetchBranchPayments(params: {
   status?: string;
   method?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   size?: number;
 } = {}) {
   const sp = new URLSearchParams();
   if (params.status) sp.set('status', params.status);
   if (params.method) sp.set('method', params.method);
+  if (params.dateFrom) sp.set('dateFrom', params.dateFrom);
+  if (params.dateTo) sp.set('dateTo', params.dateTo);
   if (params.page) sp.set('page', String(params.page));
   if (params.size) sp.set('size', String(params.size));
   const qs = sp.toString();
@@ -351,12 +355,16 @@ export async function fetchBranchPayments(params: {
 export async function fetchBranchVbankLogs(params: {
   purpose?: string;
   status?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   size?: number;
 } = {}) {
   const sp = new URLSearchParams();
   if (params.purpose) sp.set('purpose', params.purpose);
   if (params.status) sp.set('status', params.status);
+  if (params.dateFrom) sp.set('dateFrom', params.dateFrom);
+  if (params.dateTo) sp.set('dateTo', params.dateTo);
   if (params.page) sp.set('page', String(params.page));
   if (params.size) sp.set('size', String(params.size));
   const qs = sp.toString();

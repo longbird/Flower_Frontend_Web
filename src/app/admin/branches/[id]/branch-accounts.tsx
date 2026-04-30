@@ -74,10 +74,19 @@ export default function BranchAccounts({ branchId }: { branchId: string }) {
         try {
           const single = await api<Partial<BranchAccount>>(`/admin/branches/${branchId}/account`);
           if (single && single.status !== 'PENDING' && single.id) {
-            return [{
-              ...single,
+            const account: BranchAccount = {
+              id: single.id,
+              username: single.username ?? '',
+              organizationId: single.organizationId ?? Number(branchId),
+              managerName: single.managerName,
+              managerPhone: single.managerPhone,
+              status: single.status ?? 'ACTIVE',
+              failedLoginAttempts: single.failedLoginAttempts,
+              lastLoginAt: single.lastLoginAt,
+              createdAt: single.createdAt ?? '',
               permissions: single.permissions || [],
-            }];
+            };
+            return [account];
           }
         } catch { /* empty */ }
         return [];
