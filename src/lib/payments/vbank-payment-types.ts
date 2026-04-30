@@ -34,6 +34,11 @@ export interface PollVbankStatus {
 export interface AdminVbankPaymentRow {
   paymentId: number;
   orderId: number;
+  orderNo: string | null;
+  ordererName: string | null;
+  receiverName: string | null;
+  deliveryAt: string | null;
+  orderType: string | null;
   branchId: number | null;
   branchName: string | null;
   status: VbankPaymentStatus;

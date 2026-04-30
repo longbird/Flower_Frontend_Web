@@ -5,18 +5,24 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, Info } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth/store';
 import { api } from '@/lib/api/client';
-import type { TossTransaction, PaymentStatus } from '@/lib/payments/types';
+import type { TossTransaction } from '@/lib/payments/types';
+import { listVbankPayments } from '@/lib/api/admin-payments-vbank';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { PaymentTable, type OrderInfoMap } from './components/PaymentTable';
 import PaymentDetailModal from './components/PaymentDetailModal';
 import CancelPaymentModal from './components/CancelPaymentModal';
+import {
+  combinePaymentRows,
+  mapPaymentStatusToVbankStatuses,
+} from './payments-list';
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: '전체' },
   { value: 'DONE', label: '완료' },
   { value: 'WAITING_FOR_DEPOSIT', label: '입금대기' },
+  { value: 'IN_PROGRESS', label: '확인필요' },
   { value: 'CANCELED', label: '취소' },
 ];
 
@@ -24,6 +30,14 @@ function getDefaultDateRange(): { start: string; end: string } {
   // 한국 시간 기준 당일 (UTC 변환 시 새벽 시간 어긋남 방지).
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   return { start: today, end: today };
+}
+
+function dayStartIso(date: string): string {
+  return new Date(`${date}T00:00:00+09:00`).toISOString();
+}
+
+function dayEndIso(date: string): string {
+  return new Date(`${date}T23:59:59.999+09:00`).toISOString();
 }
 
 export default function PaymentsPage() {
@@ -60,8 +74,22 @@ export default function PaymentsPage() {
   });
 
   const transactions = txsQuery.data ?? [];
-  const isLoading = txsQuery.isLoading;
-  const isFetching = txsQuery.isFetching; // background refetch (재진입/재검색) 표시용
+  const vbankQuery = useQuery({
+    queryKey: ['admin-payments-vbank-integrated', queryStartDate, queryEndDate, queryStatus],
+    queryFn: async () => listVbankPayments({
+      from: dayStartIso(queryStartDate),
+      to: dayEndIso(queryEndDate),
+      status: mapPaymentStatusToVbankStatuses(queryStatus),
+      page: 1,
+      pageSize: 100,
+    }),
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
+  });
+  const vbankRows = vbankQuery.data?.items ?? [];
+  const combinedTransactions = combinePaymentRows(transactions, vbankRows);
+  const isLoading = txsQuery.isLoading || vbankQuery.isLoading;
+  const isFetching = txsQuery.isFetching || vbankQuery.isFetching; // background refetch (재진입/재검색) 표시용
 
   // 2) Enrichment — Toss 결과 도착 후 백그라운드로 시작. UI 는 Toss 결과만으로도 일단 렌더.
   const orderIds = transactions.map((t) => t.orderId).join(',');
@@ -109,13 +137,14 @@ export default function PaymentsPage() {
 
   const refetch = () => {
     txsQuery.refetch();
+    vbankQuery.refetch();
     enrichQuery.refetch();
     orderNamesQuery.refetch();
   };
 
   const filteredTransactions = statusFilter
-    ? transactions.filter((tx) => tx.status === statusFilter)
-    : transactions;
+    ? combinedTransactions.filter((tx) => tx.status === statusFilter)
+    : combinedTransactions;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,9 +178,9 @@ export default function PaymentsPage() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-xs text-xs leading-relaxed">
-                결제 내역은 토스페이먼츠 외부 API 에서 실시간으로 조회합니다.
+                결제 내역은 카드결제와 가상계좌 결제를 통합 조회합니다.
                 <br />
-                응답 시간이 외부 상황에 따라 길어질 수 있으며, 기간을 길게 잡을수록 더 오래 걸립니다.
+                카드결제는 토스페이먼츠 외부 API, 가상계좌는 내부 결제 DB에서 조회합니다.
                 <br />
                 조회 후 30초 안에는 캐시로 즉시 응답합니다.
               </TooltipContent>

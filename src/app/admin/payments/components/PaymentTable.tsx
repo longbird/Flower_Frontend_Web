@@ -23,8 +23,23 @@ export interface OrderInfo {
 }
 export type OrderInfoMap = Record<string, OrderInfo | undefined>;
 
+export interface AdminPaymentTransaction extends TossTransaction {
+  source?: 'TOSS' | 'INNOPAY_VBANK';
+  orderInfo?: OrderInfo;
+  vbank?: {
+    paymentId: number;
+    accountNumber: string;
+    bankCode: string;
+    bankName: string | null;
+    holderName: string;
+    dueDate: string;
+    paidAmount: number | null;
+    innopayMode: 'TEST' | 'REAL';
+  };
+}
+
 interface PaymentTableProps {
-  transactions: TossTransaction[];
+  transactions: AdminPaymentTransaction[];
   orderInfo?: OrderInfoMap;
   orderNames?: Record<string, string>;
   isLoading: boolean;
@@ -156,14 +171,20 @@ function EmptyState() {
 function ActionMenu({
   paymentKey,
   status,
+  source,
   onViewDetail,
   onCancel,
 }: {
   paymentKey: string;
   status: string;
+  source?: 'TOSS' | 'INNOPAY_VBANK';
   onViewDetail: (k: string) => void;
   onCancel: (k: string) => void;
 }) {
+  if (source === 'INNOPAY_VBANK') {
+    return <span className="text-xs text-slate-400">-</span>;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -196,7 +217,7 @@ function MobileCard({
   onViewDetail,
   onCancel,
 }: {
-  tx: TossTransaction;
+  tx: AdminPaymentTransaction;
   info: OrderInfo | undefined;
   orderName: string | undefined;
   enriching: boolean;
@@ -213,14 +234,18 @@ function MobileCard({
         <ActionMenu
           paymentKey={tx.paymentKey}
           status={tx.status}
+          source={tx.source}
           onViewDetail={onViewDetail}
           onCancel={onCancel}
         />
       </div>
       <button
         type="button"
-        onClick={() => onViewDetail(tx.paymentKey)}
-        className="block w-full text-left"
+        onClick={() => {
+          if (tx.source !== 'INNOPAY_VBANK') onViewDetail(tx.paymentKey);
+        }}
+        disabled={tx.source === 'INNOPAY_VBANK'}
+        className="block w-full text-left disabled:cursor-default"
       >
         <div className={cn('text-sm font-medium truncate', label.pending ? 'text-slate-400 italic' : 'text-slate-900')}>
           {label.primary}
@@ -233,6 +258,11 @@ function MobileCard({
         <span className="text-lg font-semibold text-slate-900">{formatAmount(tx.amount)}</span>
         <span className="text-xs text-slate-500">{tx.method || '-'}</span>
       </div>
+      {tx.vbank && (
+        <div className="text-xs text-slate-500">
+          {tx.vbank.bankName ?? tx.vbank.bankCode} {tx.vbank.accountNumber}
+        </div>
+      )}
       <div className="text-xs text-slate-400">{formatDate(tx.transactionAt)}</div>
     </div>
   );
@@ -262,7 +292,7 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
               </thead>
               <tbody>
                 {transactions.map((tx) => {
-                  const info = orderInfo[tx.orderId];
+                  const info = tx.orderInfo ?? orderInfo[tx.orderId];
                   const label = orderLabel(tx, info, orderNames[tx.paymentKey], isEnriching);
                   return (
                     <tr
@@ -277,9 +307,12 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
                       <td className="px-4 py-3">
                         <button
                           type="button"
-                          onClick={() => onViewDetail(tx.paymentKey)}
-                          className="text-left hover:underline focus:underline focus:outline-none"
-                          title="상세 보기"
+                          onClick={() => {
+                            if (tx.source !== 'INNOPAY_VBANK') onViewDetail(tx.paymentKey);
+                          }}
+                          disabled={tx.source === 'INNOPAY_VBANK'}
+                          className="text-left enabled:hover:underline enabled:focus:underline focus:outline-none disabled:cursor-default"
+                          title={tx.source === 'INNOPAY_VBANK' ? '가상계좌 결제' : '상세 보기'}
                         >
                           <div className={cn('font-medium', label.pending ? 'text-slate-400 italic' : 'text-slate-900')}>
                             {label.primary}
@@ -293,7 +326,12 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
                         {formatAmount(tx.amount)}
                       </td>
                       <td className="px-4 py-3 text-slate-600">
-                        {tx.method || '-'}
+                        <div>{tx.method || '-'}</div>
+                        {tx.vbank && (
+                          <div className="mt-0.5 font-mono text-[11px] text-slate-400">
+                            {tx.vbank.accountNumber}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-slate-500 text-xs">
                         {formatDate(tx.transactionAt)}
@@ -302,6 +340,7 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
                         <ActionMenu
                           paymentKey={tx.paymentKey}
                           status={tx.status}
+                          source={tx.source}
                           onViewDetail={onViewDetail}
                           onCancel={onCancel}
                         />
@@ -329,7 +368,7 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
               <MobileCard
                 key={tx.transactionKey}
                 tx={tx}
-                info={orderInfo[tx.orderId]}
+                info={tx.orderInfo ?? orderInfo[tx.orderId]}
                 orderName={orderNames[tx.paymentKey]}
                 enriching={isEnriching}
                 onViewDetail={onViewDetail}
