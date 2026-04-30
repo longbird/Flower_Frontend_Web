@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AdminVbankPaymentsPage from '@/app/admin/payments/vbank/page';
 
@@ -80,5 +80,20 @@ describe('AdminVbankOperationsPage', () => {
     expect(screen.getByText('계좌풀')).toBeInTheDocument();
     expect(await screen.findByText('가상계좌 웹훅 MID 불일치')).toBeInTheDocument();
     await waitFor(() => expect(getVbankOverview).toHaveBeenCalled());
+  });
+
+  it('can query acknowledged and resolved issues after they leave the open list', async () => {
+    render(
+      <Wrapper>
+        <AdminVbankPaymentsPage />
+      </Wrapper>,
+    );
+
+    await screen.findByText('가상계좌 웹훅 MID 불일치');
+    fireEvent.click(screen.getByRole('button', { name: '해결됨' }));
+
+    await waitFor(() => expect(listVbankIssues).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'RESOLVED' }),
+    ));
   });
 });
