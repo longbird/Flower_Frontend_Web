@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { listVbankPayments } from '@/lib/api/admin-payments-vbank';
+import {
+  ackVbankIssue,
+  getVbankOverview,
+  listVbankIssues,
+  listVbankLogs,
+  listVbankPayments,
+  listVbankPool,
+  resolveVbankIssue,
+} from '@/lib/api/admin-payments-vbank';
 import * as client from '@/lib/api/client';
 
 describe('listVbankPayments', () => {
@@ -46,5 +54,46 @@ describe('listVbankPayments', () => {
     await listVbankPayments();
     const opts = apiSpy.mock.calls[0][1] as any;
     expect(opts?.method).toBe('GET');
+  });
+
+  it('gets vbank overview', async () => {
+    await getVbankOverview();
+    expect(apiSpy.mock.calls[0][0]).toBe('/admin/payments/vbank/overview');
+    expect((apiSpy.mock.calls[0][1] as any)?.method).toBe('GET');
+  });
+
+  it('serializes issue filters', async () => {
+    await listVbankIssues({ severity: 'CRITICAL', status: 'OPEN', page: 2 });
+    const url = apiSpy.mock.calls[0][0] as string;
+    expect(url).toContain('/admin/payments/vbank/issues?');
+    expect(url).toContain('severity=CRITICAL');
+    expect(url).toContain('status=OPEN');
+    expect(url).toContain('page=2');
+  });
+
+  it('serializes log filters', async () => {
+    await listVbankLogs({ category: 'WEBHOOK', paymentId: 3 });
+    const url = apiSpy.mock.calls[0][0] as string;
+    expect(url).toContain('/admin/payments/vbank/logs?');
+    expect(url).toContain('category=WEBHOOK');
+    expect(url).toContain('paymentId=3');
+  });
+
+  it('serializes pool filters', async () => {
+    await listVbankPool({ status: 'IN_USE', accountNumber: '0820' });
+    const url = apiSpy.mock.calls[0][0] as string;
+    expect(url).toContain('/admin/payments/vbank/pool?');
+    expect(url).toContain('status=IN_USE');
+    expect(url).toContain('accountNumber=0820');
+  });
+
+  it('posts issue ack and resolve', async () => {
+    await ackVbankIssue(9);
+    expect(apiSpy.mock.calls[0][0]).toBe('/admin/payments/vbank/issues/9/ack');
+    expect((apiSpy.mock.calls[0][1] as any)?.method).toBe('POST');
+
+    await resolveVbankIssue(9);
+    expect(apiSpy.mock.calls[1][0]).toBe('/admin/payments/vbank/issues/9/resolve');
+    expect((apiSpy.mock.calls[1][1] as any)?.method).toBe('POST');
   });
 });

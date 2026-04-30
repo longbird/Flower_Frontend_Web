@@ -67,3 +67,124 @@ export interface AdminVbankPaymentsFilters {
   page?: number;
   pageSize?: number;
 }
+
+export type VbankAlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+export type VbankIssueStatus = 'OPEN' | 'ACKED' | 'RESOLVED' | 'SUPPRESSED';
+export type VbankLogCategory = 'PAYMENT' | 'ACCOUNT' | 'WEBHOOK' | 'WALLET' | 'ALERT';
+
+export interface AdminVbankOverview {
+  pool: { total: number; available: number; inUse: number; disabled: number; threshold: number };
+  payments: { pending: number; paid: number; canceled: number; reviewRequired: number };
+  webhooks: { received24h: number; failed24h: number; duplicate24h: number; invalidSignature24h: number };
+  issues: { openCritical: number; openWarning: number; acked: number };
+}
+
+export interface AdminVbankIssueRow {
+  id: number;
+  severity: VbankAlertSeverity;
+  eventType: string;
+  status: VbankIssueStatus;
+  title: string;
+  message: string;
+  paymentId: number | null;
+  orderId: number | null;
+  branchId: number | null;
+  branchName: string | null;
+  accountNumber: string | null;
+  occurrenceCount: number;
+  smsStatus: string;
+  slackStatus: string;
+  notificationError: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  acknowledgedAt: string | null;
+  resolvedAt: string | null;
+}
+
+export interface AdminVbankIssuesFilters {
+  severity?: VbankAlertSeverity;
+  status?: VbankIssueStatus;
+  eventType?: string;
+  branchId?: number;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminVbankIssuesListResponse {
+  items: AdminVbankIssueRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface AdminVbankLogRow {
+  occurredAt: string;
+  category: VbankLogCategory;
+  severity: VbankAlertSeverity;
+  eventType: string;
+  message: string;
+  paymentId: number | null;
+  orderId: number | null;
+  branchId: number | null;
+  branchName: string | null;
+  accountNumber: string | null;
+  amount: number | null;
+  status: string | null;
+  sourceId: string;
+  metadata: Record<string, unknown> | string | null;
+}
+
+export interface AdminVbankLogsFilters {
+  severity?: VbankAlertSeverity;
+  category?: VbankLogCategory;
+  branchId?: number;
+  paymentId?: number;
+  orderId?: number;
+  accountNumber?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminVbankLogsListResponse {
+  items: AdminVbankLogRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface AdminVbankPoolRow {
+  id: number;
+  bankCode: string;
+  bankName: string | null;
+  accountNumber: string;
+  holderName: string | null;
+  status: 'AVAILABLE' | 'IN_USE' | 'DISABLED';
+  currentAllocationId: number | null;
+  purpose: 'TOPUP' | 'CUSTOMER_ORDER' | null;
+  branchId: number | null;
+  branchName: string | null;
+  paymentId: number | null;
+  orderId: number | null;
+  assignedAt: string | null;
+  dueAt: string | null;
+  disabledReason: string | null;
+  updatedAt: string;
+}
+
+export interface AdminVbankPoolFilters {
+  status?: 'AVAILABLE' | 'IN_USE' | 'DISABLED';
+  accountNumber?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminVbankPoolListResponse {
+  items: AdminVbankPoolRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
