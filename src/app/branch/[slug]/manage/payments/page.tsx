@@ -61,6 +61,8 @@ export default function BranchPaymentsPage() {
   const [datePreset, setDatePreset] = useState<DateRangePreset>('TODAY');
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
+  const [queryDateFrom, setQueryDateFrom] = useState(defaultRange.from);
+  const [queryDateTo, setQueryDateTo] = useState(defaultRange.to);
   const [page, setPage] = useState(1);
 
   const applyDatePreset = (preset: Exclude<DateRangePreset, 'CUSTOM'>) => {
@@ -68,16 +70,21 @@ export default function BranchPaymentsPage() {
     setDatePreset(preset);
     setDateFrom(next.from);
     setDateTo(next.to);
+  };
+
+  const searchByDateRange = () => {
+    setQueryDateFrom(dateFrom);
+    setQueryDateTo(dateTo);
     setPage(1);
   };
 
   const paymentsQ = useQuery({
-    queryKey: ['branch-payments', status, method, dateFrom, dateTo, page],
+    queryKey: ['branch-payments', status, method, queryDateFrom, queryDateTo, page],
     queryFn: () => fetchBranchPayments({
       status: status || undefined,
       method: method || undefined,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
+      dateFrom: queryDateFrom || undefined,
+      dateTo: queryDateTo || undefined,
       page,
       size: 20,
     }),
@@ -112,17 +119,15 @@ export default function BranchPaymentsPage() {
             ['VBANK', '가상계좌'],
           ]} />
           <DateRangePresetSelect value={datePreset} onChange={applyDatePreset} />
-          <DateFilter label="시작일" value={dateFrom} onChange={(v) => { setDatePreset('CUSTOM'); setDateFrom(v); setPage(1); }} />
-          <DateFilter label="종료일" value={dateTo} onChange={(v) => { setDatePreset('CUSTOM'); setDateTo(v); setPage(1); }} />
-          {(dateFrom || dateTo) && (
-            <button
-              type="button"
-              onClick={() => { setDatePreset('CUSTOM'); setDateFrom(''); setDateTo(''); setPage(1); }}
-              className="h-9 rounded-lg border border-[var(--branch-rose-light)] bg-white px-3 text-sm text-[var(--branch-text)]"
-            >
-              전체 기간
-            </button>
-          )}
+          <DateFilter label="시작일" value={dateFrom} onChange={(v) => { setDatePreset('CUSTOM'); setDateFrom(v); }} />
+          <DateFilter label="종료일" value={dateTo} onChange={(v) => { setDatePreset('CUSTOM'); setDateTo(v); }} />
+          <button
+            type="button"
+            onClick={searchByDateRange}
+            className="h-9 rounded-lg border border-[var(--branch-accent)] bg-[var(--branch-accent)] px-4 text-sm font-medium text-white"
+          >
+            조회
+          </button>
         </div>
       </div>
 
