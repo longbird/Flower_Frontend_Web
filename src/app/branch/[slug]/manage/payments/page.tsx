@@ -6,6 +6,11 @@ import {
   fetchBranchPayments,
   type BranchPaymentRow,
 } from '@/lib/branch/branch-api';
+import {
+  DateRangePresetSelect,
+  getDateRangeForPreset,
+  type DateRangePreset,
+} from '@/components/branch/date-range-preset';
 
 function fmtWon(n: number | null | undefined) {
   if (n == null) return '-';
@@ -34,10 +39,6 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   REVIEW_REQUIRED: { label: '확인필요', className: 'bg-rose-100 text-rose-700' },
 };
 
-function getTodayDate() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
-}
-
 function statusBadge(status: string) {
   const cfg = STATUS_LABELS[status] || { label: status, className: 'bg-slate-100 text-slate-700' };
   return (
@@ -54,12 +55,21 @@ function methodLabel(row: BranchPaymentRow) {
 }
 
 export default function BranchPaymentsPage() {
-  const today = getTodayDate();
+  const defaultRange = getDateRangeForPreset('TODAY');
   const [status, setStatus] = useState('');
   const [method, setMethod] = useState('');
-  const [dateFrom, setDateFrom] = useState(today);
-  const [dateTo, setDateTo] = useState(today);
+  const [datePreset, setDatePreset] = useState<DateRangePreset>('TODAY');
+  const [dateFrom, setDateFrom] = useState(defaultRange.from);
+  const [dateTo, setDateTo] = useState(defaultRange.to);
   const [page, setPage] = useState(1);
+
+  const applyDatePreset = (preset: Exclude<DateRangePreset, 'CUSTOM'>) => {
+    const next = getDateRangeForPreset(preset);
+    setDatePreset(preset);
+    setDateFrom(next.from);
+    setDateTo(next.to);
+    setPage(1);
+  };
 
   const paymentsQ = useQuery({
     queryKey: ['branch-payments', status, method, dateFrom, dateTo, page],
@@ -101,19 +111,13 @@ export default function BranchPaymentsPage() {
             ['CARD', '카드'],
             ['VBANK', '가상계좌'],
           ]} />
-          <DateFilter label="시작일" value={dateFrom} onChange={(v) => { setDateFrom(v); setPage(1); }} />
-          <DateFilter label="종료일" value={dateTo} onChange={(v) => { setDateTo(v); setPage(1); }} />
-          <button
-            type="button"
-            onClick={() => { setDateFrom(today); setDateTo(today); setPage(1); }}
-            className="h-9 rounded-lg border border-[var(--branch-rose-light)] bg-white px-3 text-sm text-[var(--branch-text)]"
-          >
-            당일
-          </button>
+          <DateRangePresetSelect value={datePreset} onChange={applyDatePreset} />
+          <DateFilter label="시작일" value={dateFrom} onChange={(v) => { setDatePreset('CUSTOM'); setDateFrom(v); setPage(1); }} />
+          <DateFilter label="종료일" value={dateTo} onChange={(v) => { setDatePreset('CUSTOM'); setDateTo(v); setPage(1); }} />
           {(dateFrom || dateTo) && (
             <button
               type="button"
-              onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
+              onClick={() => { setDatePreset('CUSTOM'); setDateFrom(''); setDateTo(''); setPage(1); }}
               className="h-9 rounded-lg border border-[var(--branch-rose-light)] bg-white px-3 text-sm text-[var(--branch-text)]"
             >
               전체 기간
