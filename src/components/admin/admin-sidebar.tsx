@@ -49,7 +49,6 @@ const CollapseIcon = ({ collapsed }: { collapsed: boolean }) => <svg className={
 
 const navEntries: NavEntry[] = [
   { href: '/admin/dashboard', label: '대시보드', icon: <DashboardIcon /> },
-  { href: '/admin/payments', label: '오늘 결제 큐', icon: <PaymentIcon /> },
   { href: '/admin/orders', label: '주문', icon: <OrderIcon /> },
   {
     label: '결제',

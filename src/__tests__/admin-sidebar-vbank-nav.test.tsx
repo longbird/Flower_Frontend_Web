@@ -20,10 +20,10 @@ vi.mock('@/lib/api/admin', () => ({
 }));
 
 describe('AdminSidebar vbank navigation', () => {
-  it('shows the payment queue as a primary operations entry', () => {
+  it('does not duplicate the payment list as a separate queue entry', () => {
     render(<AdminSidebar />);
 
-    expect(screen.getByRole('link', { name: /오늘 결제 큐/ })).toHaveAttribute('href', '/admin/payments');
+    expect(screen.queryByRole('link', { name: /오늘 결제 큐/ })).not.toBeInTheDocument();
   });
 
   it('keeps the payment list entry under the payment group', () => {

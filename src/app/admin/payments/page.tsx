@@ -205,7 +205,7 @@ export default function PaymentsPage() {
         <div>
           <div className="text-sm font-medium text-[#4f6d38]">결제 운영</div>
           <div className="mt-1 flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-950">오늘 처리할 결제 큐</h1>
+            <h1 className="text-2xl font-bold text-slate-950">결제 목록</h1>
           <TooltipProvider delayDuration={150}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -228,7 +228,7 @@ export default function PaymentsPage() {
           </TooltipProvider>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            결제 상태와 처리 이유를 먼저 보고, 필요한 항목만 상세에서 확인합니다.
+            카드결제와 가상계좌 결제를 통합 조회하고 필요한 항목을 상세에서 확인합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">

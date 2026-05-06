@@ -113,7 +113,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button className="bg-[#5B7A3D] hover:bg-[#4A6830]" onClick={() => router.push('/admin/payments')}>
-              오늘 결제 큐 열기
+              결제 목록 열기
             </Button>
             <Button variant="outline" onClick={() => router.push('/admin/orders')}>
               주문 확인
