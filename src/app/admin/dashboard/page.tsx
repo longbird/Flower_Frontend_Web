@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
-import type { FloristListResponse } from '@/lib/types/florist';
+import type { FloristListResponse, FloristSummary } from '@/lib/types/florist';
 import { CAPABILITY_OPTIONS } from '@/app/admin/florists/florist-constants';
 import { ExternalPhotosSection } from '@/components/admin/external-photos-section';
 
@@ -104,7 +104,23 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-xs font-semibold text-[#5B7A3D]">운영 대시보드</div>
+            <h1 className="mt-1 text-2xl font-bold text-slate-950">오늘 처리할 업무</h1>
+            <p className="mt-1 text-sm text-slate-500">결제 확인, 주문 흐름, 화원 상태를 빠르게 점검합니다.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button className="bg-[#5B7A3D] hover:bg-[#4A6830]" onClick={() => router.push('/admin/payments')}>
+              오늘 결제 큐 열기
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/admin/orders')}>
+              주문 확인
+            </Button>
+          </div>
+        </div>
+      </section>
 
       {isLoading && <div className="text-center py-8 text-gray-500">로딩 중...</div>}
 
@@ -124,7 +140,7 @@ export default function DashboardPage() {
           </Button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {recentFlorists.map((f: any) => (
+          {recentFlorists.map((f: FloristSummary) => (
             <Card
               key={f.id}
               className="cursor-pointer hover:shadow-md transition-shadow border-slate-200"

@@ -20,6 +20,12 @@ vi.mock('@/lib/api/admin', () => ({
 }));
 
 describe('AdminSidebar vbank navigation', () => {
+  it('shows the payment queue as a primary operations entry', () => {
+    render(<AdminSidebar />);
+
+    expect(screen.getByRole('link', { name: /오늘 결제 큐/ })).toHaveAttribute('href', '/admin/payments');
+  });
+
   it('places vbank operations under audit and vbank credentials under settings', async () => {
     render(<AdminSidebar />);
 

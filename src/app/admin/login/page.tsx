@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
       }
       login(res.accessToken, res.refreshToken, res.admin);
       toast.success(`${res.admin.name}님 환영합니다.`);
-      router.replace('/admin/florists');
+      router.replace('/admin/payments');
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
     } finally {

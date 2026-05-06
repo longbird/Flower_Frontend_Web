@@ -3,10 +3,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+const { mockReplace } = vi.hoisted(() => ({
+  mockReplace: vi.fn(),
+}));
+
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
-    replace: vi.fn(),
+    replace: mockReplace,
     push: vi.fn(),
   }),
   usePathname: () => '/admin/login',
@@ -90,6 +94,7 @@ describe('Admin Login Page', () => {
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith('admin', 'password');
     });
+    expect(mockReplace).toHaveBeenCalledWith('/admin/payments');
   });
 
   it('should show error on login failure', async () => {

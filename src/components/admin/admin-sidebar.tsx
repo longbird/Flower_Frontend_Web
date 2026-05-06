@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/auth/store';
@@ -49,13 +49,13 @@ const CollapseIcon = ({ collapsed }: { collapsed: boolean }) => <svg className={
 
 const navEntries: NavEntry[] = [
   { href: '/admin/dashboard', label: '대시보드', icon: <DashboardIcon /> },
+  { href: '/admin/payments', label: '오늘 결제 큐', icon: <PaymentIcon /> },
   { href: '/admin/orders', label: '주문', icon: <OrderIcon /> },
   {
     label: '결제',
     icon: <PaymentIcon />,
     color: 'text-violet-600',
     items: [
-      { href: '/admin/payments', label: '결제 관리', icon: <PaymentIcon /> },
       { href: '/admin/payments/key-in', label: '수동 결제', icon: <PaymentIcon /> },
     ],
   },
@@ -248,7 +248,13 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
   const pathname = usePathname();
   const router = useRouter();
   const { user, refreshToken, logout } = useAuthStore();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && localStorage.getItem(COLLAPSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // 모든 leaf href를 모아서 longest matching href를 활성으로 처리.
   // prefix가 겹치는 경로에서도 가장 긴 leaf만 활성으로 처리.
@@ -256,14 +262,6 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
     isGroup(e) ? e.items.map((i) => i.href) : [(e as NavItem).href],
   );
   const activeHref = getActiveHref(pathname, allHrefs);
-
-  // localStorage에서 축소 상태 복원
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(COLLAPSED_KEY);
-      if (saved === 'true') setCollapsed(true);
-    } catch {}
-  }, []);
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -317,7 +315,10 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
                 <div className="w-8 h-8 rounded-lg bg-[#5B7A3D] flex items-center justify-center shadow-sm">
                   <span className="text-white text-sm font-bold">F</span>
                 </div>
-                <span className="font-semibold text-slate-800">달려라 꽃배달</span>
+                <div className="min-w-0">
+                  <span className="block font-semibold leading-5 text-slate-800">달려라 꽃배달</span>
+                  <span className="block text-[11px] font-medium text-[#5B7A3D]">Operations</span>
+                </div>
               </div>
               <button
                 className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
