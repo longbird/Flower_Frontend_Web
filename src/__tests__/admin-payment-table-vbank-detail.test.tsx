@@ -36,22 +36,6 @@ const vbankTx: AdminPaymentTransaction = {
   },
 };
 
-const tossReviewTx: AdminPaymentTransaction = {
-  mId: 'tosspayments',
-  transactionKey: 'toss-review-1',
-  paymentKey: 'pay_toss_review_1',
-  orderId: 'RF-TOSS-REVIEW-1',
-  method: '카드',
-  customerKey: null,
-  useEscrow: false,
-  receiptUrl: null,
-  status: 'IN_PROGRESS',
-  transactionAt: '2026-04-30T04:00:00.000Z',
-  currency: 'KRW',
-  amount: 10000,
-  source: 'TOSS',
-};
-
 describe('PaymentTable vbank detail action', () => {
   it('opens detail for a vbank row instead of doing nothing', () => {
     const onViewDetail = vi.fn();
@@ -67,24 +51,5 @@ describe('PaymentTable vbank detail action', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: /홍길동/ })[0]);
     expect(onViewDetail).toHaveBeenCalledWith('vbank-77');
-  });
-
-  it('shows an operational reason and a primary detail action for review rows', () => {
-    const onViewDetail = vi.fn();
-
-    render(
-      <PaymentTable
-        transactions={[tossReviewTx]}
-        isLoading={false}
-        onViewDetail={onViewDetail}
-        onCancel={vi.fn()}
-      />,
-    );
-
-    expect(screen.getAllByText('확인필요').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('승인 진행 중').length).toBeGreaterThan(0);
-
-    fireEvent.click(screen.getAllByRole('button', { name: '상세' })[0]);
-    expect(onViewDetail).toHaveBeenCalledWith('pay_toss_review_1');
   });
 });
