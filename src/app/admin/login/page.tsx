@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { AlertCircle, CheckCircle2, CreditCard, Leaf, Lock, User } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth/store';
 import { adminLogin } from '@/lib/api/admin';
 import { Button } from '@/components/ui/button';
@@ -41,111 +42,132 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen relative overflow-hidden">
-      {/* Background — radial vignette matching sample: bright center, dark edges */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse 80% 70% at 50% 45%, #4F6D38 0%, #3E5A2B 30%, #2D4420 55%, #1F3016 80%, #162410 100%)',
-        }}
-      />
-
-      {/* Center content */}
-      <div className="flex-1 flex items-center justify-center p-4 relative z-10">
-        <div className="w-full max-w-sm sm:max-w-[440px] bg-white rounded-3xl shadow-2xl p-8 sm:p-10 animate-fade-in">
-
-          {/* Logo */}
-          <div className="flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-[#3A6B2A] flex items-center justify-center shadow-lg shadow-[#3A6B2A]/25">
-              <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/>
-              </svg>
+    <div className="min-h-screen bg-slate-100 text-slate-950">
+      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_460px]">
+        <section className="hidden flex-col justify-between border-r border-slate-200 bg-white p-10 lg:flex">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-[#4f6d38] text-sm font-bold text-white">
+                F
+              </div>
+              <div>
+                <div className="text-base font-bold">달려라 꽃배달</div>
+                <div className="text-xs text-slate-500">Admin operations</div>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mt-4">달려라 꽃배달 관리자</h1>
-            <p className="text-sm text-gray-500 mt-1">관리자 대시보드에 로그인하세요</p>
+
+            <div className="mt-24 max-w-xl">
+              <div className="text-sm font-semibold text-[#4f6d38]">운영 콘솔</div>
+              <h1 className="mt-3 text-4xl font-bold tracking-normal text-slate-950">
+                결제와 주문 흐름을 놓치지 않도록 설계된 관리자 화면
+              </h1>
+              <p className="mt-4 text-base leading-7 text-slate-600">
+                오늘 처리할 결제 큐와 주문 흐름을 확인합니다.
+              </p>
+            </div>
+
+            <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <CreditCard className="size-5 text-[#4f6d38]" />
+                <div className="mt-3 text-sm font-bold">결제 큐</div>
+                <div className="mt-1 text-xs text-slate-500">검토 필요 우선</div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <CheckCircle2 className="size-5 text-emerald-700" />
+                <div className="mt-3 text-sm font-bold">처리 상태</div>
+                <div className="mt-1 text-xs text-slate-500">사유와 액션</div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <Lock className="size-5 text-slate-600" />
+                <div className="mt-3 text-sm font-bold">접근 제어</div>
+                <div className="mt-1 text-xs text-slate-500">관리자 전용</div>
+              </div>
+            </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <div className="w-fit rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <CheckCircle2 className="size-4 text-[#4f6d38]" />
+              REAL 운영 모드
+            </div>
+            <div className="mt-1 text-xs text-slate-500">권한이 있는 관리자만 접속할 수 있습니다.</div>
+          </div>
+        </section>
 
-            {/* Error message */}
-            {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
-                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                {error}
+        <section className="flex items-center justify-center px-4 py-10">
+          <div className="w-full max-w-[420px] rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 items-center justify-center rounded-lg bg-[#4f6d38] text-white">
+                <Leaf className="size-6" />
               </div>
-            )}
-
-            {/* Username field */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="username"
-                className="text-xs font-semibold text-gray-600 uppercase tracking-wider"
-              >
-                아이디 (ID)
-              </label>
-              <div className="relative">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <Input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your ID"
-                  autoComplete="username"
-                  autoFocus
-                  className="h-12 pl-11 bg-gray-50 border-gray-200 rounded-xl text-sm focus:border-[#3A6B2A] focus:ring-2 focus:ring-[#3A6B2A]/20 transition-all"
-                />
+              <div>
+                <div className="text-xs font-semibold text-[#4f6d38] lg:hidden">운영 콘솔</div>
+                <h2 className="text-xl font-bold text-slate-950">달려라 꽃배달 관리자</h2>
+                <p className="text-sm text-slate-500">관리자 계정으로 로그인하세요</p>
               </div>
             </div>
 
-            {/* Password field */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="password"
-                className="text-xs font-semibold text-gray-600 uppercase tracking-wider"
-              >
-                비밀번호 (PASSWORD)
-              </label>
-              <div className="relative">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="h-12 pl-11 bg-gray-50 border-gray-200 rounded-xl text-sm focus:border-[#3A6B2A] focus:ring-2 focus:ring-[#3A6B2A]/20 transition-all"
-                />
-              </div>
+            <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3 lg:hidden">
+              <div className="text-sm font-semibold text-slate-900">오늘 처리할 결제 큐와 주문 흐름을 확인합니다.</div>
+              <div className="mt-1 text-xs text-slate-500">REAL 운영 모드</div>
             </div>
 
-            {/* Submit button */}
-            <Button
-              type="submit"
-              className="w-full py-3.5 h-auto rounded-full font-semibold text-base text-white bg-gradient-to-r from-[#3A6B2A] to-[#2D5520] shadow-lg shadow-[#2D5520]/30 hover:shadow-[#2D5520]/50 hover:from-[#2D5520] hover:to-[#224418] transition-all duration-200"
-              disabled={loading}
-            >
-              {loading ? '로그인 중...' : '로그인'}
-            </Button>
-          </form>
-        </div>
+            <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+
+              {error && (
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <AlertCircle className="size-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label htmlFor="username" className="text-xs font-semibold text-slate-600">
+                  아이디 (ID)
+                </label>
+                <div className="relative">
+                  <User className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="관리자 아이디"
+                    autoComplete="username"
+                    autoFocus
+                    className="h-11 rounded-lg border-slate-200 bg-slate-50 pl-11 text-sm focus:border-[#4f6d38] focus:ring-2 focus:ring-[#4f6d38]/15"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="text-xs font-semibold text-slate-600">
+                  비밀번호 (PASSWORD)
+                </label>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="비밀번호"
+                    autoComplete="current-password"
+                    className="h-11 rounded-lg border-slate-200 bg-slate-50 pl-11 text-sm focus:border-[#4f6d38] focus:ring-2 focus:ring-[#4f6d38]/15"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="h-11 w-full rounded-lg bg-[#4f6d38] font-semibold text-white hover:bg-[#3d5229]"
+                disabled={loading}
+              >
+                {loading ? '로그인 중...' : '로그인'}
+              </Button>
+            </form>
+          </div>
+        </section>
       </div>
-
-      {/* Footer */}
-      <footer className="py-4 text-center text-xs text-white/40 relative z-10 tracking-wide uppercase">
-        &copy; 2024 달려라 꽃배달. All rights reserved.
-      </footer>
     </div>
   );
 }

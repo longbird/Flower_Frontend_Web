@@ -53,6 +53,18 @@ describe('Admin Login Page', () => {
     expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument();
   });
 
+  it('should render the operations-focused login design copy', () => {
+    render(
+      <Wrapper>
+        <AdminLoginPage />
+      </Wrapper>
+    );
+
+    expect(screen.getAllByText('운영 콘솔').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('오늘 처리할 결제 큐와 주문 흐름을 확인합니다.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('REAL 운영 모드').length).toBeGreaterThan(0);
+  });
+
   it('should call login API on submit', async () => {
     const mockLogin = adminLogin as ReturnType<typeof vi.fn>;
     mockLogin.mockResolvedValueOnce({
