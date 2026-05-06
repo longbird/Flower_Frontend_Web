@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { Inbox, MoreHorizontal } from 'lucide-react';
+import { CheckCircle2, Eye, Inbox, MoreHorizontal } from 'lucide-react';
 
 export interface OrderInfo {
   internalOrderId: number | null;
@@ -84,6 +84,79 @@ function formatDeliveryDate(iso: string | null): string | null {
 
 function isCancelDisabled(status: string): boolean {
   return status === 'CANCELED' || status === 'EXPIRED' || status === 'ABORTED';
+}
+
+function paymentState(tx: AdminPaymentTransaction): { label: string; reason: string; className: string } {
+  if (tx.source === 'INNOPAY_VBANK') {
+    if (tx.status === 'WAITING_FOR_DEPOSIT') {
+      return {
+        label: '입금대기',
+        reason: '가상계좌 입금 대기',
+        className: 'border-sky-200 bg-sky-50 text-sky-800',
+      };
+    }
+    if (tx.status === 'IN_PROGRESS') {
+      return {
+        label: '검토필요',
+        reason: '자동 매칭 확인 필요',
+        className: 'border-amber-200 bg-amber-50 text-amber-800',
+      };
+    }
+  }
+
+  if (tx.status === 'IN_PROGRESS') {
+    return {
+      label: '확인필요',
+      reason: '승인 진행 중',
+      className: 'border-amber-200 bg-amber-50 text-amber-800',
+    };
+  }
+  if (tx.status === 'WAITING_FOR_DEPOSIT') {
+    return {
+      label: '입금대기',
+      reason: '입금 확인 전',
+      className: 'border-sky-200 bg-sky-50 text-sky-800',
+    };
+  }
+  if (tx.status === 'DONE') {
+    return {
+      label: '완료',
+      reason: tx.source === 'INNOPAY_VBANK' ? '자동 매칭' : '승인 완료',
+      className: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    };
+  }
+  if (tx.status === 'ABORTED') {
+    return {
+      label: '실패',
+      reason: '승인 실패',
+      className: 'border-rose-200 bg-rose-50 text-rose-800',
+    };
+  }
+  if (tx.status === 'CANCELED' || tx.status === 'PARTIAL_CANCELED') {
+    return {
+      label: PAYMENT_STATUS_LABELS[tx.status] || tx.status,
+      reason: '취소 처리',
+      className: 'border-rose-200 bg-rose-50 text-rose-800',
+    };
+  }
+
+  return {
+    label: PAYMENT_STATUS_LABELS[tx.status] || tx.status,
+    reason: '상태 확인',
+    className: PAYMENT_STATUS_COLORS[tx.status],
+  };
+}
+
+function StatusBlock({ tx }: { tx: AdminPaymentTransaction }) {
+  const state = paymentState(tx);
+  return (
+    <div className="space-y-1">
+      <Badge variant="outline" className={cn('rounded-md px-2 py-1 text-xs', state.className)}>
+        {state.label}
+      </Badge>
+      <div className="text-xs font-medium text-slate-500">{state.reason}</div>
+    </div>
+  );
 }
 
 /**
@@ -185,37 +258,96 @@ function ActionMenu({
     return (
       <Button
         type="button"
-        variant="ghost"
-        size="sm"
-        className="h-8 px-2 text-xs"
+        variant="outline"
+        size="xs"
+        className="h-7 gap-1.5 rounded-md px-2 text-xs"
         onClick={() => onViewDetail(paymentKey)}
       >
+        <Eye className="h-3 w-3" />
         상세
       </Button>
     );
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-          <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">메뉴</span>
+    <div className="flex items-center justify-end gap-1.5">
+      <Button
+        type="button"
+        variant="outline"
+        size="xs"
+        className="h-7 gap-1.5 rounded-md px-2 text-xs"
+        onClick={() => onViewDetail(paymentKey)}
+      >
+        <Eye className="h-3 w-3" />
+        상세
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-xs" className="h-7 w-7">
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">메뉴</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={() => onCancel(paymentKey)}
+            className="text-red-600 focus:text-red-600"
+            disabled={isCancelDisabled(status)}
+          >
+            취소
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+function MobileActions({
+  paymentKey,
+  status,
+  source,
+  onViewDetail,
+  onCancel,
+}: {
+  paymentKey: string;
+  status: string;
+  source?: 'TOSS' | 'INNOPAY_VBANK';
+  onViewDetail: (k: string) => void;
+  onCancel: (k: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="rounded-md"
+        onClick={() => onViewDetail(paymentKey)}
+      >
+        상세
+      </Button>
+      {source === 'INNOPAY_VBANK' || isCancelDisabled(status) ? (
+        <Button
+          type="button"
+          size="sm"
+          className="rounded-md bg-[#4f6d38] hover:bg-[#3d5229]"
+          onClick={() => onViewDetail(paymentKey)}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          확인
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onViewDetail(paymentKey)}>
-          상세보기
-        </DropdownMenuItem>
-        <DropdownMenuItem
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-md text-red-600 hover:text-red-700"
           onClick={() => onCancel(paymentKey)}
-          className="text-red-600 focus:text-red-600"
-          disabled={isCancelDisabled(status)}
         >
           취소
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -236,18 +368,10 @@ function MobileCard({
 }) {
   const label = orderLabel(tx, info, orderName, enriching);
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
+    <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <Badge className={cn('text-[10px]', PAYMENT_STATUS_COLORS[tx.status])}>
-          {PAYMENT_STATUS_LABELS[tx.status] || tx.status}
-        </Badge>
-        <ActionMenu
-          paymentKey={tx.paymentKey}
-          status={tx.status}
-          source={tx.source}
-          onViewDetail={onViewDetail}
-          onCancel={onCancel}
-        />
+        <StatusBlock tx={tx} />
+        <MoreHorizontal className="h-4 w-4 text-slate-400" />
       </div>
       <button
         type="button"
@@ -271,6 +395,13 @@ function MobileCard({
         </div>
       )}
       <div className="text-xs text-slate-400">{formatDate(tx.transactionAt)}</div>
+      <MobileActions
+        paymentKey={tx.paymentKey}
+        status={tx.status}
+        source={tx.source}
+        onViewDetail={onViewDetail}
+        onCancel={onCancel}
+      />
     </div>
   );
 }
@@ -279,14 +410,14 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
   return (
     <>
       {/* 데스크탑: 테이블 */}
-      <div className="hidden md:block bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white md:block">
         {isLoading ? (
           <LoadingSkeleton />
         ) : transactions.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="px-4 py-3 text-left font-medium text-slate-600">상태</th>
@@ -307,9 +438,7 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
                       className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <Badge className={cn('text-[10px]', PAYMENT_STATUS_COLORS[tx.status])}>
-                          {PAYMENT_STATUS_LABELS[tx.status] || tx.status}
-                        </Badge>
+                        <StatusBlock tx={tx} />
                       </td>
                       <td className="px-4 py-3">
                         <button
@@ -340,7 +469,7 @@ export function PaymentTable({ transactions, orderInfo = {}, orderNames = {}, is
                       <td className="px-4 py-3 text-slate-500 text-xs">
                         {formatDate(tx.transactionAt)}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-right">
                         <ActionMenu
                           paymentKey={tx.paymentKey}
                           status={tx.status}
