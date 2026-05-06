@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RunFlower Admin Design Brainstorm</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #dbe3ec;
+      --soft: #f6f8fb;
+      --brand: #4f6d38;
+      --brand-soft: #e8f0e0;
+      --warn: #b45309;
+      --danger: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+      background: #f8fafc;
+      color: var(--ink);
+      line-height: 1.65;
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 40px 24px 72px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 42px 0 14px;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 28px 0 10px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 0 0 18px 22px; padding: 0; }
+    li { margin: 5px 0; }
+    .meta { color: var(--muted); margin-bottom: 24px; }
+    .hero {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 18px 0 8px;
+    }
+    figure {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: white;
+    }
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    figcaption {
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+    .section {
+      padding: 22px 24px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      margin-top: 16px;
+    }
+    .idea {
+      border-left: 4px solid var(--brand);
+      padding-left: 16px;
+      margin: 24px 0;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 4px;
+    }
+    .pill {
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 13px;
+      background: #fff;
+      color: #334155;
+    }
+    a { color: #315c9b; }
+    code {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: .92em;
+    }
+    @media (max-width: 760px) {
+      main { padding: 24px 16px 48px; }
+      h1 { font-size: 28px; }
+      .grid { grid-template-columns: 1fr; }
+      .hero, .section { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>RunFlower Admin Design Brainstorm</h1>
+    <p class="meta">2026-05-06</p>
+
+    <section class="hero">
+      <h2>TL;DR</h2>
+      <p>현재 관리자 UI는 기능 범위가 넓고 기본 구조도 갖춰져 있지만, 운영자가 매일 반복해서 쓰는 화면 기준으로는 상태 우선순위와 다음 행동이 약하게 보입니다. 결제/가상계좌/화원/주문 화면은 단순 카드와 테이블을 넘어 <strong>운영 큐 + 상태 레일 + 저장된 뷰 + 우측 상세 패널</strong> 구조로 정리하는 것이 가장 효과적입니다.</p>
+      <div class="pill-row">
+        <span class="pill">처리 큐</span>
+        <span class="pill">저장된 뷰</span>
+        <span class="pill">우측 상세 패널</span>
+        <span class="pill">상태 이유</span>
+        <span class="pill">모바일 액션 카드</span>
+      </div>
+    </section>
+
+    <h2>Current State</h2>
+    <div class="grid">
+      <figure>
+        <img src="references/current-state-login.png" alt="RunFlower admin login" />
+        <figcaption>로그인 화면. 브랜드 색은 명확하지만 운영 백오피스보다 마케팅 화면에 가까운 반경/그라데이션/그림자 표현이 강합니다.</figcaption>
+      </figure>
+      <figure>
+        <img src="references/current-payments-desktop.png" alt="Payments desktop" />
+        <figcaption>결제 관리 데스크톱. 좌측 사이드바와 테이블 기반의 전형적 백오피스 구조입니다.</figcaption>
+      </figure>
+      <figure>
+        <img src="references/current-vbank-desktop.png" alt="VBank desktop" />
+        <figcaption>가상계좌 결제. 필터와 상태 칩은 있으나 운영 우선순위가 약합니다.</figcaption>
+      </figure>
+      <figure>
+        <img src="references/current-payments-mobile.png" alt="Payments mobile" />
+        <figcaption>모바일 결제 관리. 카드 전환은 적절하지만 액션과 상태 판단 정보가 분산되어 있습니다.</figcaption>
+      </figure>
+    </div>
+
+    <section class="section">
+      <h2>Product Reading</h2>
+      <p>RunFlower 관리자 앱은 일반 SaaS 대시보드보다 주문/결제/화원/정산을 놓치지 않는 운영 콘솔에 가깝습니다. 사용자는 새 정보를 감상하는 사람이 아니라 오늘 들어온 결제와 예외를 빠르게 확인하고 다음 조치를 취하는 운영자입니다.</p>
+      <h3>강점</h3>
+      <ul>
+        <li>좌측 내비게이션의 큰 정보 구조는 운영 도메인별로 나뉘어 있습니다.</li>
+        <li>결제 관리 화면은 데스크톱 테이블과 모바일 카드의 분기 방향이 맞습니다.</li>
+        <li>결제 상태 칩, 날짜 필터, 가상계좌 탭처럼 업무에 필요한 기본 요소가 있습니다.</li>
+      </ul>
+      <h3>약점</h3>
+      <ul>
+        <li>무엇부터 처리할지 강하게 안내하지 않습니다.</li>
+        <li>결제 관리, 가상계좌 운영 로그, 이노페이 설정의 위험도 차이가 잘 드러나지 않습니다.</li>
+        <li>상단 검색창과 페이지별 필터가 분리되어 검색 범위가 애매합니다.</li>
+        <li>모바일 카드는 읽기용에 가깝고 빠른 처리 액션이 약합니다.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Cross-Pollinated Ideas</h2>
+
+      <div class="idea">
+        <h3>1. Linear Inbox Pattern: 결제/주문을 처리 큐로 재정의</h3>
+        <p>Linear의 Inbox/Triage처럼 결제 실패, 입금대기, 검토필요, 신규 화원 등록을 이벤트 큐로 다룹니다. 목록 클릭 시 모달 대신 우측 상세 패널을 열고, 확인/보류/해결/다시 조회 같은 액션을 고정합니다.</p>
+      </div>
+
+      <div class="idea">
+        <h3>2. Shopify Orders Pattern: 저장된 뷰와 업무별 필터</h3>
+        <p>결제 관리 상단에 전체, 오늘 완료, 입금대기, 검토필요, 고액, 가상계좌 같은 저장된 뷰 탭을 둡니다. 날짜 입력은 기본 접어두고 필요한 경우 확장합니다.</p>
+      </div>
+
+      <div class="idea">
+        <h3>3. Stripe Dashboard Pattern: 결제 운영 화면에 위험도와 리포팅 축 추가</h3>
+        <p>결제 관리에 완료 금액, 입금대기, 검토필요, 취소/실패, 최근 갱신 요약 바를 추가합니다. 설정 화면에는 TEST/REAL, 마지막 변경자, 마지막 검증 시각, API 연결 상태를 첫 카드에 배치합니다.</p>
+      </div>
+
+      <div class="idea">
+        <h3>4. Notion/Airtable Database Pattern: 컬럼 가시성과 상세 보기 제어</h3>
+        <p>결제 관리에 표시 항목 메뉴를 추가하고, 기본 뷰는 상태, 주문/고객, 금액, 수단, 일시, 액션으로 줄입니다. 긴 orderId는 보조 정보로 내리고 상세에서 전체 값을 보여줍니다.</p>
+      </div>
+
+      <div class="idea">
+        <h3>5. Dispatch Board Pattern: 화원/주문은 지역 레인 우선</h3>
+        <p>주문 화면에 오늘 배송, 미배정, 배송 임박, 완료, 취소/문제 레인을 두고 화원 목록에는 지역, 추천, 활성, 사진 부족, 최근 주문 없음 같은 운영 필터를 저장된 뷰로 둡니다.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Concrete Screen Changes</h2>
+      <h3>Admin Shell</h3>
+      <ul>
+        <li>결제, 주문, 화원을 일일 운영 영역으로 묶고 설정/감사/백업은 하단 보조 영역으로 낮춥니다.</li>
+        <li>전역 검색 placeholder를 실제 범위 중심으로 바꿉니다: 주문번호, 고객명, 화원명 검색.</li>
+      </ul>
+
+      <h3>Payments</h3>
+      <ul>
+        <li>필터 카드를 테이블 툴바로 낮추고 저장된 뷰 탭을 먼저 보여줍니다.</li>
+        <li>테이블 첫 열은 상태 + 처리 이유를 함께 보여줍니다.</li>
+        <li>자주 쓰는 액션은 행에 직접 노출하고 드문 액션만 더보기 메뉴에 넣습니다.</li>
+      </ul>
+
+      <h3>VBank Operations</h3>
+      <ul>
+        <li>탭 위에 처리 필요, 입금대기, 계좌풀 잔량 요약 카드 3개만 둡니다.</li>
+        <li>상세는 우측 패널로 열고 원본 이벤트/결제/계좌 정보를 한 화면에서 추적합니다.</li>
+      </ul>
+
+      <h3>Mobile</h3>
+      <ul>
+        <li>결제 카드는 상태, 금액, 주문/고객, 일시, 수단, 주 액션 순서로 고정합니다.</li>
+        <li>날짜 필터는 오늘, 7일, 이번 달, 직접 선택 세그먼트를 우선합니다.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Suggested Priority</h2>
+      <ol>
+        <li>결제 관리의 저장된 뷰 + 상태 이유 + 우측 상세 패널</li>
+        <li>가상계좌 운영 로그의 처리 큐화</li>
+        <li>사이드바 정보 구조 정리</li>
+        <li>로그인/설정 화면의 운영툴 톤 조정</li>
+        <li>모바일 결제 카드 액션 강화</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2>Sources</h2>
+      <ul>
+        <li><a href="https://docs.stripe.com/dashboard/basics">Stripe Dashboard basics</a></li>
+        <li><a href="https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders">Shopify order viewing and filtering</a></li>
+        <li><a href="https://linear.app/docs/inbox">Linear Inbox docs</a></li>
+        <li><a href="https://www.notion.com/en-gb/help/views-filters-and-sorts">Notion views, filters, sorts, groups</a></li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
