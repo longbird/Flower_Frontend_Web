@@ -13,22 +13,16 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();
 
   return (
-    <div className="flex h-screen bg-slate-100 text-slate-950">
+    <div className="flex h-screen">
       <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Desktop top bar */}
-        <header className="hidden md:flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-          <div className="flex items-center gap-4">
-            <div>
-              <div className="text-xs font-semibold text-[#5B7A3D]">운영 콘솔</div>
-              <div className="text-sm font-semibold text-slate-900">결제와 주문 흐름을 한 화면에서 확인합니다.</div>
-            </div>
-          </div>
-          <div className="relative w-80">
+        <header className="hidden md:flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
+          <div className="relative w-72">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <Input placeholder="주문번호, 고객명, 화원명 검색" className="pl-9 h-9 bg-slate-50 border-slate-200 text-sm" />
+            <Input placeholder="검색..." className="pl-9 h-9 bg-gray-50 border-gray-200 text-sm" />
           </div>
           <div className="flex items-center gap-4">
             <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -60,7 +54,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             <span className="font-semibold text-slate-800 text-sm">달려라 꽃배달</span>
           </div>
         </header>
-        <main className="flex-1 overflow-auto bg-slate-100 p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-auto bg-gray-50 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );
