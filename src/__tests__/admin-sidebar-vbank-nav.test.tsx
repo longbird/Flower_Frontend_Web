@@ -26,6 +26,14 @@ describe('AdminSidebar vbank navigation', () => {
     expect(screen.getByRole('link', { name: /오늘 결제 큐/ })).toHaveAttribute('href', '/admin/payments');
   });
 
+  it('keeps the payment list entry under the payment group', () => {
+    render(<AdminSidebar />);
+
+    fireEvent.click(screen.getByRole('button', { name: /결제/ }));
+    const paymentGroup = screen.getByRole('button', { name: /결제/ }).parentElement!;
+    expect(within(paymentGroup).getByRole('link', { name: /결제 목록/ })).toHaveAttribute('href', '/admin/payments');
+  });
+
   it('places vbank operations under audit and vbank credentials under settings', async () => {
     render(<AdminSidebar />);
 

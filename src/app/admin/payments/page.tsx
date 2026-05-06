@@ -37,7 +37,7 @@ const SAVED_VIEWS: { key: string; label: string; status: string }[] = [
   { key: 'review', label: '처리 필요', status: 'IN_PROGRESS' },
   { key: 'pending', label: '입금대기', status: 'WAITING_FOR_DEPOSIT' },
   { key: 'done', label: '오늘 완료', status: 'DONE' },
-  { key: 'all', label: '전체', status: '' },
+  { key: 'all', label: '결제 목록', status: '' },
 ];
 
 function getDefaultDateRange(): { start: string; end: string } {
@@ -362,6 +362,16 @@ export default function PaymentsPage() {
             초기화
           </button>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-slate-950">결제 목록</h2>
+          <p className="text-sm text-slate-500">선택한 기간과 상태 조건에 맞는 카드/가상계좌 결제 내역입니다.</p>
+        </div>
+        <Badge variant="outline" className="rounded-md border-slate-300 px-2.5 py-1 text-slate-700">
+          {filteredTransactions.length}건
+        </Badge>
       </div>
 
       <PaymentTable

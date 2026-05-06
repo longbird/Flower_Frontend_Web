@@ -56,6 +56,7 @@ const navEntries: NavEntry[] = [
     icon: <PaymentIcon />,
     color: 'text-violet-600',
     items: [
+      { href: '/admin/payments', label: '결제 목록', icon: <PaymentIcon /> },
       { href: '/admin/payments/key-in', label: '수동 결제', icon: <PaymentIcon /> },
     ],
   },
