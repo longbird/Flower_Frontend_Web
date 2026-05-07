@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 
-const ALLOWED_ROLES = ['SUPER_ADMIN', 'ADMIN'];
+const ALLOWED_ROLES = ['AIRCPM_ADMIN'];
 
 export default function AircpmLoginPage() {
   const router = useRouter();
@@ -46,7 +46,7 @@ export default function AircpmLoginPage() {
         return;
       }
       if (!ALLOWED_ROLES.includes(res.admin.role)) {
-        setError('권한이 없는 계정입니다. SUPER_ADMIN 또는 ADMIN 역할이 필요합니다.');
+        setError('AirCPM 관리자 계정만 사용할 수 있습니다.');
         setLoading(false);
         return;
       }
@@ -116,7 +116,7 @@ export default function AircpmLoginPage() {
           </form>
 
           <p className="text-[11px] text-slate-400 text-center mt-6 leading-relaxed">
-            본 페이지는 RunFlower 관리자 계정(SUPER_ADMIN · ADMIN)만 이용할 수 있습니다.
+            본 페이지는 AirCPM 전용 관리자 계정만 이용할 수 있습니다.
           </p>
         </CardContent>
       </Card>

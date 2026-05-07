@@ -17,7 +17,7 @@ const NAV: Array<{ href: string; label: string }> = [
   { href: '/aircpm/targetapps', label: '배차앱 설정' },
 ];
 
-const ALLOWED_ROLES = ['SUPER_ADMIN', 'ADMIN'];
+const ALLOWED_ROLES = ['AIRCPM_ADMIN'];
 
 export default function AircpmLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -37,7 +37,7 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
       return;
     }
     if (user && !ALLOWED_ROLES.includes(user.role)) {
-      toast.error('권한이 없습니다. SUPER_ADMIN/ADMIN만 사용 가능합니다.');
+      toast.error('권한이 없습니다. AirCPM 관리자 계정만 사용 가능합니다.');
       router.replace('/aircpm/login');
     }
   }, [pathname, isLoggedIn, user, router]);
