@@ -72,13 +72,17 @@ export default function AircpmUserSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => {
+      // telegram 자격은 all-or-nothing — 한쪽이라도 비면 양쪽 모두 null로 정규화
+      const tgToken = telegramBotToken.trim();
+      const tgChat = telegramChatId.trim();
+      const tgComplete = tgToken.length > 0 && tgChat.length > 0;
       const body: AircpmUserSettingsPatch = {
         appTitle: appTitle.trim() || 'AirCPM',
         copyApps,
         pasteApps,
         priceUp,
-        telegramBotToken: telegramBotToken.trim() || null,
-        telegramChatId: telegramChatId.trim() || null,
+        telegramBotToken: tgComplete ? tgToken : null,
+        telegramChatId: tgComplete ? tgChat : null,
       };
       return updateAircpmUserSettings(userId, body);
     },

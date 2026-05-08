@@ -91,7 +91,7 @@ export default function AircpmLoginLogsPage() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const applyFilters = () => {
-    setUserIdFilter(userIdInput);
+    setUserIdFilter(userIdInput.trim());
     setPage(1);
   };
 
@@ -142,7 +142,13 @@ export default function AircpmLoginLogsPage() {
             <label className="block text-[11px] tracking-[0.18em] uppercase text-slate-500 font-semibold mb-1">
               엔드포인트
             </label>
-            <Select value={endpoint} onValueChange={(v) => { setEndpoint(v as any); setPage(1); }}>
+            <Select
+              value={endpoint}
+              onValueChange={(v) => {
+                setEndpoint(v as AircpmLoginLogEndpoint | 'all');
+                setPage(1);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -157,7 +163,13 @@ export default function AircpmLoginLogsPage() {
             <label className="block text-[11px] tracking-[0.18em] uppercase text-slate-500 font-semibold mb-1">
               결과
             </label>
-            <Select value={result} onValueChange={(v) => { setResult(v as any); setPage(1); }}>
+            <Select
+              value={result}
+              onValueChange={(v) => {
+                setResult(v as AircpmLoginLogResult | 'all');
+                setPage(1);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
