@@ -12,14 +12,29 @@ import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 
-const NAV: Array<{ href: string; label: string }> = [
+type NavItem = { href: string; label: string; superOnly?: boolean };
+
+const NAV: Array<NavItem> = [
   { href: '/aircpm/certs', label: '기기 인증' },
   { href: '/aircpm/users', label: '사용자' },
-  { href: '/aircpm/targetapps', label: '배차앱 설정' },
+  { href: '/aircpm/targetapps', label: '배차앱 설정', superOnly: true },
   { href: '/aircpm/login-logs', label: '로그인 로그' },
 ];
 
-const ALLOWED_ROLES = ['AIRCPM_ADMIN'];
+const ALLOWED_ROLES = ['AIRCPM_SUPER_ADMIN', 'AIRCPM_BRANCH_ADMIN', 'AIRCPM_ADMIN'];
+
+function roleLabel(role?: string): string {
+  switch (role) {
+    case 'AIRCPM_SUPER_ADMIN':
+      return '슈퍼 관리자';
+    case 'AIRCPM_BRANCH_ADMIN':
+      return '지사 관리자';
+    case 'AIRCPM_ADMIN':
+      return '관리자';
+    default:
+      return role || '';
+  }
+}
 
 export default function AircpmLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -94,7 +109,7 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
             </div>
           </Link>
           <nav className="flex-1 flex items-center gap-1">
-            {NAV.map((item) => {
+            {NAV.filter((item) => !item.superOnly || user?.isSuper).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
                 <Link
@@ -114,7 +129,10 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
           </nav>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-slate-500 hidden sm:inline">
-              {user?.name || user?.username} · <span className="text-xs text-slate-400">{user?.role}</span>
+              {user?.name || user?.username}
+              {user?.brchCd ? <span className="text-slate-400"> · {user.brchCd}</span> : null}
+              {' '}
+              <span className="text-xs text-slate-400">· {roleLabel(user?.role)}</span>
             </span>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               로그아웃
