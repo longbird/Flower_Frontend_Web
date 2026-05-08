@@ -12,15 +12,21 @@ function refreshAccessToken(): Promise<string> {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
-    const { refreshToken, setTokens, logout } = useAuthStore.getState();
+    const { refreshToken, setTokens, logout, user } = useAuthStore.getState();
 
     if (!refreshToken) {
       logout();
       throw new Error('No refresh token');
     }
 
+    // aircpm_user 출처 토큰은 사이트 전용 refresh 엔드포인트로 회전
+    const refreshPath =
+      user?.tokenSource === 'aircpm_user'
+        ? '/aircpm/admin-site/auth/refresh'
+        : '/admin/auth/refresh';
+
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/auth/refresh`, {
+      const res = await fetch(`${API_BASE_URL}${refreshPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),

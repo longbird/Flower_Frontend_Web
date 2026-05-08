@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/lib/auth/store';
 import { adminLogout } from '@/lib/api/admin';
+import { aircpmAdminSiteLogout } from '@/lib/api/aircpm';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
@@ -15,6 +16,7 @@ const NAV: Array<{ href: string; label: string }> = [
   { href: '/aircpm/certs', label: '기기 인증' },
   { href: '/aircpm/users', label: '사용자' },
   { href: '/aircpm/targetapps', label: '배차앱 설정' },
+  { href: '/aircpm/login-logs', label: '로그인 로그' },
 ];
 
 const ALLOWED_ROLES = ['AIRCPM_ADMIN'];
@@ -44,7 +46,13 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
 
   const handleLogout = async () => {
     try {
-      if (refreshToken) await adminLogout(refreshToken);
+      if (refreshToken) {
+        if (user?.tokenSource === 'aircpm_user') {
+          await aircpmAdminSiteLogout(refreshToken);
+        } else {
+          await adminLogout(refreshToken);
+        }
+      }
     } catch {}
     logout();
     toast.info('로그아웃 되었습니다.');
