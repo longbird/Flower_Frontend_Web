@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import {
   getAircpmUserSettings,
   updateAircpmUserSettings,
-  type AircpmUserSettings,
+  type AircpmUserSettingsPatch,
 } from '@/lib/api/aircpm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -57,6 +57,8 @@ export default function AircpmUserSettingsPage() {
     true,
   ]);
   const [priceUp, setPriceUp] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
 
   useEffect(() => {
     if (!data) return;
@@ -64,15 +66,23 @@ export default function AircpmUserSettingsPage() {
     setCopyApps(data.copyApps);
     setPasteApps(data.pasteApps);
     setPriceUp(data.priceUp);
+    setTelegramBotToken(data.telegram?.botToken ?? '');
+    setTelegramChatId(data.telegram?.chatId ?? '');
   }, [data]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const body: AircpmUserSettings = {
+      // telegram 자격은 all-or-nothing — 한쪽이라도 비면 양쪽 모두 null로 정규화
+      const tgToken = telegramBotToken.trim();
+      const tgChat = telegramChatId.trim();
+      const tgComplete = tgToken.length > 0 && tgChat.length > 0;
+      const body: AircpmUserSettingsPatch = {
         appTitle: appTitle.trim() || 'AirCPM',
         copyApps,
         pasteApps,
         priceUp,
+        telegramBotToken: tgComplete ? tgToken : null,
+        telegramChatId: tgComplete ? tgChat : null,
       };
       return updateAircpmUserSettings(userId, body);
     },
@@ -109,7 +119,7 @@ export default function AircpmUserSettingsPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{userId} 설정</h1>
           <p className="text-sm text-slate-500 mt-1">
-            앱 타이틀, 복사/붙여넣기 대상, 단가 인상 옵션을 편집합니다.
+            앱 타이틀, 복사/붙여넣기 대상, 단가 인상, 진단 로그 Telegram 자격을 편집합니다.
           </p>
         </div>
         <Button variant="ghost" onClick={() => router.push('/aircpm/users')}>
@@ -214,6 +224,47 @@ export default function AircpmUserSettingsPage() {
                   </p>
                 </div>
               </label>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900 mb-1">진단 로그 Telegram</h2>
+                <p className="text-[12px] text-slate-500">
+                  데스크톱 클라이언트의 에러/경고/크래시 로그를 운영팀 Telegram 으로 자동 전송합니다.
+                  봇 토큰과 채팅 ID 둘 중 하나라도 비어 있으면 전송이 비활성화되며 클라이언트는 종료 시 로컬 로그를 삭제합니다.
+                </p>
+              </div>
+              <div>
+                <label className="block text-[11px] tracking-[0.22em] uppercase text-slate-500 font-semibold mb-2">
+                  Bot Token (telegramBotToken)
+                </label>
+                <Input
+                  value={telegramBotToken}
+                  onChange={(e) => setTelegramBotToken(e.target.value)}
+                  placeholder="예: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] tracking-[0.22em] uppercase text-slate-500 font-semibold mb-2">
+                  Chat ID (telegramChatId)
+                </label>
+                <Input
+                  value={telegramChatId}
+                  onChange={(e) => setTelegramChatId(e.target.value)}
+                  placeholder="예: 123456789 또는 -1001234567890"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              {(!telegramBotToken.trim() || !telegramChatId.trim()) && (
+                <p className="text-[11px] text-amber-600">
+                  현재 비어있는 필드가 있어 진단 로그 전송이 비활성화됩니다.
+                </p>
+              )}
             </CardContent>
           </Card>
 

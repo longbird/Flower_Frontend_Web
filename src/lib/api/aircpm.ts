@@ -1,4 +1,55 @@
 import { api } from './client';
+import type { AdminUser } from '@/lib/types/auth';
+
+// ─── Admin site auth (aircpm_user power=9 → 사이트 로그인) ─────────
+
+export interface AircpmAdminSiteLoginResponse {
+  ok: boolean;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  refreshExpiresIn: number;
+  admin: AdminUser & { tokenSource: 'aircpm_user' };
+}
+
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+const ADMIN_SITE_BASE = RAW_API_BASE ? '/api/proxy' : '';
+
+/**
+ * AirCPM 사이트 전용 로그인. aircpm_user 테이블의 power=9 사용자만 통과.
+ * client 모듈의 401 자동 refresh를 우회해서 직접 호출 (로그인 자체는 토큰이 없는 상태).
+ */
+export async function aircpmAdminSiteLogin(username: string, password: string) {
+  const res = await fetch(`${ADMIN_SITE_BASE}/aircpm/admin-site/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    let data: unknown;
+    try { data = await res.json(); } catch {}
+    const msg =
+      data && typeof data === 'object' && 'message' in data
+        ? String((data as Record<string, unknown>).message)
+        : '로그인에 실패했습니다.';
+    const err = new Error(msg) as Error & { status?: number; code?: string };
+    err.status = res.status;
+    if (data && typeof data === 'object' && 'code' in data) {
+      err.code = String((data as Record<string, unknown>).code);
+    }
+    throw err;
+  }
+  return (await res.json()) as AircpmAdminSiteLoginResponse;
+}
+
+export async function aircpmAdminSiteLogout(refreshToken: string | null) {
+  return api<void>(`/aircpm/admin-site/auth/logout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+  });
+}
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -46,12 +97,31 @@ export interface AircpmUserListResponse {
   limit: number;
 }
 
+export interface AircpmTelegramCreds {
+  botToken: string;
+  chatId: string;
+}
+
 export interface AircpmUserSettings {
   // 백엔드는 미설정 시 null을 반환. UI에서는 기본값 "AirCPM"로 대체.
   appTitle: string | null;
   copyApps: [boolean, boolean, boolean, boolean];
   pasteApps: [boolean, boolean, boolean, boolean];
   priceUp: boolean;
+  // 진단 로그 전송용 Telegram 자격. 둘 다 비어있지 않을 때만 객체, 그 외 null.
+  // 응답에 키는 항상 존재 (명시적 null) — `telegram == null` 검사로 전송 비활성 판단.
+  telegram: AircpmTelegramCreds | null;
+}
+
+// 설정 PATCH 페이로드. telegram은 단일 객체가 아니라 평탄화된 두 필드로 분리.
+// 부분 업데이트 의미: undefined 필드는 기존 값을 유지, null은 명시적으로 비움.
+export interface AircpmUserSettingsPatch {
+  appTitle?: string | null;
+  copyApps?: [boolean, boolean, boolean, boolean];
+  pasteApps?: [boolean, boolean, boolean, boolean];
+  priceUp?: boolean;
+  telegramBotToken?: string | null;
+  telegramChatId?: string | null;
 }
 
 // ─── Cert requests ─────────────────────────────────────────────────
@@ -154,8 +224,11 @@ export async function getAircpmUserSettings(userId: string) {
   return api<AircpmUserSettings>(`/admin/aircpm/users/${encodeURIComponent(userId)}/settings`);
 }
 
-export async function updateAircpmUserSettings(userId: string, body: AircpmUserSettings) {
-  return api<{ ok: true; settings: AircpmUserSettings }>(
+export async function updateAircpmUserSettings(
+  userId: string,
+  body: AircpmUserSettingsPatch,
+) {
+  return api<AircpmUserSettings>(
     `/admin/aircpm/users/${encodeURIComponent(userId)}/settings`,
     {
       method: 'PUT',
@@ -163,6 +236,62 @@ export async function updateAircpmUserSettings(userId: string, body: AircpmUserS
       body: JSON.stringify(body),
     },
   );
+}
+
+// ─── Login logs ────────────────────────────────────────────────────
+
+export type AircpmLoginLogEndpoint = 'login' | 'cert_request';
+export type AircpmLoginLogResult =
+  | 'success'
+  | 'invalid_credentials'
+  | 'account_disabled'
+  | 'cert_not_approved'
+  | 'cert_rejected'
+  | 'already_approved'
+  | 'pending';
+
+export interface AircpmLoginLogItem {
+  id: number;
+  attemptedAt: string;
+  endpoint: AircpmLoginLogEndpoint;
+  result: AircpmLoginLogResult;
+  userId: string | null;
+  aircpmUserId: number | null;
+  rejectReason: string | null;
+  serial: string | null;
+  macAddress: string | null;
+  computerName: string | null;
+  realIp: string | null;
+  userAgent: string | null;
+}
+
+export interface AircpmLoginLogListResponse {
+  items: AircpmLoginLogItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ListAircpmLoginLogsParams {
+  page?: number;
+  limit?: number;
+  userId?: string;
+  endpoint?: AircpmLoginLogEndpoint | 'all';
+  result?: AircpmLoginLogResult | 'all';
+  fromDate?: string;
+  toDate?: string;
+}
+
+export async function listAircpmLoginLogs(params: ListAircpmLoginLogsParams = {}) {
+  const sp = new URLSearchParams();
+  sp.set('page', String(params.page ?? 1));
+  sp.set('limit', String(params.limit ?? 50));
+  if (params.userId) sp.set('userId', params.userId);
+  if (params.endpoint && params.endpoint !== 'all') sp.set('endpoint', params.endpoint);
+  if (params.result && params.result !== 'all') sp.set('result', params.result);
+  if (params.fromDate) sp.set('fromDate', params.fromDate);
+  if (params.toDate) sp.set('toDate', params.toDate);
+  return api<AircpmLoginLogListResponse>(`/admin/aircpm/login-logs?${sp.toString()}`);
 }
 
 // ─── TargetApps (P1) ───────────────────────────────────────────────

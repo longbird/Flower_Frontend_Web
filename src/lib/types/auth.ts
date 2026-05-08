@@ -1,9 +1,13 @@
+export type AdminTokenSource = 'admin_user' | 'aircpm_user';
+
 export interface AdminUser {
   id: number;
   username: string;
   name: string;
   role: string;
   organization?: unknown;
+  // 토큰 발급 출처. 미지정시 'admin_user' 로 간주 (기존 호환).
+  tokenSource?: AdminTokenSource;
 }
 
 export interface LoginResponse {

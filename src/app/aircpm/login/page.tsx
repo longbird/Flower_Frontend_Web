@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth/store';
-import { adminLogin } from '@/lib/api/admin';
+import { aircpmAdminSiteLogin } from '@/lib/api/aircpm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,23 +37,26 @@ export default function AircpmLoginPage() {
     }
     setLoading(true);
     try {
-      const res = await adminLogin(username, password);
-      // 백엔드는 자격 증명 실패 시 HTTP 200 + {ok:false, error:"..."}로 응답함
+      const res = await aircpmAdminSiteLogin(username.trim(), password);
       if (!res.ok || !res.admin) {
-        const message = (res as unknown as { error?: string }).error || '아이디 또는 비밀번호가 올바르지 않습니다.';
-        setError(message);
-        setLoading(false);
-        return;
-      }
-      if (!ALLOWED_ROLES.includes(res.admin.role)) {
-        setError('AirCPM 관리자 계정만 사용할 수 있습니다.');
+        setError('로그인에 실패했습니다.');
         setLoading(false);
         return;
       }
       login(res.accessToken, res.refreshToken, res.admin);
       router.replace('/aircpm/certs');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
+      const code = (err as { code?: string }).code;
+      const message = err instanceof Error ? err.message : '로그인에 실패했습니다.';
+      if (code === 'NOT_ADMIN') {
+        setError('관리자 권한이 없는 계정입니다 (power=9 필요).');
+      } else if (code === 'ACCOUNT_DISABLED') {
+        setError('비활성화된 계정입니다.');
+      } else if (code === 'INVALID_CREDENTIALS') {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
