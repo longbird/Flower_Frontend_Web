@@ -8,6 +8,9 @@ export interface AdminUser {
   organization?: unknown;
   // 토큰 발급 출처. 미지정시 'admin_user' 로 간주 (기존 호환).
   tokenSource?: AdminTokenSource;
+  // AirCPM 사이트 로그인 한정: 슈퍼 관리자 여부 + 소속 brch_cd.
+  isSuper?: boolean;
+  brchCd?: string | null;
 }
 
 export interface LoginResponse {

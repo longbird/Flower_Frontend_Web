@@ -11,6 +11,7 @@ import {
   deleteAircpmUser,
   type AircpmUser,
 } from '@/lib/api/aircpm';
+import { useAuthStore } from '@/lib/auth/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,8 +60,9 @@ function fmtDateTime(iso: string) {
 
 const POWER_LABELS: Record<number, string> = {
   1: '운영',
-  5: '일반',
-  9: '관리자',
+  5: '일반 사용자',
+  7: '지사 관리자',
+  9: '슈퍼 관리자',
 };
 
 function powerBadge(power: number) {
@@ -68,15 +70,19 @@ function powerBadge(power: number) {
   const tone =
     power >= 9
       ? 'bg-red-100 text-red-700 border-red-200'
-      : power >= 5
-        ? 'bg-slate-100 text-slate-700 border-slate-200'
-        : 'bg-amber-100 text-amber-800 border-amber-200';
+      : power >= 7
+        ? 'bg-amber-100 text-amber-800 border-amber-200'
+        : power >= 5
+          ? 'bg-slate-100 text-slate-700 border-slate-200'
+          : 'bg-blue-100 text-blue-700 border-blue-200';
   return <Badge className={`${tone} hover:${tone}`}>{label}</Badge>;
 }
 
 // ─── Page ───────────────────────────────────────────────────────────
 
 export default function AircpmUsersPage() {
+  const isSuper = useAuthStore((s) => s.user?.isSuper ?? false);
+  const callerBrchCd = useAuthStore((s) => s.user?.brchCd ?? null);
   const [q, setQ] = useState('');
   const [qActive, setQActive] = useState('');
   const [page, setPage] = useState(1);
@@ -245,6 +251,8 @@ export default function AircpmUsersPage() {
       {/* Create dialog */}
       {createOpen && (
         <UserCreateDialog
+          isSuper={isSuper}
+          callerBrchCd={callerBrchCd}
           onClose={() => setCreateOpen(false)}
           onSuccess={() => {
             setCreateOpen(false);
@@ -257,6 +265,7 @@ export default function AircpmUsersPage() {
       {editTarget && (
         <UserEditDialog
           user={editTarget}
+          isSuper={isSuper}
           onClose={() => setEditTarget(null)}
           onSuccess={() => {
             setEditTarget(null);
@@ -304,12 +313,23 @@ export default function AircpmUsersPage() {
 
 // ─── Create dialog ────────────────────────────────────────────────
 
-function UserCreateDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function UserCreateDialog({
+  isSuper,
+  callerBrchCd,
+  onClose,
+  onSuccess,
+}: {
+  isSuper: boolean;
+  callerBrchCd: string | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [brchCd, setBrchCd] = useState('');
-  const [power, setPower] = useState('5');
+  // 일반 관리자: brchCd 자기 소속 자동 채움 + 변경 불가, power=5 고정
+  const [brchCd, setBrchCd] = useState(isSuper ? '' : callerBrchCd ?? '');
+  const [power, setPower] = useState(isSuper ? '5' : '5');
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -334,7 +354,11 @@ function UserCreateDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
       <DialogContent>
         <DialogHeader>
           <DialogTitle>사용자 추가</DialogTitle>
-          <DialogDescription>AirCPM 데스크톱 클라이언트 계정을 새로 생성합니다.</DialogDescription>
+          <DialogDescription>
+            {isSuper
+              ? 'AirCPM 데스크톱 클라이언트 계정 또는 지사 관리자 계정을 생성합니다.'
+              : '자신의 소속(brch_cd) 일반 사용자 계정을 생성합니다.'}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <Field label="아이디 *">
@@ -363,20 +387,27 @@ function UserCreateDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
               onChange={(e) => setBrchCd(e.target.value)}
               placeholder="예: S001"
               autoComplete="off"
+              disabled={!isSuper}
             />
           </Field>
-          <Field label="권한 (power)">
-            <Select value={power} onValueChange={setPower}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1 · 운영</SelectItem>
-                <SelectItem value="5">5 · 일반 (기본)</SelectItem>
-                <SelectItem value="9">9 · 관리자</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
+          {isSuper ? (
+            <Field label="권한 (power)">
+              <Select value={power} onValueChange={setPower}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 · 일반 사용자 (기본)</SelectItem>
+                  <SelectItem value="7">7 · 지사 관리자</SelectItem>
+                  <SelectItem value="9">9 · 슈퍼 관리자</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          ) : (
+            <p className="text-[11px] text-slate-500 pt-1">
+              지사 관리자는 일반 사용자(power=5) 만 생성할 수 있습니다.
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
@@ -399,10 +430,12 @@ function UserCreateDialog({ onClose, onSuccess }: { onClose: () => void; onSucce
 
 function UserEditDialog({
   user,
+  isSuper,
   onClose,
   onSuccess,
 }: {
   user: AircpmUser;
+  isSuper: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -417,8 +450,9 @@ function UserEditDialog({
       updateAircpmUser(user.userId, {
         password: password || undefined,
         name: name.trim() || null,
-        brchCd: brchCd.trim() || null,
-        power: Number(power),
+        // 일반 관리자: brchCd / power 변경 보내지 않음 (백엔드도 거부)
+        brchCd: isSuper ? brchCd.trim() || null : undefined,
+        power: isSuper ? Number(power) : undefined,
         isActive,
       }),
     onSuccess: () => {
@@ -451,20 +485,30 @@ function UserEditDialog({
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
           <Field label="지사 코드 (brchCd)">
-            <Input value={brchCd} onChange={(e) => setBrchCd(e.target.value)} />
+            <Input
+              value={brchCd}
+              onChange={(e) => setBrchCd(e.target.value)}
+              disabled={!isSuper}
+            />
           </Field>
-          <Field label="권한 (power)">
-            <Select value={power} onValueChange={setPower}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1 · 운영</SelectItem>
-                <SelectItem value="5">5 · 일반</SelectItem>
-                <SelectItem value="9">9 · 관리자</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
+          {isSuper ? (
+            <Field label="권한 (power)">
+              <Select value={power} onValueChange={setPower}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 · 일반 사용자</SelectItem>
+                  <SelectItem value="7">7 · 지사 관리자</SelectItem>
+                  <SelectItem value="9">9 · 슈퍼 관리자</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          ) : (
+            <p className="text-[11px] text-slate-500">
+              지사 관리자는 권한·소속을 변경할 수 없습니다.
+            </p>
+          )}
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
