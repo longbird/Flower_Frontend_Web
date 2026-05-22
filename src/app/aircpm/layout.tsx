@@ -3,7 +3,7 @@
 import '@/app/globals.css';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/auth/store';
 import { adminLogout } from '@/lib/api/admin';
 import { aircpmAdminSiteLogout } from '@/lib/api/aircpm';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
+import { Menu, X } from 'lucide-react';
 
 type NavItem = { href: string; label: string; superOnly?: boolean };
 
@@ -42,6 +43,7 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoggedIn, refreshToken, logout, loadSession } = useAuthStore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // 세션 복원
   useEffect(() => {
@@ -60,6 +62,11 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
       router.replace('/aircpm/login');
     }
   }, [pathname, isLoggedIn, user, router]);
+
+  // 경로 이동 시 모바일 메뉴 닫기
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -95,6 +102,8 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
     );
   }
 
+  const visibleNav = NAV.filter((item) => !item.superOnly || user?.isSuper);
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
@@ -110,8 +119,8 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
               <div className="text-[10px] tracking-wider uppercase text-slate-400">Device Cert Management</div>
             </div>
           </Link>
-          <nav className="flex-1 flex items-center gap-1">
-            {NAV.filter((item) => !item.superOnly || user?.isSuper).map((item) => {
+          <nav className="hidden md:flex flex-1 items-center gap-1">
+            {visibleNav.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
                 <Link
@@ -129,7 +138,7 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
               );
             })}
           </nav>
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-3 text-sm ml-auto">
             <span className="text-slate-500 hidden sm:inline">
               {user?.name || user?.username}
               {user?.brchCd ? <span className="text-slate-400"> · {user.brchCd}</span> : null}
@@ -139,8 +148,40 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               로그아웃
             </Button>
+            <button
+              type="button"
+              aria-label="메뉴"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              className="md:hidden p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {mobileMenuOpen && (
+          <nav className="md:hidden border-t border-slate-200 bg-white px-2 py-2 flex flex-col gap-0.5">
+            {visibleNav.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    'px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </header>
 
       <main className="flex-1 overflow-auto">
