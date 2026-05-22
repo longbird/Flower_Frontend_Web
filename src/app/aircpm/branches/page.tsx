@@ -39,6 +39,7 @@ export default function BranchesPage() {
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['aircpm-branches'],
     queryFn: listAircpmBranches,
+    enabled: isSuper,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['aircpm-branches'] });
@@ -48,9 +49,17 @@ export default function BranchesPage() {
 
   if (!isSuper) {
     return (
-      <div className="text-center py-16 text-slate-400">
-        <p className="text-lg font-medium text-slate-600">권한 없음</p>
-        <p className="text-sm mt-1">지사 관리는 슈퍼 관리자 전용 기능입니다.</p>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-slate-900">지사 관리</h1>
+        <Card>
+          <CardContent className="py-12 text-center space-y-2">
+            <p className="text-slate-700 font-medium">슈퍼 관리자 전용 메뉴입니다.</p>
+            <p className="text-sm text-slate-500">
+              지사 관리는 슈퍼 관리자만 사용할 수 있습니다.
+              지사 관리자는 사용자 / 기기 인증 / 로그인 로그 메뉴를 사용해 주세요.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
