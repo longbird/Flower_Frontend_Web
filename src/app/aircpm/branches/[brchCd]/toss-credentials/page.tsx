@@ -320,7 +320,15 @@ export default function TossCredentialsPage() {
       )}
 
       {/* LIVE 저장 경고 — AlertDialog */}
-      <AlertDialog open={showLiveConfirm} onOpenChange={(open) => !open && setShowLiveConfirm(false)}>
+      <AlertDialog
+        open={showLiveConfirm}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowLiveConfirm(false);
+            setPendingPayload(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>실결제 키를 저장하시겠습니까?</AlertDialogTitle>
@@ -330,7 +338,12 @@ export default function TossCredentialsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowLiveConfirm(false)}>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowLiveConfirm(false);
+                setPendingPayload(null);
+              }}
+            >
               취소
             </AlertDialogCancel>
             <AlertDialogAction

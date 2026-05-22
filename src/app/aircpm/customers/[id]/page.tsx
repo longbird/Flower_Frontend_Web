@@ -14,6 +14,7 @@ import {
   type AircpmPayment,
 } from '@/lib/api/aircpm-payments';
 import { getCardAgeLevel, cardAgeColorClass } from '@/lib/aircpm/card-age';
+import { useAuthStore } from '@/lib/auth/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -110,7 +111,9 @@ export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const customerId = Number(params.id);
-  const brchCd = useSearchParams().get('brchCd') ?? undefined;
+  const isSuper = useAuthStore((s) => s.user?.isSuper ?? false);
+  const searchParams = useSearchParams();
+  const brchCd = isSuper ? (searchParams.get('brchCd') ?? undefined) : undefined;
 
   const queryClient = useQueryClient();
   const queryKey = ['aircpm-customer', customerId, brchCd];

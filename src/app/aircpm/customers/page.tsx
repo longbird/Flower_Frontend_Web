@@ -79,7 +79,7 @@ export default function CustomersPage() {
 
   const handleRowClick = (customer: AircpmCustomer) => {
     const suffix =
-      isSuper && selectedBrchCd ? `?brchCd=${selectedBrchCd}` : '';
+      isSuper && selectedBrchCd ? `?brchCd=${encodeURIComponent(selectedBrchCd)}` : '';
     router.push(`/aircpm/customers/${customer.id}${suffix}`);
   };
 

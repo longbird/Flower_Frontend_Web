@@ -38,7 +38,11 @@ export default function BranchesPage() {
 
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['aircpm-branches'],
-    queryFn: listAircpmBranches,
+    queryFn: () =>
+      listAircpmBranches().catch((err) => {
+        toastForError(err, '지사 목록을 불러오지 못했습니다.');
+        return [] as AircpmBranch[];
+      }),
     enabled: isSuper,
   });
 
