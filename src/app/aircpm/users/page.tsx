@@ -11,6 +11,7 @@ import {
   deleteAircpmUser,
   type AircpmUser,
 } from '@/lib/api/aircpm';
+import { listAircpmBranches, type AircpmBranch } from '@/lib/api/aircpm-payments';
 import { useAuthStore } from '@/lib/auth/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -330,6 +331,7 @@ function UserCreateDialog({
   // 일반 관리자: brchCd 자기 소속 자동 채움 + 변경 불가, power=5 고정
   const [brchCd, setBrchCd] = useState(isSuper ? '' : callerBrchCd ?? '');
   const [power, setPower] = useState(isSuper ? '5' : '5');
+  const { data: branches = [], isLoading: branchesLoading } = useAircpmBranchOptions(isSuper);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -381,14 +383,17 @@ function UserCreateDialog({
           <Field label="이름">
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" />
           </Field>
-          <Field label="지사 코드 (brchCd)">
-            <Input
-              value={brchCd}
-              onChange={(e) => setBrchCd(e.target.value)}
-              placeholder="예: S001"
-              autoComplete="off"
-              disabled={!isSuper}
-            />
+          <Field label="지사">
+            {isSuper ? (
+              <BranchSelect
+                value={brchCd}
+                onChange={setBrchCd}
+                branches={branches}
+                loading={branchesLoading}
+              />
+            ) : (
+              <Input value={brchCd || '(소속 없음)'} disabled />
+            )}
           </Field>
           {isSuper ? (
             <Field label="권한 (power)">
@@ -444,6 +449,7 @@ function UserEditDialog({
   const [brchCd, setBrchCd] = useState(user.brchCd ?? '');
   const [power, setPower] = useState(String(user.power));
   const [isActive, setIsActive] = useState(user.isActive);
+  const { data: branches = [], isLoading: branchesLoading } = useAircpmBranchOptions(isSuper);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -484,12 +490,17 @@ function UserEditDialog({
           <Field label="이름">
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
-          <Field label="지사 코드 (brchCd)">
-            <Input
-              value={brchCd}
-              onChange={(e) => setBrchCd(e.target.value)}
-              disabled={!isSuper}
-            />
+          <Field label="지사">
+            {isSuper ? (
+              <BranchSelect
+                value={brchCd}
+                onChange={setBrchCd}
+                branches={branches}
+                loading={branchesLoading}
+              />
+            ) : (
+              <Input value={brchCd || '(소속 없음)'} disabled />
+            )}
           </Field>
           {isSuper ? (
             <Field label="권한 (power)">
@@ -547,5 +558,56 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <label className="text-xs font-medium text-slate-500">{label}</label>
       {children}
     </div>
+  );
+}
+
+// ─── Branch select ────────────────────────────────────────────────
+//
+// 지사 목록은 카드결제 지사 관리(`/admin/aircpm/branches`)에서 가져온다.
+// branches API는 super 전용이므로 super일 때만 fetch한다.
+
+function useAircpmBranchOptions(enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin-aircpm-branches'],
+    queryFn: () => listAircpmBranches(),
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+// SelectItem 은 빈 문자열 value 를 허용하지 않아 '지사 없음'용 sentinel 사용.
+const BRANCH_NONE = '__none__';
+
+function BranchSelect({
+  value,
+  onChange,
+  branches,
+  loading,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  branches: AircpmBranch[];
+  loading?: boolean;
+}) {
+  // 기존 값이 목록에 없으면 (미등록) 항목으로 보존해 값 유실을 막는다.
+  const known = !value || branches.some((b) => b.brchCd === value);
+  return (
+    <Select
+      value={value || BRANCH_NONE}
+      onValueChange={(v) => onChange(v === BRANCH_NONE ? '' : v)}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder={loading ? '불러오는 중...' : '지사 선택'} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={BRANCH_NONE}>(지사 없음)</SelectItem>
+        {branches.map((b) => (
+          <SelectItem key={b.brchCd} value={b.brchCd}>
+            {b.name ? `${b.name} (${b.brchCd})` : b.brchCd}
+          </SelectItem>
+        ))}
+        {!known && <SelectItem value={value}>{value} (미등록)</SelectItem>}
+      </SelectContent>
+    </Select>
   );
 }
