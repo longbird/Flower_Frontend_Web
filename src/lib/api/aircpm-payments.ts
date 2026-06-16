@@ -4,6 +4,8 @@ export interface AircpmBranch {
   brchCd: string;
   name: string | null;
   cardPaymentEnabled: boolean;
+  copyApps: boolean[];   // 5슬롯: 0=AUTO,1=D5,2=XE4,3=ICON,4=D2
+  pasteApps: boolean[];
 }
 export interface AircpmTossCredential {
   brchCd: string;
@@ -52,6 +54,7 @@ export async function listAircpmBranches(): Promise<AircpmBranch[]> {
 
 export async function upsertAircpmBranch(body: {
   brchCd: string; name?: string; cardPaymentEnabled?: boolean;
+  copyApps?: boolean[]; pasteApps?: boolean[];
 }): Promise<{ ok: true }> {
   return api('/admin/aircpm/branches', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

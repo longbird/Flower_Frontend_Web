@@ -31,6 +31,19 @@ describe('aircpm-payments API', () => {
     expect(JSON.parse(opts.body).brchCd).toBe('S001');
   });
 
+  it('upsertAircpmBranch → copyApps/pasteApps 바디 포함', async () => {
+    mockApi.mockResolvedValueOnce({ ok: true });
+    await upsertAircpmBranch({
+      brchCd: 'S001',
+      copyApps: [true, false, true, false, false],
+      pasteApps: [true, true, true, true, true],
+    });
+    const [, opts] = mockApi.mock.calls[0];
+    const body = JSON.parse(opts.body);
+    expect(body.copyApps).toEqual([true, false, true, false, false]);
+    expect(body.pasteApps).toEqual([true, true, true, true, true]);
+  });
+
   it('listAircpmTossCredentials → GET /admin/aircpm/branches/:brchCd/toss-credentials', async () => {
     mockApi.mockResolvedValueOnce([]);
     await listAircpmTossCredentials('S001');
