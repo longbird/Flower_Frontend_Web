@@ -30,6 +30,69 @@ function toastForError(err: unknown, fallback = '요청에 실패했습니다.')
   toast.error(message || fallback);
 }
 
+// ─── 지원 프로그램 (copy/paste apps) ───────────────────────────────
+// 슬롯 순서(백엔드 계약): 0=AUTO,1=D5,2=XE4,3=ICON,4=D2
+const PROGRAM_LABELS = ['AUTO', 'Logi D5', 'XE4', 'Icon', 'D2'] as const;
+const ALL_ON: boolean[] = [true, true, true, true, true];
+
+function toggleAt(arr: boolean[], i: number): boolean[] {
+  return arr.map((v, idx) => (idx === i ? !v : v));
+}
+
+function summarizeApps(apps: boolean[] | undefined): string {
+  const a = apps ?? ALL_ON;
+  if (a.every(Boolean)) return '전체';
+  const on = PROGRAM_LABELS.filter((_, i) => a[i]);
+  return on.length ? on.join('·') : '없음';
+}
+
+function SupportedProgramsField({
+  copyApps,
+  pasteApps,
+  onToggleCopy,
+  onTogglePaste,
+}: {
+  copyApps: boolean[];
+  pasteApps: boolean[];
+  onToggleCopy: (i: number) => void;
+  onTogglePaste: (i: number) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-slate-500">지원 프로그램 (복사 / 붙여넣기)</label>
+      <div className="border border-slate-200 rounded-lg overflow-hidden">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 px-3 py-1.5 bg-slate-50 text-[11px] font-semibold text-slate-500">
+          <span>프로그램</span>
+          <span className="text-center">복사</span>
+          <span className="text-center">붙여넣기</span>
+        </div>
+        {PROGRAM_LABELS.map((label, i) => (
+          <div
+            key={label}
+            className="grid grid-cols-[1fr_auto_auto] gap-x-4 px-3 py-1.5 items-center border-t border-slate-100"
+          >
+            <span className="text-sm text-slate-700">{label}</span>
+            <input
+              type="checkbox"
+              data-testid={`copy-app-${i}`}
+              checked={copyApps[i]}
+              onChange={() => onToggleCopy(i)}
+              className="w-4 h-4 justify-self-center rounded border-slate-300 accent-emerald-600"
+            />
+            <input
+              type="checkbox"
+              data-testid={`paste-app-${i}`}
+              checked={pasteApps[i]}
+              onChange={() => onTogglePaste(i)}
+              className="w-4 h-4 justify-self-center rounded border-slate-300 accent-emerald-600"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ───────────────────────────────────────────────────────────
 
 export default function BranchesPage() {
@@ -113,6 +176,9 @@ export default function BranchesPage() {
                     </Badge>
                   )}
                 </div>
+                <p className="text-[11px] text-slate-500">
+                  복사 {summarizeApps(b.copyApps)} · 붙여넣기 {summarizeApps(b.pasteApps)}
+                </p>
               </div>
               <div className="flex gap-2 shrink-0">
                 <Link
@@ -166,6 +232,8 @@ function BranchCreateDialog({
   const [brchCd, setBrchCd] = useState('');
   const [name, setName] = useState('');
   const [cardPaymentEnabled, setCardPaymentEnabled] = useState(false);
+  const [copyApps, setCopyApps] = useState<boolean[]>(ALL_ON);
+  const [pasteApps, setPasteApps] = useState<boolean[]>(ALL_ON);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -173,6 +241,8 @@ function BranchCreateDialog({
         brchCd: brchCd.trim(),
         name: name.trim() || undefined,
         cardPaymentEnabled,
+        copyApps,
+        pasteApps,
       }),
     onSuccess: () => {
       toast.success('지사가 등록되었습니다.');
@@ -217,6 +287,12 @@ function BranchCreateDialog({
             />
             <span className="text-slate-700">카드결제 사용</span>
           </label>
+          <SupportedProgramsField
+            copyApps={copyApps}
+            pasteApps={pasteApps}
+            onToggleCopy={(i) => setCopyApps((p) => toggleAt(p, i))}
+            onTogglePaste={(i) => setPasteApps((p) => toggleAt(p, i))}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
@@ -248,6 +324,8 @@ function BranchEditDialog({
 }) {
   const [name, setName] = useState(branch.name ?? '');
   const [cardPaymentEnabled, setCardPaymentEnabled] = useState(branch.cardPaymentEnabled);
+  const [copyApps, setCopyApps] = useState<boolean[]>(branch.copyApps ?? ALL_ON);
+  const [pasteApps, setPasteApps] = useState<boolean[]>(branch.pasteApps ?? ALL_ON);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -255,6 +333,8 @@ function BranchEditDialog({
         brchCd: branch.brchCd,
         name: name.trim() || undefined,
         cardPaymentEnabled,
+        copyApps,
+        pasteApps,
       }),
     onSuccess: () => {
       toast.success('지사 정보가 수정되었습니다.');
@@ -292,6 +372,12 @@ function BranchEditDialog({
             />
             <span className="text-slate-700">카드결제 사용</span>
           </label>
+          <SupportedProgramsField
+            copyApps={copyApps}
+            pasteApps={pasteApps}
+            onToggleCopy={(i) => setCopyApps((p) => toggleAt(p, i))}
+            onTogglePaste={(i) => setPasteApps((p) => toggleAt(p, i))}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
