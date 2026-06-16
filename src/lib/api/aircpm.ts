@@ -105,8 +105,9 @@ export interface AircpmTelegramCreds {
 export interface AircpmUserSettings {
   // 백엔드는 미설정 시 null을 반환. UI에서는 기본값 "AirCPM"로 대체.
   appTitle: string | null;
-  copyApps: [boolean, boolean, boolean, boolean];
-  pasteApps: [boolean, boolean, boolean, boolean];
+  // copy/paste는 지사 단위로 이전됨 — 사용자 설정 화면에서는 미사용(5슬롯, 지사에서 파생).
+  copyApps: boolean[];
+  pasteApps: boolean[];
   priceUp: boolean;
   // 진단 로그 전송용 Telegram 자격. 둘 다 비어있지 않을 때만 객체, 그 외 null.
   // 응답에 키는 항상 존재 (명시적 null) — `telegram == null` 검사로 전송 비활성 판단.
@@ -117,8 +118,6 @@ export interface AircpmUserSettings {
 // 부분 업데이트 의미: undefined 필드는 기존 값을 유지, null은 명시적으로 비움.
 export interface AircpmUserSettingsPatch {
   appTitle?: string | null;
-  copyApps?: [boolean, boolean, boolean, boolean];
-  pasteApps?: [boolean, boolean, boolean, boolean];
   priceUp?: boolean;
   telegramBotToken?: string | null;
   telegramChatId?: string | null;

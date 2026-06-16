@@ -14,8 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-const APP_LABELS: [string, string, string, string] = ['AUTO', 'D5', 'XE4', 'ICON'];
-
 function extractErrorInfo(err: unknown): { status?: number; message?: string } {
   if (err instanceof Error) {
     const anyErr = err as Error & { status?: number };
@@ -44,18 +42,6 @@ export default function AircpmUserSettingsPage() {
 
   // Local form state, initialized from fetched data
   const [appTitle, setAppTitle] = useState('AirCPM');
-  const [copyApps, setCopyApps] = useState<[boolean, boolean, boolean, boolean]>([
-    true,
-    true,
-    true,
-    true,
-  ]);
-  const [pasteApps, setPasteApps] = useState<[boolean, boolean, boolean, boolean]>([
-    true,
-    true,
-    true,
-    true,
-  ]);
   const [priceUp, setPriceUp] = useState(false);
   const [telegramBotToken, setTelegramBotToken] = useState('');
   const [telegramChatId, setTelegramChatId] = useState('');
@@ -63,8 +49,6 @@ export default function AircpmUserSettingsPage() {
   useEffect(() => {
     if (!data) return;
     setAppTitle(data.appTitle ?? 'AirCPM');
-    setCopyApps(data.copyApps);
-    setPasteApps(data.pasteApps);
     setPriceUp(data.priceUp);
     setTelegramBotToken(data.telegram?.botToken ?? '');
     setTelegramChatId(data.telegram?.chatId ?? '');
@@ -78,8 +62,6 @@ export default function AircpmUserSettingsPage() {
       const tgComplete = tgToken.length > 0 && tgChat.length > 0;
       const body: AircpmUserSettingsPatch = {
         appTitle: appTitle.trim() || 'AirCPM',
-        copyApps,
-        pasteApps,
         priceUp,
         telegramBotToken: tgComplete ? tgToken : null,
         telegramChatId: tgComplete ? tgChat : null,
@@ -92,17 +74,6 @@ export default function AircpmUserSettingsPage() {
     },
     onError: (err) => toastForError(err, '저장에 실패했습니다.'),
   });
-
-  const toggleCopy = (i: number) => {
-    const next = [...copyApps] as [boolean, boolean, boolean, boolean];
-    next[i] = !next[i];
-    setCopyApps(next);
-  };
-  const togglePaste = (i: number) => {
-    const next = [...pasteApps] as [boolean, boolean, boolean, boolean];
-    next[i] = !next[i];
-    setPasteApps(next);
-  };
 
   return (
     <div className="space-y-4">
@@ -119,7 +90,7 @@ export default function AircpmUserSettingsPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{userId} 설정</h1>
           <p className="text-sm text-slate-500 mt-1">
-            앱 타이틀, 복사/붙여넣기 대상, 단가 인상, 진단 로그 Telegram 자격을 편집합니다.
+            앱 타이틀, 단가 인상, 진단 로그 Telegram 자격을 편집합니다.
           </p>
         </div>
         <Button variant="ghost" onClick={() => router.push('/aircpm/users')}>
@@ -152,58 +123,6 @@ export default function AircpmUserSettingsPage() {
                 <p className="text-[11px] text-slate-400 mt-1">
                   데스크톱 클라이언트 창 제목에 표시됩니다.
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-900 mb-1">복사 대상 앱 (copyApps)</h2>
-                <p className="text-[12px] text-slate-500">
-                  체크된 앱에서 데이터 복사가 허용됩니다.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {APP_LABELS.map((label, i) => (
-                  <label
-                    key={label}
-                    className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-slate-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={copyApps[i]}
-                      onChange={() => toggleCopy(i)}
-                      className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
-                    />
-                    <span className="text-sm font-medium text-slate-700">{label}</span>
-                  </label>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-900 mb-1">붙여넣기 대상 앱 (pasteApps)</h2>
-                <p className="text-[12px] text-slate-500">체크된 앱에 데이터 붙여넣기가 허용됩니다.</p>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {APP_LABELS.map((label, i) => (
-                  <label
-                    key={label}
-                    className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-slate-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={pasteApps[i]}
-                      onChange={() => togglePaste(i)}
-                      className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
-                    />
-                    <span className="text-sm font-medium text-slate-700">{label}</span>
-                  </label>
-                ))}
               </div>
             </CardContent>
           </Card>
