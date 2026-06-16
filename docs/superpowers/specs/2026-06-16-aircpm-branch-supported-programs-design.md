@@ -78,12 +78,20 @@ ALTER TABLE aircpm_branch
 ### 4.3 로그인 settings 파생 (`security/aircpm_auth.service.ts` `getSettings`)
 - 기존 지사 조회 쿼리(`card_payment_enabled` 파생)에 `b.copy_apps, b.paste_apps`를 추가.
 - `copyApps`/`pasteApps`를 **지사값**으로 구성. 사용자가 소속(`brch_cd`) 없거나 지사 행이 없으면 기본 `'11111'`.
-- 사용자 settings row(`settingsRowToDto`)에서는 더 이상 copy/paste를 읽지 않는다 (appTitle/priceUp/telegram만).
+- **`settingsRowToDto` / `DEFAULT_SETTINGS` 최종 형태 (명시)**:
+  - `settingsRowToDto`는 더 이상 `copyApps`/`pasteApps`를 반환하지 않는다 (appTitle·priceUp·telegram만 반환).
+  - `DEFAULT_SETTINGS`에서도 `copyApps`/`pasteApps` 키 제거.
+  - `getSettings`가 두 번째(지사) 쿼리 결과로 `copyApps`/`pasteApps`(5배열)와 `cardPayEnabled`를
+    **항상** 채워 최종 settings 객체를 완성한다. 즉 copy/paste의 단일 소스는 지사 쿼리.
 - `login()` / `getMe()`는 `getSettings()`를 그대로 사용하므로 자동 반영.
 
 ### 4.4 사용자 설정 입력 정리 (`upsertSettings` + `UpdateAircpmSettingsDto`)
-- `UpdateAircpmSettingsDto`에서 `copyApps`/`pasteApps` 필드 제거.
-- `upsertSettings`에서 copy/paste 병합·기록 로직 제거 (해당 컬럼은 더 이상 갱신되지 않음).
+- `UpdateAircpmSettingsDto`에서 `copyApps`/`pasteApps` 필드 **삭제** (미검증 잔재 없이 완전 제거).
+- `upsertSettings`: 병합 객체(`merged`)와 **INSERT 컬럼 목록 양쪽에서** `copy_apps`/`paste_apps`를 제거한다.
+  - 신규 row INSERT 시 컬럼을 생략하면 DB 기본값 `'1111'`이 적용되고, 기존 row는 ON DUPLICATE KEY
+    UPDATE 대상에서 빠지므로 **기존 값이 그대로 보존**된다.
+  - 결과적으로 길이 5 헬퍼가 `CHAR(4)` 사용자 컬럼에 쓰일 일이 없어 truncation 위험도 없다
+    (사용자 컬럼은 데드 상태로 보존).
 
 ### 4.5 지사 Upsert DTO/서비스/컨트롤러
 - `payment/dto/aircpm-branch.dto.ts` `UpsertBranchDto`에 추가:
@@ -115,17 +123,23 @@ ALTER TABLE aircpm_branch
 
 ### 5.3 사용자 설정 페이지 (`app/aircpm/users/[userId]/settings/page.tsx`)
 - copyApps/pasteApps 카드·상태(`copyApps`,`pasteApps`,`toggleCopy`,`togglePaste`) 제거.
-- 저장 페이로드에서 copy/paste 제거. 헤더 설명 문구를 "앱 타이틀, 단가 인상, 진단 로그 Telegram"으로 수정.
+- **`useEffect` 초기화 블록에서 `setCopyApps`/`setPasteApps` 두 줄 제거** (제거된 state 참조가 남으면 TS 에러).
+- `APP_LABELS` 상수 제거(미사용). 저장 페이로드에서 copy/paste 제거.
+  헤더 설명 문구를 "앱 타이틀, 단가 인상, 진단 로그 Telegram"으로 수정.
 - `AircpmUserSettingsPatch`(`lib/api/aircpm.ts`)에서 `copyApps`/`pasteApps` 제거.
-  `AircpmUserSettings` 응답 타입의 copy/paste는 5슬롯으로 표기하되 화면에서 미사용(`boolean[]`로 완화).
+  `AircpmUserSettings` 응답 타입의 copy/paste는 화면 미사용이므로 `boolean[]`로 완화(5슬롯 허용).
 
 ## 6. 테스트
 
-### 백엔드 (vitest/jest spec)
-- `aircpm_auth.service.spec.ts`: `getSettings`가 지사값에서 copy/paste를 구성(5슬롯), 소속/지사행 없을 때 기본 `'11111'`, 사용자 row 값 무시.
+### 백엔드 (vitest/jest spec) — 기존 spec 파일 **확장**(중복 생성 금지)
+- `aircpm_auth.service.spec.ts`:
+  - **기존 단언 갱신**: 현재 `res.settings.copyApps`를 길이 4(`[true×4]`)로 단정하는 단언(현 라인 ~133)은
+    길이 5(`[true×5]`) + **지사값 기준**으로 수정해야 함 (헬퍼 기본값이 `'11111'`로 바뀌어 그대로 두면 실패).
+  - 신규: `getSettings`가 지사값에서 copy/paste를 구성(5슬롯), 소속/지사행 없을 때 기본 `'11111'`,
+    사용자 row의 copy/paste는 무시됨, `upsertSettings`가 사용자 copy/paste 컬럼을 건드리지 않음.
 - `aircpm_branch.db.spec.ts`: upsert/조회 시 copy/paste 비트스트링 ↔ 불리언 5배열 왕복.
 - `aircpm_branch.service.spec.ts` / `aircpm_branch_admin.controller.spec.ts`: copy/paste 통과.
-- DTO 검증: 길이 5 아닌 입력 거부.
+- DTO 검증: 길이 5 아닌 copyApps/pasteApps 입력 거부.
 
 ### 프론트 (vitest + RTL)
 - 지사 편집 다이얼로그: 토글 변경 후 저장 시 `upsertAircpmBranch`에 길이 5 배열 전달.
@@ -140,6 +154,7 @@ ALTER TABLE aircpm_branch
 - 백엔드: 테스트 서버 SCP→컨테이너 빌드→restart + 마이그레이션 056 적용. 운영은 별도 승인 후 (git commit+push → 운영 pull/적용).
 - 프론트: `deploy/deploy-zerodt.sh test` → 검증 후 운영.
 - 마이그레이션은 가산(ADD COLUMN, 기본값 보유)이라 기존 동작 무중단. 단, `getSettings`가 사용자값→지사값으로 바뀌므로 **배포 시점에 모든 지사 기본 전체 ON**으로 시작함을 운영에 공지.
+- **배포 순서 주의(계약 변경)**: 백엔드가 길이 5 배열을 내려주므로 5슬롯을 못 읽는 구버전 클라이언트가 남아 있으면 안 됨. 클라이언트 5슬롯 지원이 선행/동시 배포되어야 함(확인됨). 미확정 시 백엔드 운영 배포 보류.
 
 ## 8. 영향 파일 요약
 
