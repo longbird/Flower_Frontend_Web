@@ -1,0 +1,138 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiError } from '@/lib/api/client';
+
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('@/lib/api/aircpm', () => ({ listAircpmCalls: vi.fn() }));
+vi.mock('@/lib/api/aircpm-payments', () => ({ listAircpmBranches: vi.fn() }));
+
+// isSuper 를 테스트별로 전환하기 위한 가변 상태 — customer-detail-page.test.tsx 의 let 패턴.
+// (vi.mock 팩토리는 호이스팅되지만 셀렉터 함수는 렌더 시점에 mockUser 를 읽으므로 TDZ 문제 없음)
+let mockUser: { isSuper: boolean; brchCd: string | null } = { isSuper: true, brchCd: null };
+vi.mock('@/lib/auth/store', () => ({
+  useAuthStore: (sel: (s: unknown) => unknown) => sel({ user: mockUser }),
+}));
+
+import CallsPage from '@/app/aircpm/calls/page';
+import { listAircpmCalls } from '@/lib/api/aircpm';
+import { listAircpmBranches } from '@/lib/api/aircpm-payments';
+
+const mockList = listAircpmCalls as ReturnType<typeof vi.fn>;
+const mockBranches = listAircpmBranches as ReturnType<typeof vi.fn>;
+
+function renderPage() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <CallsPage />
+    </QueryClientProvider>,
+  );
+}
+
+function callItem(over: Partial<Record<string, unknown>> = {}) {
+  return {
+    callId: 9, brchCd: 'B001', businessYmd: '2026-06-30', status: 'DISPATCHED',
+    postProcessStatus: 'DONE', postProcessError: null, pasteOk: true, pasteTotalMs: 8200,
+    sourceApp: 'D5', orderNo: 'A-1', customerPhoneMasked: '010-42**-1188',
+    originName: '출발화원', originAddr: '서울 강남구', destName: '도착지', destAddr: '서울 서초구',
+    amount: 35000, firstReceivedAt: '2026-06-30T05:00:00.000Z',
+    dispatchedAt: '2026-06-30T05:05:00.000Z', lastEventAt: '2026-06-30T05:05:00.000Z',
+    ...over,
+  };
+}
+
+describe('AircpmCallsPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockList.mockResolvedValue({ items: [callItem()], total: 1, page: 1, limit: 50 });
+    mockBranches.mockResolvedValue([{ brchCd: 'B001', name: '강남' }]);
+  });
+
+  it('super: 지사 필터 노출 + 지사 컬럼 + brchCd 미선택 시 미전송(전체)', async () => {
+    mockUser = { isSuper: true, brchCd: null };
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    // Radix SelectValue 의 표시 텍스트는 jsdom 에서 신뢰 불가 — 라벨/컬럼헤더로 단언한다.
+    expect(screen.getByText('지사 필터')).toBeInTheDocument(); // super 전용 필터 라벨
+    expect(screen.getByRole('columnheader', { name: '지사' })).toBeInTheDocument(); // 테이블 컬럼
+    expect(mockList.mock.calls[0][0]).toMatchObject({ brchCd: undefined });
+    expect(mockBranches).toHaveBeenCalled();
+  });
+
+  it('branch admin: 지사 필터 미노출, brchCd 미전송, 지사 목록 미조회', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    expect(screen.queryByText('지사 필터')).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: '지사' })).not.toBeInTheDocument();
+    expect(mockList.mock.calls[0][0]).toMatchObject({ brchCd: undefined });
+    expect(mockBranches).not.toHaveBeenCalled();
+  });
+
+  it('상태 뱃지: DISPATCHED → 배차, CALLPASSED → 콜패스', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({
+      items: [callItem(), callItem({ callId: 10, status: 'CALLPASSED', dispatchedAt: null })],
+      total: 2, page: 1, limit: 50,
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('배차')).toBeInTheDocument());
+    expect(screen.getByText('콜패스')).toBeInTheDocument();
+  });
+
+  it('검색: 기간 입력 후 검색 버튼 → from/to 전달, page 리셋', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText('시작일'), { target: { value: '2026-06-01' } });
+    fireEvent.change(screen.getByLabelText('종료일'), { target: { value: '2026-06-30' } });
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
+    await waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith(
+        expect.objectContaining({ from: '2026-06-01', to: '2026-06-30', page: 1 }),
+      ),
+    );
+  });
+
+  it('초기 호출: errorOnly=false, status 미전송', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    renderPage();
+    await waitFor(() => expect(mockList).toHaveBeenCalled());
+    expect(mockList.mock.calls[0][0]).toMatchObject({ errorOnly: false, status: undefined });
+  });
+
+  it('펼침 상세: 주문번호/후처리 오류 표시', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({
+      items: [callItem({ postProcessStatus: 'FAILED', postProcessError: 'boom' })],
+      total: 1, page: 1, limit: 50,
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }));
+    expect(screen.getByText('A-1')).toBeInTheDocument();
+    expect(screen.getByText('boom')).toBeInTheDocument();
+  });
+
+  it('403 BRANCH_NOT_ASSIGNED → 지사 미배정 안내', async () => {
+    mockUser = { isSuper: false, brchCd: null };
+    mockList.mockRejectedValue(new ApiError(403, 'Forbidden', { code: 'BRANCH_NOT_ASSIGNED' }));
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText(/담당 지사가 배정되지 않았습니다/)).toBeInTheDocument(),
+    );
+  });
+
+  it('페이지네이션: total 137 → 3 페이지, 다음 버튼으로 page=2', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({ items: [callItem()], total: 137, page: 1, limit: 50 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText(/전체 137건/)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    await waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })),
+    );
+  });
+});

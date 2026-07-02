@@ -21,6 +21,7 @@ const NAV: Array<NavItem> = [
   { href: '/aircpm/targetapps', label: '배차앱 설정', superOnly: true },
   { href: '/aircpm/branches', label: '지사 관리', superOnly: true },
   { href: '/aircpm/customers', label: '카드 결제 관리' },
+  { href: '/aircpm/calls', label: '콜 조회' },
   { href: '/aircpm/login-logs', label: '로그인 로그' },
 ];
 
