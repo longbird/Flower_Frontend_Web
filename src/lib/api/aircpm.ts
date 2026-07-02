@@ -364,3 +364,60 @@ export function validateTargetAppsConfig(cfg: unknown): string[] {
   }
   return errors;
 }
+
+// ─── Calls (관리자 콜패스 조회) ─────────────────────────────────────
+
+export type AircpmCallStatus = 'CALLPASSED' | 'DISPATCHED';
+
+export interface AircpmCallItem {
+  callId: number;
+  brchCd: string;
+  businessYmd: string;
+  status: AircpmCallStatus;
+  // union 값은 백엔드 CallpassCallRow(callpass_calls.db.ts:8,12)의 실제 enum 을 미러링
+  postProcessStatus: 'NONE' | 'PENDING' | 'DONE' | 'FAILED';
+  postProcessError: string | null;
+  pasteOk: boolean | null;
+  pasteTotalMs: number | null;
+  sourceApp: 'D5' | 'XE4' | 'D2' | 'ICON' | 'AUTO';
+  orderNo: string | null;
+  customerPhoneMasked: string;
+  originName: string | null;
+  originAddr: string | null;
+  destName: string | null;
+  destAddr: string | null;
+  amount: number | null;
+  firstReceivedAt: string;
+  dispatchedAt: string | null;
+  lastEventAt: string;
+}
+
+export interface AircpmCallListResponse {
+  items: AircpmCallItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ListAircpmCallsParams {
+  page?: number;
+  limit?: number;
+  from?: string; // YYYY-MM-DD
+  to?: string; // YYYY-MM-DD
+  status?: AircpmCallStatus;
+  errorOnly?: boolean;
+  // super 전용 — 비-super는 전달하지 말 것(서버가 무시하고 자기 지사 강제)
+  brchCd?: string;
+}
+
+export async function listAircpmCalls(params: ListAircpmCallsParams = {}) {
+  const sp = new URLSearchParams();
+  sp.set('page', String(params.page ?? 1));
+  sp.set('limit', String(params.limit ?? 50));
+  if (params.from) sp.set('from', params.from);
+  if (params.to) sp.set('to', params.to);
+  if (params.status) sp.set('status', params.status);
+  if (params.errorOnly) sp.set('errorOnly', 'true');
+  if (params.brchCd) sp.set('brchCd', params.brchCd);
+  return api<AircpmCallListResponse>(`/admin/aircpm/calls?${sp.toString()}`);
+}
