@@ -125,6 +125,25 @@ describe('AircpmCallsPage', () => {
     );
   });
 
+  it('400 INVALID_RANGE → 기간 오류 안내(일반 오류 문구 아님)', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockRejectedValue(new ApiError(400, 'Bad Request', { code: 'INVALID_RANGE' }));
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText(/조회 기간이 올바르지 않습니다/)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('콜 목록을 불러오지 못했습니다.')).not.toBeInTheDocument();
+  });
+
+  it('400 INVALID_DATE → 기간 오류 안내', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockRejectedValue(new ApiError(400, 'Bad Request', { code: 'INVALID_DATE' }));
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText(/조회 기간이 올바르지 않습니다/)).toBeInTheDocument(),
+    );
+  });
+
   it('페이지네이션: total 137 → 3 페이지, 다음 버튼으로 page=2', async () => {
     mockUser = { isSuper: false, brchCd: 'B001' };
     mockList.mockResolvedValue({ items: [callItem()], total: 137, page: 1, limit: 50 });

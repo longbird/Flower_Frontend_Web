@@ -104,10 +104,15 @@ export default function AircpmCallsPage() {
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
+  const apiErrorCode =
+    error instanceof ApiError ? (error.data as { code?: string } | undefined)?.code : undefined;
   const branchNotAssigned =
+    error instanceof ApiError && error.status === 403 && apiErrorCode === 'BRANCH_NOT_ASSIGNED';
+  // 백엔드 400: INVALID_RANGE(역순/31일 초과), INVALID_DATE(형식·달력 오류) — 기간 안내로 구분 표시.
+  const invalidRange =
     error instanceof ApiError &&
-    error.status === 403 &&
-    (error.data as { code?: string } | undefined)?.code === 'BRANCH_NOT_ASSIGNED';
+    error.status === 400 &&
+    (apiErrorCode === 'INVALID_RANGE' || apiErrorCode === 'INVALID_DATE');
 
   const applyFilters = () => {
     setFromFilter(fromInput);
@@ -251,7 +256,12 @@ export default function AircpmCallsPage() {
               담당 지사가 배정되지 않았습니다. 관리자에게 지사 배정을 요청하세요.
             </div>
           )}
-          {isError && !branchNotAssigned && (
+          {isError && invalidRange && (
+            <div className="text-center py-12 text-amber-700">
+              조회 기간이 올바르지 않습니다. 기간은 최대 31일, 시작일은 종료일보다 빠르게 설정하세요.
+            </div>
+          )}
+          {isError && !branchNotAssigned && !invalidRange && (
             <div className="text-center py-12 text-rose-600">콜 목록을 불러오지 못했습니다.</div>
           )}
           {!isLoading && !isError && items.length === 0 && (
