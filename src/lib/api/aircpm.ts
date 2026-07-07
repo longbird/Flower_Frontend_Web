@@ -85,6 +85,8 @@ export interface AircpmUser {
   name: string | null;
   brchCd: string | null;
   power: number;
+  // 클라이언트 유형: true=모바일 앱 사용자, false=데스크톱 클라이언트(기본).
+  isMobile: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -187,6 +189,8 @@ export interface CreateAircpmUserBody {
   brchCd?: string;
   name?: string;
   power?: number;
+  // 미전달 시 백엔드 기본값 false(데스크톱). 슈퍼 관리자만 지정.
+  isMobile?: boolean;
 }
 
 export async function createAircpmUser(body: CreateAircpmUserBody) {
@@ -202,6 +206,8 @@ export interface UpdateAircpmUserBody {
   brchCd?: string | null;
   name?: string | null;
   power?: number;
+  // undefined면 기존 유지. 슈퍼 관리자만 변경.
+  isMobile?: boolean;
   isActive?: boolean;
 }
 

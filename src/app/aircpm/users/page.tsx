@@ -197,6 +197,11 @@ export default function AircpmUsersPage() {
                     </Badge>
                   )}
                   {powerBadge(u.power)}
+                  {u.isMobile && (
+                    <Badge className="bg-sky-100 text-sky-700 border-sky-200 hover:bg-sky-100">
+                      📱 모바일
+                    </Badge>
+                  )}
                   {!u.isActive && (
                     <Badge className="bg-slate-200 text-slate-600 hover:bg-slate-200 border-slate-300">
                       비활성
@@ -331,6 +336,8 @@ function UserCreateDialog({
   // 일반 관리자: brchCd 자기 소속 자동 채움 + 변경 불가, power=5 고정
   const [brchCd, setBrchCd] = useState(isSuper ? '' : callerBrchCd ?? '');
   const [power, setPower] = useState(isSuper ? '5' : '5');
+  // 사용자 유형: 슈퍼 관리자만 지정. 기본 데스크톱(false).
+  const [isMobile, setIsMobile] = useState(false);
   const { data: branches = [], isLoading: branchesLoading } = useAircpmBranchOptions(isSuper);
 
   const mutation = useMutation({
@@ -341,6 +348,8 @@ function UserCreateDialog({
         name: name.trim() || undefined,
         brchCd: brchCd.trim() || undefined,
         power: Number(power),
+        // 슈퍼만 전송, 그 외는 백엔드 기본값(데스크톱) 사용
+        isMobile: isSuper ? isMobile : undefined,
       }),
     onSuccess: () => {
       toast.success('사용자가 생성되었습니다.');
@@ -383,6 +392,11 @@ function UserCreateDialog({
           <Field label="이름">
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" />
           </Field>
+          {isSuper && (
+            <Field label="사용자 유형">
+              <UserTypeSelect value={isMobile} onChange={setIsMobile} />
+            </Field>
+          )}
           <Field label="지사">
             {isSuper ? (
               <BranchSelect
@@ -448,6 +462,7 @@ function UserEditDialog({
   const [name, setName] = useState(user.name ?? '');
   const [brchCd, setBrchCd] = useState(user.brchCd ?? '');
   const [power, setPower] = useState(String(user.power));
+  const [isMobile, setIsMobile] = useState(user.isMobile);
   const [isActive, setIsActive] = useState(user.isActive);
   const { data: branches = [], isLoading: branchesLoading } = useAircpmBranchOptions(isSuper);
 
@@ -456,9 +471,10 @@ function UserEditDialog({
       updateAircpmUser(user.userId, {
         password: password || undefined,
         name: name.trim() || null,
-        // 일반 관리자: brchCd / power 변경 보내지 않음 (백엔드도 거부)
+        // 일반 관리자: brchCd / power / isMobile 변경 보내지 않음 (백엔드도 거부)
         brchCd: isSuper ? brchCd.trim() || null : undefined,
         power: isSuper ? Number(power) : undefined,
+        isMobile: isSuper ? isMobile : undefined,
         isActive,
       }),
     onSuccess: () => {
@@ -490,6 +506,11 @@ function UserEditDialog({
           <Field label="이름">
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
+          {isSuper && (
+            <Field label="사용자 유형">
+              <UserTypeSelect value={isMobile} onChange={setIsMobile} />
+            </Field>
+          )}
           <Field label="지사">
             {isSuper ? (
               <BranchSelect
@@ -558,6 +579,30 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <label className="text-xs font-medium text-slate-500">{label}</label>
       {children}
     </div>
+  );
+}
+
+// ─── User type select ─────────────────────────────────────────────
+//
+// 데스크톱/모바일 구분. Select 는 문자열만 다루므로 boolean 과 매핑한다.
+
+function UserTypeSelect({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <Select value={value ? 'mobile' : 'desktop'} onValueChange={(v) => onChange(v === 'mobile')}>
+      <SelectTrigger>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="desktop">데스크톱 (기본)</SelectItem>
+        <SelectItem value="mobile">모바일</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }
 
