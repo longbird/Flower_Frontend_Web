@@ -8,6 +8,11 @@ import {
   type AircpmCallStatus,
 } from '@/lib/api/aircpm';
 import { listAircpmBranches } from '@/lib/api/aircpm-payments';
+import {
+  CALL_ERROR_OPTIONS,
+  errorFilterToParams,
+  type CallErrorFilter,
+} from './error-filter';
 import { useAuthStore } from '@/lib/auth/store';
 import { ApiError } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
@@ -27,11 +32,6 @@ const STATUS_OPTIONS: Array<{ value: AircpmCallStatus | 'all'; label: string }> 
   { value: 'all', label: '전체' },
   { value: 'CALLPASSED', label: '콜패스' },
   { value: 'DISPATCHED', label: '배차' },
-];
-
-const ERROR_OPTIONS: Array<{ value: 'all' | 'error'; label: string }> = [
-  { value: 'all', label: '전체' },
-  { value: 'error', label: '오류만' },
 ];
 
 const STATUS_VARIANT: Record<AircpmCallStatus, { label: string; tone: string }> = {
@@ -71,7 +71,7 @@ export default function AircpmCallsPage() {
   const [fromFilter, setFromFilter] = useState('');
   const [toFilter, setToFilter] = useState('');
   const [status, setStatus] = useState<AircpmCallStatus | 'all'>('all');
-  const [errorFilter, setErrorFilter] = useState<'all' | 'error'>('all');
+  const [errorFilter, setErrorFilter] = useState<CallErrorFilter>('all');
   const [selectedBrchCd, setSelectedBrchCd] = useState(''); // super 전용, '' = 전체
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
@@ -96,7 +96,7 @@ export default function AircpmCallsPage() {
         from: fromFilter || undefined,
         to: toFilter || undefined,
         status: status === 'all' ? undefined : status,
-        errorOnly: errorFilter === 'error',
+        ...errorFilterToParams(errorFilter),
         brchCd: effectiveBrchCd,
       }),
   });
@@ -197,7 +197,7 @@ export default function AircpmCallsPage() {
             <Select
               value={errorFilter}
               onValueChange={(v) => {
-                setErrorFilter(v as 'all' | 'error');
+                setErrorFilter(v as CallErrorFilter);
                 setPage(1);
               }}
             >
@@ -205,7 +205,7 @@ export default function AircpmCallsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ERROR_OPTIONS.map((opt) => (
+                {CALL_ERROR_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>

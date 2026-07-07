@@ -46,4 +46,18 @@ describe('listAircpmCalls', () => {
     await listAircpmCalls({ errorOnly: false });
     expect(mockApi.mock.calls[0][0]).not.toContain('errorOnly');
   });
+
+  it('errorType=postprocess 전송 (errorOnly 와 병행)', async () => {
+    mockApi.mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 50 });
+    await listAircpmCalls({ errorOnly: true, errorType: 'postprocess' });
+    const url = mockApi.mock.calls[0][0] as string;
+    expect(url).toContain('errorOnly=true');
+    expect(url).toContain('errorType=postprocess');
+  });
+
+  it('errorType 미지정 시 파라미터 미전송', async () => {
+    mockApi.mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 50 });
+    await listAircpmCalls({ errorOnly: true });
+    expect(mockApi.mock.calls[0][0]).not.toContain('errorType');
+  });
 });

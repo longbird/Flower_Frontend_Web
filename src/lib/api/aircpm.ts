@@ -412,6 +412,9 @@ export interface ListAircpmCallsParams {
   to?: string; // YYYY-MM-DD
   status?: AircpmCallStatus;
   errorOnly?: boolean;
+  // 오류 유형 세분화: postprocess=후처리 실패(FAILED), paste=붙여넣기 실패(paste_ok=0).
+  // 미지정 시 errorOnly 동작. 백엔드 미지원 시 무시되고 errorOnly 로 폴백.
+  errorType?: 'postprocess' | 'paste';
   // super 전용 — 비-super는 전달하지 말 것(서버가 무시하고 자기 지사 강제)
   brchCd?: string;
 }
@@ -424,6 +427,7 @@ export async function listAircpmCalls(params: ListAircpmCallsParams = {}) {
   if (params.to) sp.set('to', params.to);
   if (params.status) sp.set('status', params.status);
   if (params.errorOnly) sp.set('errorOnly', 'true');
+  if (params.errorType) sp.set('errorType', params.errorType);
   if (params.brchCd) sp.set('brchCd', params.brchCd);
   return api<AircpmCallListResponse>(`/admin/aircpm/calls?${sp.toString()}`);
 }
