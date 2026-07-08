@@ -68,6 +68,21 @@ describe('AircpmCallsPage', () => {
     expect(await screen.findByText(/\[HOOK\] ESC -> abort \(injected=0\)/)).toBeInTheDocument();
   });
 
+  it('super: 로그 복사 버튼 → clipboard.writeText(로그), 라벨 복사됨', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    mockUser = { isSuper: true, brchCd: null };
+    mockList.mockResolvedValue({ items: [callItem({ hasLog: true })], total: 1, page: 1, limit: 50 });
+    mockLog.mockResolvedValue({ log: 'line1\nline2\nboom' });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '실패 로그 보기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '복사' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('line1\nline2\nboom'));
+    expect(await screen.findByRole('button', { name: '복사됨 ✓' })).toBeInTheDocument();
+  });
+
   it('branch admin: hasLog=true 여도 실패 로그 보기 버튼 없음(슈퍼 전용)', async () => {
     mockUser = { isSuper: false, brchCd: 'B001' };
     mockList.mockResolvedValue({ items: [callItem({ hasLog: true })], total: 1, page: 1, limit: 50 });

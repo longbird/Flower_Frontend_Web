@@ -36,6 +36,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const STATUS_OPTIONS: Array<{ value: AircpmCallStatus | 'all'; label: string }> = [
   { value: 'all', label: '전체' },
@@ -87,6 +88,7 @@ export default function AircpmCallsPage() {
   const [selectedBrchCd, setSelectedBrchCd] = useState(''); // super 전용, '' = 전체
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [logCallId, setLogCallId] = useState<number | null>(null); // 실패 로그 뷰어(슈퍼 전용)
+  const [copied, setCopied] = useState(false);
 
   // 비-super는 brchCd 미전송 — 서버가 자기 지사를 강제한다 (스펙 §3.2).
   const effectiveBrchCd = isSuper ? selectedBrchCd || undefined : undefined;
@@ -148,6 +150,18 @@ export default function AircpmCallsPage() {
       else next.add(id);
       return next;
     });
+  };
+
+  const copyLog = async () => {
+    const text = logQuery.data?.log;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error('복사에 실패했습니다. 브라우저 권한을 확인하세요.');
+    }
   };
 
   return (
@@ -429,7 +443,10 @@ export default function AircpmCallsPage() {
       <Dialog
         open={logCallId != null}
         onOpenChange={(open) => {
-          if (!open) setLogCallId(null);
+          if (!open) {
+            setLogCallId(null);
+            setCopied(false);
+          }
         }}
       >
         <DialogContent className="max-w-3xl">
@@ -450,9 +467,16 @@ export default function AircpmCallsPage() {
             <div className="py-8 text-center text-rose-600">로그를 불러오지 못했습니다.</div>
           )}
           {!logQuery.isLoading && !logQuery.isError && logQuery.data && (
-            <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed bg-slate-950 text-slate-100 rounded-md p-3 max-h-[70vh] overflow-auto">
-              {logQuery.data.log}
-            </pre>
+            <>
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={copyLog}>
+                  {copied ? '복사됨 ✓' : '복사'}
+                </Button>
+              </div>
+              <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed bg-slate-950 text-slate-100 rounded-md p-3 max-h-[70vh] overflow-auto">
+                {logQuery.data.log}
+              </pre>
+            </>
           )}
         </DialogContent>
       </Dialog>
