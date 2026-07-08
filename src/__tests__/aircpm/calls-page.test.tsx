@@ -18,6 +18,7 @@ vi.mock('@/lib/auth/store', () => ({
 import CallsPage from '@/app/aircpm/calls/page';
 import { listAircpmCalls } from '@/lib/api/aircpm';
 import { listAircpmBranches } from '@/lib/api/aircpm-payments';
+import { businessDayToday } from '@/app/aircpm/calls/business-day';
 
 const mockList = listAircpmCalls as ReturnType<typeof vi.fn>;
 const mockBranches = listAircpmBranches as ReturnType<typeof vi.fn>;
@@ -101,6 +102,14 @@ describe('AircpmCallsPage', () => {
     renderPage();
     await waitFor(() => expect(mockList).toHaveBeenCalled());
     expect(mockList.mock.calls[0][0]).toMatchObject({ errorOnly: false, status: undefined });
+  });
+
+  it('초기 기간 기본값: from/to = 오늘 업무일(businessDayToday) 자동 전송', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    renderPage();
+    await waitFor(() => expect(mockList).toHaveBeenCalled());
+    const today = businessDayToday();
+    expect(mockList.mock.calls[0][0]).toMatchObject({ from: today, to: today });
   });
 
   it('펼침 상세: 주문번호/후처리 오류 표시', async () => {

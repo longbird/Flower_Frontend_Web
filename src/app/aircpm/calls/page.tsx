@@ -13,6 +13,7 @@ import {
   errorFilterToParams,
   type CallErrorFilter,
 } from './error-filter';
+import { businessDayToday } from './business-day';
 import { useAuthStore } from '@/lib/auth/store';
 import { ApiError } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
@@ -66,10 +67,13 @@ export default function AircpmCallsPage() {
 
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
-  const [fromInput, setFromInput] = useState('');
-  const [toInput, setToInput] = useState('');
-  const [fromFilter, setFromFilter] = useState('');
-  const [toFilter, setToFilter] = useState('');
+  // 초기 기간은 KST 업무일(오늘)로 채운다 — 서버의 '기간 미지정' 기본값과 동일한
+  // 범위라 초기 목록이 비지 않는다. (businessDayToday = 백엔드 businessDayOf 미러)
+  const [today] = useState(() => businessDayToday());
+  const [fromInput, setFromInput] = useState(today);
+  const [toInput, setToInput] = useState(today);
+  const [fromFilter, setFromFilter] = useState(today);
+  const [toFilter, setToFilter] = useState(today);
   const [status, setStatus] = useState<AircpmCallStatus | 'all'>('all');
   const [errorFilter, setErrorFilter] = useState<CallErrorFilter>('all');
   const [selectedBrchCd, setSelectedBrchCd] = useState(''); // super 전용, '' = 전체
