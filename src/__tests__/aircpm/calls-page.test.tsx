@@ -5,7 +5,7 @@ import { ApiError } from '@/lib/api/client';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock('@/lib/api/aircpm', () => ({ listAircpmCalls: vi.fn() }));
+vi.mock('@/lib/api/aircpm', () => ({ listAircpmCalls: vi.fn(), getAircpmCallLog: vi.fn() }));
 vi.mock('@/lib/api/aircpm-payments', () => ({ listAircpmBranches: vi.fn() }));
 
 // isSuper 를 테스트별로 전환하기 위한 가변 상태 — customer-detail-page.test.tsx 의 let 패턴.
@@ -16,11 +16,12 @@ vi.mock('@/lib/auth/store', () => ({
 }));
 
 import CallsPage from '@/app/aircpm/calls/page';
-import { listAircpmCalls } from '@/lib/api/aircpm';
+import { listAircpmCalls, getAircpmCallLog } from '@/lib/api/aircpm';
 import { listAircpmBranches } from '@/lib/api/aircpm-payments';
 import { businessDayToday } from '@/app/aircpm/calls/business-day';
 
 const mockList = listAircpmCalls as ReturnType<typeof vi.fn>;
+const mockLog = getAircpmCallLog as ReturnType<typeof vi.fn>;
 const mockBranches = listAircpmBranches as ReturnType<typeof vi.fn>;
 
 function renderPage() {
@@ -40,6 +41,7 @@ function callItem(over: Partial<Record<string, unknown>> = {}) {
     originName: '출발화원', originAddr: '서울 강남구', destName: '도착지', destAddr: '서울 서초구',
     amount: 35000, firstReceivedAt: '2026-06-30T05:00:00.000Z',
     dispatchedAt: '2026-06-30T05:05:00.000Z', lastEventAt: '2026-06-30T05:05:00.000Z',
+    hasLog: false,
     ...over,
   };
 }
@@ -49,6 +51,50 @@ describe('AircpmCallsPage', () => {
     vi.clearAllMocks();
     mockList.mockResolvedValue({ items: [callItem()], total: 1, page: 1, limit: 50 });
     mockBranches.mockResolvedValue([{ brchCd: 'B001', name: '강남' }]);
+  });
+
+  it('super + hasLog: 펼침 상세에 실패 로그 보기 버튼, 클릭 시 로그 표시', async () => {
+    mockUser = { isSuper: true, brchCd: null };
+    mockList.mockResolvedValue({
+      items: [callItem({ postProcessStatus: 'FAILED', postProcessError: 'aborted', hasLog: true })],
+      total: 1, page: 1, limit: 50,
+    });
+    mockLog.mockResolvedValue({ log: 'line1\n[HOOK] ESC -> abort (injected=0)' });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '실패 로그 보기' }));
+    await waitFor(() => expect(mockLog).toHaveBeenCalledWith(9));
+    expect(await screen.findByText(/\[HOOK\] ESC -> abort \(injected=0\)/)).toBeInTheDocument();
+  });
+
+  it('branch admin: hasLog=true 여도 실패 로그 보기 버튼 없음(슈퍼 전용)', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({ items: [callItem({ hasLog: true })], total: 1, page: 1, limit: 50 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }));
+    expect(screen.queryByRole('button', { name: '실패 로그 보기' })).not.toBeInTheDocument();
+  });
+
+  it('super + hasLog=false: 실패 로그 보기 버튼 없음', async () => {
+    mockUser = { isSuper: true, brchCd: null };
+    mockList.mockResolvedValue({ items: [callItem({ hasLog: false })], total: 1, page: 1, limit: 50 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }));
+    expect(screen.queryByRole('button', { name: '실패 로그 보기' })).not.toBeInTheDocument();
+  });
+
+  it('super: 로그 404 → 로그 없음 안내', async () => {
+    mockUser = { isSuper: true, brchCd: null };
+    mockList.mockResolvedValue({ items: [callItem({ hasLog: true })], total: 1, page: 1, limit: 50 });
+    mockLog.mockRejectedValue(new ApiError(404, 'Not Found', { code: 'LOG_NOT_FOUND' }));
+    renderPage();
+    await waitFor(() => expect(screen.getByText('010-42**-1188')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '실패 로그 보기' }));
+    expect(await screen.findByText('이 콜에는 저장된 로그가 없습니다.')).toBeInTheDocument();
   });
 
   it('super: 지사 필터 노출 + 지사 컬럼 + brchCd 미선택 시 미전송(전체)', async () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { api } from '@/lib/api/client';
-import { listAircpmCalls } from '@/lib/api/aircpm';
+import { listAircpmCalls, getAircpmCallLog } from '@/lib/api/aircpm';
 
 vi.mock('@/lib/api/client', () => ({
   api: vi.fn(),
@@ -59,5 +59,16 @@ describe('listAircpmCalls', () => {
     mockApi.mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 50 });
     await listAircpmCalls({ errorOnly: true });
     expect(mockApi.mock.calls[0][0]).not.toContain('errorType');
+  });
+});
+
+describe('getAircpmCallLog', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('GET /admin/aircpm/calls/:callId/log, 결과 그대로', async () => {
+    mockApi.mockResolvedValueOnce({ log: 'line1\nline2' });
+    const res = await getAircpmCallLog(123);
+    expect(mockApi.mock.calls[0][0]).toBe('/admin/aircpm/calls/123/log');
+    expect(res).toEqual({ log: 'line1\nline2' });
   });
 });

@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   listAircpmCalls,
+  getAircpmCallLog,
   type AircpmCallItem,
   type AircpmCallStatus,
 } from '@/lib/api/aircpm';
@@ -27,6 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 const STATUS_OPTIONS: Array<{ value: AircpmCallStatus | 'all'; label: string }> = [
@@ -78,6 +86,7 @@ export default function AircpmCallsPage() {
   const [errorFilter, setErrorFilter] = useState<CallErrorFilter>('all');
   const [selectedBrchCd, setSelectedBrchCd] = useState(''); // super 전용, '' = 전체
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [logCallId, setLogCallId] = useState<number | null>(null); // 실패 로그 뷰어(슈퍼 전용)
 
   // 비-super는 brchCd 미전송 — 서버가 자기 지사를 강제한다 (스펙 §3.2).
   const effectiveBrchCd = isSuper ? selectedBrchCd || undefined : undefined;
@@ -104,6 +113,14 @@ export default function AircpmCallsPage() {
         brchCd: effectiveBrchCd,
       }),
   });
+
+  // 실패 로그는 행 선택 시에만 지연 조회(최대 ~18,000자라 목록에 인라인하지 않음). 슈퍼 전용.
+  const logQuery = useQuery({
+    queryKey: ['admin-aircpm-call-log', logCallId],
+    queryFn: () => getAircpmCallLog(logCallId as number),
+    enabled: logCallId != null,
+  });
+  const logNotFound = logQuery.error instanceof ApiError && logQuery.error.status === 404;
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -358,6 +375,18 @@ export default function AircpmCallsPage() {
                                   highlight={row.pasteOk === false}
                                 />
                               </div>
+                              {isSuper && row.hasLog && (
+                                <div className="mt-3 pt-3 border-t border-slate-200">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-rose-700 border-rose-200 hover:bg-rose-50"
+                                    onClick={() => setLogCallId(row.callId)}
+                                  >
+                                    실패 로그 보기
+                                  </Button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         )}
@@ -396,6 +425,37 @@ export default function AircpmCallsPage() {
           </div>
         </div>
       )}
+
+      <Dialog
+        open={logCallId != null}
+        onOpenChange={(open) => {
+          if (!open) setLogCallId(null);
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>후처리 실패 로그</DialogTitle>
+            <DialogDescription>
+              콜 #{logCallId} — CPM 클라이언트 세션 로그. 전화번호 등 민감정보가 포함될 수 있어
+              화면 공유 시 유의하세요.
+            </DialogDescription>
+          </DialogHeader>
+          {logQuery.isLoading && (
+            <div className="py-8 text-center text-slate-500">불러오는 중...</div>
+          )}
+          {logNotFound && (
+            <div className="py-8 text-center text-amber-700">이 콜에는 저장된 로그가 없습니다.</div>
+          )}
+          {logQuery.isError && !logNotFound && (
+            <div className="py-8 text-center text-rose-600">로그를 불러오지 못했습니다.</div>
+          )}
+          {!logQuery.isLoading && !logQuery.isError && logQuery.data && (
+            <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed bg-slate-950 text-slate-100 rounded-md p-3 max-h-[70vh] overflow-auto">
+              {logQuery.data.log}
+            </pre>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -396,6 +396,8 @@ export interface AircpmCallItem {
   firstReceivedAt: string;
   dispatchedAt: string | null;
   lastEventAt: string;
+  // 후처리 실패 로그 존재 여부 — true면 상세에서 '실패 로그 보기'(슈퍼 전용) 노출.
+  hasLog: boolean;
 }
 
 export interface AircpmCallListResponse {
@@ -432,42 +434,10 @@ export async function listAircpmCalls(params: ListAircpmCallsParams = {}) {
   return api<AircpmCallListResponse>(`/admin/aircpm/calls?${sp.toString()}`);
 }
 
-// ─── 붙여넣기/후처리 진단 (슈퍼 전용 — 관리자 사이트) ────────────────
+// ─── 콜 후처리 실패 로그 (슈퍼 전용 — 콜 조회 상세에서 조회) ──────────
 //
-// 콜패스 자동화의 붙여넣기/후처리 진단 목록과 후처리 실패 상세 로그를 조회한다.
-// 백엔드는 AircpmSiteGuard + ensureSuper 로 슈퍼 전용(비-슈퍼는 403).
-// (클라이언트 경로 /aircpm/callpass/paste-diagnostics 는 demo 게이트라 무소속 슈퍼가 못 씀.)
-// 응답 형태는 CallpassCallsDb.listPasteDiagnostics 를 미러링.
-
-export interface PasteDiagnosticItem {
-  callId: number;
-  brchCd: string;
-  orderNo: string | null;
-  appType: 'D5' | 'XE4' | 'D2' | 'ICON' | 'AUTO';
-  totalMs: number | null;
-  // 타이밍 없는 aborted 실패는 paste_ok=NULL → 백엔드가 false 로 매핑.
-  pasteOk: boolean;
-  bottleneck: string | null;
-  postProcessStatus: 'NONE' | 'PENDING' | 'DONE' | 'FAILED';
-  postProcessError: string | null;
-  // true 일 때만 /log 조회 가능(아니면 404 LOG_NOT_FOUND).
-  hasLog: boolean;
-  createdAt: string;
-}
-
-export interface ListAircpmDiagnosticsParams {
-  limit?: number;
-  brchCd?: string;
-}
-
-// 목록은 배열을 그대로 반환(페이지네이션 래핑 없음).
-export async function listAircpmDiagnostics(params: ListAircpmDiagnosticsParams = {}) {
-  const sp = new URLSearchParams();
-  sp.set('limit', String(params.limit ?? 50));
-  if (params.brchCd) sp.set('brchCd', params.brchCd);
-  return api<PasteDiagnosticItem[]>(`/admin/aircpm/diagnostics?${sp.toString()}`);
-}
-
-export async function getAircpmDiagnosticLog(callId: number) {
-  return api<{ log: string }>(`/admin/aircpm/diagnostics/${callId}/log`);
+// 콜 조회 목록 항목의 hasLog=true 인 콜만 로그가 있다. 백엔드는 AircpmSiteGuard +
+// ensureSuper 로 슈퍼 전용(비-슈퍼 403). 404 LOG_NOT_FOUND / 400 INVALID_CALL_ID.
+export async function getAircpmCallLog(callId: number) {
+  return api<{ log: string }>(`/admin/aircpm/calls/${callId}/log`);
 }
