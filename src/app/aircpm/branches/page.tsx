@@ -175,6 +175,15 @@ export default function BranchesPage() {
                       카드결제 OFF
                     </Badge>
                   )}
+                  {b.autoCallpassEnabled ? (
+                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+                      자동콜패스 ON
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-100">
+                      자동콜패스 OFF
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500">
                   복사 {summarizeApps(b.copyApps)} · 붙여넣기 {summarizeApps(b.pasteApps)}
@@ -234,6 +243,7 @@ function BranchCreateDialog({
   const [cardPaymentEnabled, setCardPaymentEnabled] = useState(false);
   const [copyApps, setCopyApps] = useState<boolean[]>(ALL_ON);
   const [pasteApps, setPasteApps] = useState<boolean[]>(ALL_ON);
+  const [autoCallpassEnabled, setAutoCallpassEnabled] = useState(false);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -243,6 +253,7 @@ function BranchCreateDialog({
         cardPaymentEnabled,
         copyApps,
         pasteApps,
+        autoCallpassEnabled,
       }),
     onSuccess: () => {
       toast.success('지사가 등록되었습니다.');
@@ -287,6 +298,16 @@ function BranchCreateDialog({
             />
             <span className="text-slate-700">카드결제 사용</span>
           </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid="auto-callpass"
+              checked={autoCallpassEnabled}
+              onChange={(e) => setAutoCallpassEnabled(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
+            />
+            <span className="text-slate-700">자동 콜패스 사용</span>
+          </label>
           <SupportedProgramsField
             copyApps={copyApps}
             pasteApps={pasteApps}
@@ -326,6 +347,7 @@ function BranchEditDialog({
   const [cardPaymentEnabled, setCardPaymentEnabled] = useState(branch.cardPaymentEnabled);
   const [copyApps, setCopyApps] = useState<boolean[]>(branch.copyApps ?? ALL_ON);
   const [pasteApps, setPasteApps] = useState<boolean[]>(branch.pasteApps ?? ALL_ON);
+  const [autoCallpassEnabled, setAutoCallpassEnabled] = useState(branch.autoCallpassEnabled);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -335,6 +357,7 @@ function BranchEditDialog({
         cardPaymentEnabled,
         copyApps,
         pasteApps,
+        autoCallpassEnabled,
       }),
     onSuccess: () => {
       toast.success('지사 정보가 수정되었습니다.');
@@ -371,6 +394,16 @@ function BranchEditDialog({
               className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
             />
             <span className="text-slate-700">카드결제 사용</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid="auto-callpass"
+              checked={autoCallpassEnabled}
+              onChange={(e) => setAutoCallpassEnabled(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
+            />
+            <span className="text-slate-700">자동 콜패스 사용</span>
           </label>
           <SupportedProgramsField
             copyApps={copyApps}

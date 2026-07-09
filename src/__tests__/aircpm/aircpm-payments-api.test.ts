@@ -44,6 +44,20 @@ describe('aircpm-payments API', () => {
     expect(body.pasteApps).toEqual([true, true, true, true, true]);
   });
 
+  it('upsertAircpmBranch → autoCallpassEnabled 바디 포함', async () => {
+    mockApi.mockResolvedValueOnce({ ok: true });
+    await upsertAircpmBranch({ brchCd: 'S001', autoCallpassEnabled: true });
+    const [, opts] = mockApi.mock.calls[0];
+    expect(JSON.parse(opts.body).autoCallpassEnabled).toBe(true);
+  });
+
+  it('upsertAircpmBranch → autoCallpassEnabled=false 도 바디에 실린다', async () => {
+    mockApi.mockResolvedValueOnce({ ok: true });
+    await upsertAircpmBranch({ brchCd: 'S001', autoCallpassEnabled: false });
+    const [, opts] = mockApi.mock.calls[0];
+    expect(JSON.parse(opts.body).autoCallpassEnabled).toBe(false);
+  });
+
   it('listAircpmTossCredentials → GET /admin/aircpm/branches/:brchCd/toss-credentials', async () => {
     mockApi.mockResolvedValueOnce([]);
     await listAircpmTossCredentials('S001');
