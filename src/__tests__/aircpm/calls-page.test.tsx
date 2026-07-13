@@ -38,7 +38,7 @@ function callItem(over: Partial<Record<string, unknown>> = {}) {
     callId: 9, brchCd: 'B001', businessYmd: '2026-06-30',
     targetStatus: 'DISPATCHED', targetStatusAt: null, sourceStatus: null, sourceStatusAt: null,
     postProcessStatus: 'DONE', postProcessError: null, pasteOk: true, pasteTotalMs: 8200,
-    sourceApp: 'D5', orderNo: 'A-1', customerPhoneMasked: '010-42**-1188',
+    sourceApp: 'XE4', targetApp: 'D5', orderNo: 'A-1', customerPhoneMasked: '010-42**-1188',
     originName: '출발화원', originAddr: '서울 강남구', destName: '도착지', destAddr: '서울 서초구',
     amount: 35000, firstReceivedAt: '2026-06-30T05:00:00.000Z',
     dispatchedAt: '2026-06-30T05:05:00.000Z', lastEventAt: '2026-06-30T05:05:00.000Z',
@@ -143,6 +143,31 @@ describe('AircpmCallsPage', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('배차')).toBeInTheDocument());
     expect(screen.getByText('콜패스')).toBeInTheDocument();
+  });
+
+  // 상태 뱃지 두 개만 있으면 어느 앱 얘긴지 알 수 없다 — 앱 이름이 상태 옆에 붙어야 읽힌다.
+  it('원본앱/대상앱을 상태와 함께 표시한다', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({
+      items: [callItem({ sourceApp: 'XE4', targetApp: 'D5', sourceStatus: 'ENDED' })],
+      total: 1, page: 1, limit: 50,
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('XE4')).toBeInTheDocument()); // 원본앱
+    expect(screen.getByText('D5')).toBeInTheDocument(); // 대상앱
+    expect(screen.getByText('종료')).toBeInTheDocument(); // 원본 상태
+    expect(screen.getByText('배차')).toBeInTheDocument(); // 대상 상태
+  });
+
+  it('구 행은 대상앱이 없다 → 지어내지 않고 비운다', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({
+      items: [callItem({ sourceApp: 'XE4', targetApp: null })],
+      total: 1, page: 1, limit: 50,
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('XE4')).toBeInTheDocument());
+    expect(screen.queryByText('D5')).not.toBeInTheDocument();
   });
 
   // 사용자 요구의 핵심: 원본콜과 복사된 콜의 상태는 다를 수 있다 → 각각 보여야 한다.

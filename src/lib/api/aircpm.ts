@@ -466,7 +466,10 @@ export interface AircpmCallItem {
   postProcessError: string | null;
   pasteOk: boolean | null;
   pasteTotalMs: number | null;
+  /** 원본콜이 있던 앱. */
   sourceApp: 'D5' | 'XE4' | 'D2' | 'ICON' | 'AUTO';
+  /** 콜을 붙여넣은 앱. 구 행은 null. */
+  targetApp: string | null;
   orderNo: string | null;
   customerPhoneMasked: string;
   originName: string | null;

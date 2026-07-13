@@ -329,20 +329,22 @@ export default function AircpmCallsPage() {
                   <tr>
                     <th className="px-3 py-2 text-left font-semibold">접수 시각</th>
                     {isSuper && <th className="px-3 py-2 text-left font-semibold">지사</th>}
-                    <th className="px-3 py-2 text-left font-semibold" title="대상앱(배차앱)에서의 상태">
-                      대상앱
+                    <th
+                      className="px-3 py-2 text-left font-semibold"
+                      title="원본콜: 어느 앱에서 가져왔고, 그 앱에서 어떤 상태로 끝났는지. 상태 '-' = 아직 접수목록에 살아있음"
+                    >
+                      원본 (앱/상태)
                     </th>
                     <th
                       className="px-3 py-2 text-left font-semibold"
-                      title="원본콜이 소스앱에서 어떤 상태로 끝났는지. '-' = 아직 접수목록에 살아있음"
+                      title="복사본: 어느 앱에 붙여넣었고, 그 앱에서 어떤 상태인지"
                     >
-                      원본콜
+                      대상 (앱/상태)
                     </th>
                     <th className="px-3 py-2 text-left font-semibold">전화</th>
                     <th className="px-3 py-2 text-left font-semibold">출발지</th>
                     <th className="px-3 py-2 text-left font-semibold">도착지</th>
                     <th className="px-3 py-2 text-right font-semibold">금액</th>
-                    <th className="px-3 py-2 text-left font-semibold">앱</th>
                     <th className="px-3 py-2 text-left font-semibold">오류</th>
                     <th className="px-3 py-2 text-right font-semibold">상세</th>
                   </tr>
@@ -371,21 +373,33 @@ export default function AircpmCallsPage() {
                               {row.brchCd}
                             </td>
                           )}
-                          <td className="px-3 py-2">
-                            <Badge variant="outline" className={cn('font-medium', target.tone)}>
-                              {target.label}
-                            </Badge>
-                          </td>
-                          <td className="px-3 py-2">
-                            {source ? (
-                              <Badge variant="outline" className={cn('font-medium', source.tone)}>
-                                {source.label}
-                              </Badge>
-                            ) : (
-                              <span className="text-slate-300" title="아직 접수목록에 살아있음(미판정)">
-                                -
+                          {/* 원본: 어느 앱에서 가져왔고 그 앱에서 어떤 상태로 끝났는가 */}
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-[12px] text-slate-500">
+                                {row.sourceApp}
                               </span>
-                            )}
+                              {source ? (
+                                <Badge variant="outline" className={cn('font-medium', source.tone)}>
+                                  {source.label}
+                                </Badge>
+                              ) : (
+                                <span className="text-slate-300" title="아직 접수목록에 살아있음(미판정)">
+                                  -
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          {/* 복사본: 어느 앱에 붙여넣었고 그 앱에서 어떤 상태인가 */}
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-[12px] text-slate-500">
+                                {row.targetApp ?? '-'}
+                              </span>
+                              <Badge variant="outline" className={cn('font-medium', target.tone)}>
+                                {target.label}
+                              </Badge>
+                            </div>
                           </td>
                           <td className="px-3 py-2 font-mono text-[12.5px] text-slate-700">
                             {row.customerPhoneMasked}
@@ -395,7 +409,6 @@ export default function AircpmCallsPage() {
                           <td className="px-3 py-2 text-right text-slate-700 tabular-nums">
                             {row.amount == null ? '-' : row.amount.toLocaleString()}
                           </td>
-                          <td className="px-3 py-2 text-slate-600">{row.sourceApp}</td>
                           <td className="px-3 py-2">
                             {hasError(row) ? (
                               <span className="text-rose-700 text-[12.5px] font-medium">오류</span>
@@ -419,6 +432,14 @@ export default function AircpmCallsPage() {
                                 <DetailRow label="도착지 주소" value={row.destAddr} wrap />
                                 <DetailRow label="배차 시각" value={formatDateTime(row.dispatchedAt)} />
                                 <DetailRow label="마지막 이벤트" value={formatDateTime(row.lastEventAt)} />
+                                <DetailRow
+                                  label="원본 상태 판정"
+                                  value={row.sourceStatusAt ? formatDateTime(row.sourceStatusAt) : null}
+                                />
+                                <DetailRow
+                                  label="대상 상태 변경"
+                                  value={row.targetStatusAt ? formatDateTime(row.targetStatusAt) : null}
+                                />
                                 <DetailRow label="후처리 상태" value={row.postProcessStatus} />
                                 <DetailRow
                                   label="후처리 오류"
