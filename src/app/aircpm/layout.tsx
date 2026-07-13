@@ -17,6 +17,7 @@ type NavItem = { href: string; label: string; superOnly?: boolean };
 
 const NAV: Array<NavItem> = [
   { href: '/aircpm/certs', label: '기기 인증' },
+  { href: '/aircpm/mobile-devices', label: '모바일 기기' },
   { href: '/aircpm/users', label: '사용자' },
   { href: '/aircpm/targetapps', label: '배차앱 설정', superOnly: true },
   { href: '/aircpm/branches', label: '지사 관리', superOnly: true },

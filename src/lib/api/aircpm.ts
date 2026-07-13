@@ -79,6 +79,31 @@ export interface AircpmCertListResponse {
   limit: number;
 }
 
+// 모바일 기기는 데스크톱 인증서(cert)와 별개 테이블이라 상태값도 다르다.
+// bound = 승인되어 사용 중, revoked = 관리자가 리셋했거나 다른 기기 승인에 밀려 폐기됨.
+export type AircpmMobileDeviceStatus = 'pending' | 'bound' | 'revoked' | 'rejected';
+
+export interface AircpmMobileDevice {
+  id: number;
+  userId: string;
+  name: string | null;
+  brchCd: string | null;
+  deviceId: string;
+  platform: string | null;
+  status: AircpmMobileDeviceStatus;
+  requestedAt: string | null;
+  boundAt: string | null;
+  lastSeenAt: string | null;
+  revokedAt: string | null;
+  decidedAt: string | null;
+  decidedBy: number | null;
+  rejectReason: string | null;
+}
+
+export interface AircpmMobileDeviceListResponse {
+  items: AircpmMobileDevice[];
+}
+
 export interface AircpmUser {
   id: number;
   userId: string;
@@ -164,6 +189,49 @@ export async function revokeAircpmCert(id: number, reason?: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(reason ? { reason } : {}),
+  });
+}
+
+// ─── Mobile devices ────────────────────────────────────────────────
+
+export interface ListMobileDevicesParams {
+  status?: AircpmMobileDeviceStatus | 'all';
+  userId?: string;
+}
+
+export async function listAircpmMobileDevices(params: ListMobileDevicesParams = {}) {
+  const sp = new URLSearchParams();
+  if (params.status) sp.set('status', params.status);
+  if (params.userId) sp.set('userId', params.userId);
+  const qs = sp.toString();
+  return api<AircpmMobileDeviceListResponse>(
+    `/admin/aircpm/mobile-device${qs ? `?${qs}` : ''}`,
+  );
+}
+
+/** 승인 시 같은 사용자의 다른 기기는 폐기되고 그 사용자의 세션이 끊긴다(1인 1기기). */
+export async function approveAircpmMobileDevice(id: number) {
+  return api<{ ok: true }>(`/admin/aircpm/mobile-device/${id}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+}
+
+export async function rejectAircpmMobileDevice(id: number, reason: string) {
+  return api<{ ok: true }>(`/admin/aircpm/mobile-device/${id}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+}
+
+/** 사용자 단위 리셋(id 가 아니라 userId 를 받는다). 이후 재로그인하면 승인 대기로 재접수된다. */
+export async function unbindAircpmMobileDevice(userId: string) {
+  return api<{ ok: true }>(`/admin/aircpm/mobile-device/${encodeURIComponent(userId)}/unbind`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
   });
 }
 
