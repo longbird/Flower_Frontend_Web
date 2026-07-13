@@ -441,14 +441,28 @@ export function validateTargetAppsConfig(cfg: unknown): string[] {
 
 // ─── Calls (관리자 콜패스 조회) ─────────────────────────────────────
 
-export type AircpmCallStatus = 'CALLPASSED' | 'DISPATCHED';
+// 콜은 1행이지만 상태는 2축이다 — 원본콜(소스앱)과 우리가 붙여넣은 콜(대상앱)의 상태는 다를 수 있다.
+// 백엔드 스펙: docs/aircpm-callpass-status-axes.md
+export type AircpmTargetStatus = 'CALLPASSED' | 'DISPATCHED' | 'COMPLETED' | 'CANCELLED';
+export type AircpmSourceStatus =
+  | 'WAITING'
+  | 'RESERVED'
+  | 'INQUIRY'
+  | 'DISPATCHED'
+  | 'COMPLETED'
+  | 'CANCELLED';
 
 export interface AircpmCallItem {
   callId: number;
   brchCd: string;
   businessYmd: string;
-  status: AircpmCallStatus;
-  // union 값은 백엔드 CallpassCallRow(callpass_calls.db.ts:8,12)의 실제 enum 을 미러링
+  /** 대상앱(배차앱)에서의 상태. */
+  targetStatus: AircpmTargetStatus;
+  targetStatusAt: string | null;
+  /** 소스앱(원본콜)에서의 상태. null = 아직 접수목록에 살아있음(미판정). */
+  sourceStatus: AircpmSourceStatus | null;
+  sourceStatusAt: string | null;
+  // union 값은 백엔드 CallpassCallRow(callpass_calls.db.ts)의 실제 enum 을 미러링
   postProcessStatus: 'NONE' | 'PENDING' | 'DONE' | 'FAILED';
   postProcessError: string | null;
   pasteOk: boolean | null;
@@ -480,7 +494,8 @@ export interface ListAircpmCallsParams {
   limit?: number;
   from?: string; // YYYY-MM-DD
   to?: string; // YYYY-MM-DD
-  status?: AircpmCallStatus;
+  /** 서버 필터는 **대상앱 상태(target_status)** 기준이다. 소스앱 상태로는 서버에서 필터하지 않는다. */
+  status?: AircpmTargetStatus;
   errorOnly?: boolean;
   // 오류 유형 세분화: postprocess=후처리 실패(FAILED), paste=붙여넣기 실패(paste_ok=0).
   // 미지정 시 errorOnly 동작. 백엔드 미지원 시 무시되고 errorOnly 로 폴백.

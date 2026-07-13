@@ -6,7 +6,8 @@ import {
   listAircpmCalls,
   getAircpmCallLog,
   type AircpmCallItem,
-  type AircpmCallStatus,
+  type AircpmTargetStatus,
+  type AircpmSourceStatus,
 } from '@/lib/api/aircpm';
 import { listAircpmBranches } from '@/lib/api/aircpm-payments';
 import {
@@ -38,15 +39,33 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const STATUS_OPTIONS: Array<{ value: AircpmCallStatus | 'all'; label: string }> = [
+// 서버 필터는 대상앱 상태(target_status) 기준이다 — 소스앱 상태로는 필터하지 않는다.
+const STATUS_OPTIONS: Array<{ value: AircpmTargetStatus | 'all'; label: string }> = [
   { value: 'all', label: '전체' },
   { value: 'CALLPASSED', label: '콜패스' },
   { value: 'DISPATCHED', label: '배차' },
+  { value: 'COMPLETED', label: '완료' },
+  { value: 'CANCELLED', label: '취소' },
 ];
 
-const STATUS_VARIANT: Record<AircpmCallStatus, { label: string; tone: string }> = {
+const NEUTRAL = 'bg-slate-100 text-slate-700 border-slate-200';
+const GOOD = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+const BAD = 'bg-red-100 text-red-700 border-red-200';
+
+const TARGET_VARIANT: Record<AircpmTargetStatus, { label: string; tone: string }> = {
   CALLPASSED: { label: '콜패스', tone: 'bg-amber-100 text-amber-800 border-amber-200' },
-  DISPATCHED: { label: '배차', tone: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  DISPATCHED: { label: '배차', tone: GOOD },
+  COMPLETED: { label: '완료', tone: GOOD },
+  CANCELLED: { label: '취소', tone: BAD },
+};
+
+const SOURCE_VARIANT: Record<AircpmSourceStatus, { label: string; tone: string }> = {
+  DISPATCHED: { label: '배차', tone: GOOD },
+  COMPLETED: { label: '완료', tone: GOOD },
+  CANCELLED: { label: '취소', tone: BAD },
+  WAITING: { label: '대기', tone: NEUTRAL },
+  RESERVED: { label: '예약', tone: NEUTRAL },
+  INQUIRY: { label: '문의', tone: NEUTRAL },
 };
 
 function formatDateTime(iso: string | null): string {
@@ -83,7 +102,7 @@ export default function AircpmCallsPage() {
   const [toInput, setToInput] = useState(today);
   const [fromFilter, setFromFilter] = useState(today);
   const [toFilter, setToFilter] = useState(today);
-  const [status, setStatus] = useState<AircpmCallStatus | 'all'>('all');
+  const [status, setStatus] = useState<AircpmTargetStatus | 'all'>('all');
   const [errorFilter, setErrorFilter] = useState<CallErrorFilter>('all');
   const [selectedBrchCd, setSelectedBrchCd] = useState(''); // super 전용, '' = 전체
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -209,7 +228,7 @@ export default function AircpmCallsPage() {
             <Select
               value={status}
               onValueChange={(v) => {
-                setStatus(v as AircpmCallStatus | 'all');
+                setStatus(v as AircpmTargetStatus | 'all');
                 setPage(1);
               }}
             >
@@ -309,7 +328,15 @@ export default function AircpmCallsPage() {
                   <tr>
                     <th className="px-3 py-2 text-left font-semibold">접수 시각</th>
                     {isSuper && <th className="px-3 py-2 text-left font-semibold">지사</th>}
-                    <th className="px-3 py-2 text-left font-semibold">상태</th>
+                    <th className="px-3 py-2 text-left font-semibold" title="대상앱(배차앱)에서의 상태">
+                      대상앱
+                    </th>
+                    <th
+                      className="px-3 py-2 text-left font-semibold"
+                      title="원본콜이 소스앱에서 어떤 상태로 끝났는지. '-' = 아직 접수목록에 살아있음"
+                    >
+                      원본콜
+                    </th>
                     <th className="px-3 py-2 text-left font-semibold">전화</th>
                     <th className="px-3 py-2 text-left font-semibold">출발지</th>
                     <th className="px-3 py-2 text-left font-semibold">도착지</th>
@@ -322,7 +349,9 @@ export default function AircpmCallsPage() {
                 <tbody>
                   {items.map((row) => {
                     const isOpen = expanded.has(row.callId);
-                    const variant = STATUS_VARIANT[row.status];
+                    const target = TARGET_VARIANT[row.targetStatus];
+                    // 두 축은 독립이다 — 원본이 취소돼도 우리 콜은 배차돼 있을 수 있다. 각각 보여준다.
+                    const source = row.sourceStatus ? SOURCE_VARIANT[row.sourceStatus] : null;
                     return (
                       <Fragment key={row.callId}>
                         <tr className="border-t border-slate-100 hover:bg-slate-50">
@@ -335,9 +364,20 @@ export default function AircpmCallsPage() {
                             </td>
                           )}
                           <td className="px-3 py-2">
-                            <Badge variant="outline" className={cn('font-medium', variant.tone)}>
-                              {variant.label}
+                            <Badge variant="outline" className={cn('font-medium', target.tone)}>
+                              {target.label}
                             </Badge>
+                          </td>
+                          <td className="px-3 py-2">
+                            {source ? (
+                              <Badge variant="outline" className={cn('font-medium', source.tone)}>
+                                {source.label}
+                              </Badge>
+                            ) : (
+                              <span className="text-slate-300" title="아직 접수목록에 살아있음(미판정)">
+                                -
+                              </span>
+                            )}
                           </td>
                           <td className="px-3 py-2 font-mono text-[12.5px] text-slate-700">
                             {row.customerPhoneMasked}

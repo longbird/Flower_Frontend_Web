@@ -35,7 +35,8 @@ function renderPage() {
 
 function callItem(over: Partial<Record<string, unknown>> = {}) {
   return {
-    callId: 9, brchCd: 'B001', businessYmd: '2026-06-30', status: 'DISPATCHED',
+    callId: 9, brchCd: 'B001', businessYmd: '2026-06-30',
+    targetStatus: 'DISPATCHED', targetStatusAt: null, sourceStatus: null, sourceStatusAt: null,
     postProcessStatus: 'DONE', postProcessError: null, pasteOk: true, pasteTotalMs: 8200,
     sourceApp: 'D5', orderNo: 'A-1', customerPhoneMasked: '010-42**-1188',
     originName: '출발화원', originAddr: '서울 강남구', destName: '도착지', destAddr: '서울 서초구',
@@ -133,15 +134,39 @@ describe('AircpmCallsPage', () => {
     expect(mockBranches).not.toHaveBeenCalled();
   });
 
-  it('상태 뱃지: DISPATCHED → 배차, CALLPASSED → 콜패스', async () => {
+  it('대상앱 뱃지: DISPATCHED → 배차, CALLPASSED → 콜패스', async () => {
     mockUser = { isSuper: false, brchCd: 'B001' };
     mockList.mockResolvedValue({
-      items: [callItem(), callItem({ callId: 10, status: 'CALLPASSED', dispatchedAt: null })],
+      items: [callItem(), callItem({ callId: 10, targetStatus: 'CALLPASSED', dispatchedAt: null })],
       total: 2, page: 1, limit: 50,
     });
     renderPage();
     await waitFor(() => expect(screen.getByText('배차')).toBeInTheDocument());
     expect(screen.getByText('콜패스')).toBeInTheDocument();
+  });
+
+  // 사용자 요구의 핵심: 원본콜과 복사된 콜의 상태는 다를 수 있다 → 각각 보여야 한다.
+  it('두 축을 각각 표시한다 — 원본은 취소인데 우리 콜은 배차일 수 있다', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({
+      items: [callItem({ targetStatus: 'DISPATCHED', sourceStatus: 'CANCELLED' })],
+      total: 1, page: 1, limit: 50,
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('배차')).toBeInTheDocument());
+    expect(screen.getByText('취소')).toBeInTheDocument();
+  });
+
+  it('소스앱 판정이 없으면(원본이 아직 살아있음) 원본콜 칸은 비운다', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({
+      items: [callItem({ targetStatus: 'CALLPASSED', sourceStatus: null })],
+      total: 1, page: 1, limit: 50,
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('콜패스')).toBeInTheDocument());
+    expect(screen.queryByText('취소')).not.toBeInTheDocument();
+    expect(screen.queryByText('완료')).not.toBeInTheDocument();
   });
 
   it('검색: 기간 입력 후 검색 버튼 → from/to 전달, page 리셋', async () => {
