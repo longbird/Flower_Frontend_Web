@@ -166,7 +166,20 @@ describe('AircpmCallsPage', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('콜패스')).toBeInTheDocument());
     expect(screen.queryByText('취소')).not.toBeInTheDocument();
-    expect(screen.queryByText('완료')).not.toBeInTheDocument();
+    expect(screen.queryByText('종료')).not.toBeInTheDocument();
+  });
+
+  // 서버가 어휘를 늘렸는데 프론트가 모르면, 라벨 조회가 undefined 를 내고 .label 에서 페이지가
+  // 통째로 죽는다. 뱃지 하나 못 그리는 것과 화면 전체가 죽는 것은 전혀 다른 문제다.
+  it('모르는 상태 코드가 와도 페이지가 죽지 않는다', async () => {
+    mockUser = { isSuper: false, brchCd: 'B001' };
+    mockList.mockResolvedValue({
+      items: [callItem({ targetStatus: 'TELEPORTED', sourceStatus: 'ABDUCTED' })],
+      total: 1, page: 1, limit: 50,
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('TELEPORTED')).toBeInTheDocument());
+    expect(screen.getByText('ABDUCTED')).toBeInTheDocument();
   });
 
   it('검색: 기간 입력 후 검색 버튼 → from/to 전달, page 리셋', async () => {

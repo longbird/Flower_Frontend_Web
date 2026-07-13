@@ -59,13 +59,14 @@ const TARGET_VARIANT: Record<AircpmTargetStatus, { label: string; tone: string }
   CANCELLED: { label: '취소', tone: BAD },
 };
 
+// 소스앱 통합 어휘(콜마너·로지 공통). Record 라 값이 하나라도 빠지면 tsc 가 잡는다 —
+// 서버가 새 코드를 추가했는데 여기가 undefined 를 참조해 크래시하는 일을 컴파일 타임에 막는다.
 const SOURCE_VARIANT: Record<AircpmSourceStatus, { label: string; tone: string }> = {
   DISPATCHED: { label: '배차', tone: GOOD },
-  COMPLETED: { label: '완료', tone: GOOD },
+  ENDED: { label: '종료', tone: GOOD },
   CANCELLED: { label: '취소', tone: BAD },
   WAITING: { label: '대기', tone: NEUTRAL },
-  RESERVED: { label: '예약', tone: NEUTRAL },
-  INQUIRY: { label: '문의', tone: NEUTRAL },
+  OTHER: { label: '기타', tone: NEUTRAL },
 };
 
 function formatDateTime(iso: string | null): string {
@@ -349,9 +350,16 @@ export default function AircpmCallsPage() {
                 <tbody>
                   {items.map((row) => {
                     const isOpen = expanded.has(row.callId);
-                    const target = TARGET_VARIANT[row.targetStatus];
+                    // Record 조회는 컴파일 타임만 보장한다 — 서버가 모르는 코드를 보내면 undefined 가
+                    // 나와 .label 에서 페이지가 통째로 죽는다. 모르는 값은 그 값 그대로 보여준다.
+                    const target = TARGET_VARIANT[row.targetStatus] ?? {
+                      label: row.targetStatus,
+                      tone: NEUTRAL,
+                    };
                     // 두 축은 독립이다 — 원본이 취소돼도 우리 콜은 배차돼 있을 수 있다. 각각 보여준다.
-                    const source = row.sourceStatus ? SOURCE_VARIANT[row.sourceStatus] : null;
+                    const source = row.sourceStatus
+                      ? (SOURCE_VARIANT[row.sourceStatus] ?? { label: row.sourceStatus, tone: NEUTRAL })
+                      : null;
                     return (
                       <Fragment key={row.callId}>
                         <tr className="border-t border-slate-100 hover:bg-slate-50">

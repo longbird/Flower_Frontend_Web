@@ -444,13 +444,12 @@ export function validateTargetAppsConfig(cfg: unknown): string[] {
 // 콜은 1행이지만 상태는 2축이다 — 원본콜(소스앱)과 우리가 붙여넣은 콜(대상앱)의 상태는 다를 수 있다.
 // 백엔드 스펙: docs/aircpm-callpass-status-axes.md
 export type AircpmTargetStatus = 'CALLPASSED' | 'DISPATCHED' | 'COMPLETED' | 'CANCELLED';
-export type AircpmSourceStatus =
-  | 'WAITING'
-  | 'RESERVED'
-  | 'INQUIRY'
-  | 'DISPATCHED'
-  | 'COMPLETED'
-  | 'CANCELLED';
+
+/**
+ * 소스앱 상태는 콜마너·로지 공통 어휘로 통합돼 있다(migration 070).
+ * 콜마너의 완료 → ENDED, 예약/문의 → OTHER 로 접힌다. 접수(뷰 밀림)는 저장하지 않는다(null).
+ */
+export type AircpmSourceStatus = 'WAITING' | 'DISPATCHED' | 'ENDED' | 'CANCELLED' | 'OTHER';
 
 export interface AircpmCallItem {
   callId: number;
