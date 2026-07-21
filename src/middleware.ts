@@ -20,7 +20,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/partner') ||
     pathname.startsWith('/branch') ||
     pathname.startsWith('/o/') || // 고객 확인 URL (공개)
-    pathname.startsWith('/downloads') || // 앱·업데이터 다운로드 (공개)
     pathname.includes('.') // static files (favicon, etc.)
   ) {
     return NextResponse.next();

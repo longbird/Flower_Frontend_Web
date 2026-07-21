@@ -17,9 +17,12 @@ import { Skeleton } from '@/components/ui/skeleton';
  * 데스크톱 업데이터와 모바일 APK 를 매니페스트에서 읽어 카드로 보여준다.
  */
 export default function DownloadsPage() {
-  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+  // staleTime:0 — 이 페이지는 파일명을 하드코딩하지 않고 항상 최신 매니페스트를 따르려는 목적이라,
+  // 전역 기본값(30s)을 무시하고 재방문/포커스마다 최신을 다시 확인한다.
+  const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: ['downloads-manifest'],
     queryFn: fetchDownloadsManifest,
+    staleTime: 0,
   });
 
   return (
@@ -33,9 +36,11 @@ export default function DownloadsPage() {
           <p className="text-sm text-slate-500 mt-1.5">설치 파일을 아래에서 내려받으세요.</p>
         </header>
 
-        {isLoading && <LoadingCards />}
+        {/* 상호배타: 데이터가 있으면(마지막 성공분) 카드를 유지하고, 없을 때만 에러를 보인다.
+            재조회가 실패해도 낡은 카드 위에 에러 배너가 겹쳐 뜨지 않게 한다. */}
+        {isPending && <LoadingCards />}
 
-        {isError && <ErrorCard onRetry={() => refetch()} retrying={isFetching} />}
+        {isError && !data && <ErrorCard onRetry={() => refetch()} retrying={isFetching} />}
 
         {data && (
           <div className="space-y-4">

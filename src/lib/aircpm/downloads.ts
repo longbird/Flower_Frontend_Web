@@ -12,8 +12,22 @@ import { z } from 'zod';
 const UPDATES_BASE = '/aircpm/updates';
 const MANIFEST_URL = `${UPDATES_BASE}/downloads.json`;
 
+/**
+ * 매니페스트의 file 은 정적 호스트 아래 **상대 경로**여야 한다.
+ * 매니페스트가 잘못 배포/변조돼도 scheme(`https:`)·프로토콜상대(`//`)·경로탈출(`..`)로
+ * 의도치 않은 곳을 가리키는 링크가 만들어지지 않도록 경계에서 막는다.
+ */
+function isSafeRelativeFile(file: string): boolean {
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(file)) return false; // https:, file: 등 scheme
+  if (file.startsWith('//')) return false; // //evil.example 프로토콜상대
+  return !file.split('/').some((seg) => seg === '..'); // .. 세그먼트
+}
+
 const artifactSchema = z.object({
-  file: z.string().min(1),
+  file: z
+    .string()
+    .min(1)
+    .refine(isSafeRelativeFile, { message: 'file must be a relative path (no scheme/"//"/".." )' }),
   version: z.string().min(1),
   sizeBytes: z.number().int().positive(),
   updatedAt: z.string().min(1),

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('@/lib/aircpm/downloads', async (importActual) => ({
@@ -78,5 +78,29 @@ describe('DownloadsPage', () => {
 
     expect(await screen.findByText('CPM 데스크톱 업데이터')).toBeInTheDocument();
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('재조회가 실패해도 에러 배너와 낡은 카드가 동시에 뜨지 않는다', async () => {
+    // 성공 후 백그라운드 재조회 실패 → react-query 는 data 를 유지한 채 isError 를 세운다.
+    // 낡은(검증 안 된) 다운로드 링크 위에 에러를 겹쳐 보이면 안 된다.
+    mockFetch.mockResolvedValueOnce(manifest).mockRejectedValueOnce(new Error('refetch fail'));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <DownloadsPage />
+      </QueryClientProvider>,
+    );
+
+    await screen.findByText('CPM 데스크톱 업데이터');
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ['downloads-manifest'] });
+    });
+    // 옵저버의 error 알림이 커밋되도록 한 틱 더 flush 한다.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('CPM 데스크톱 업데이터')).toBeInTheDocument();
+    expect(screen.queryByText(/불러오지 못했습니다/)).toBeNull();
   });
 });

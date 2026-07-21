@@ -71,4 +71,19 @@ describe('fetchDownloadsManifest', () => {
     );
     await expect(fetchDownloadsManifest()).rejects.toThrow();
   });
+
+  it('file 이 scheme/프로토콜상대/.. 경로면 거부한다(경계 검증)', async () => {
+    const cases = ['https://evil.example/x.apk', '//evil.example/x.apk', '../../etc/passwd'];
+    for (const badFile of cases) {
+      const bad = {
+        ...validManifest,
+        mobile: { ...validManifest.mobile, file: badFile },
+      };
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => bad }),
+      );
+      await expect(fetchDownloadsManifest()).rejects.toThrow();
+    }
+  });
 });
