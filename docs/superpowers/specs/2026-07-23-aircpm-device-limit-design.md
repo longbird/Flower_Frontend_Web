@@ -29,7 +29,7 @@
 
 - 승인 전에 대상 cert의 user를 조회해 **power=5인 경우에만**(is_mobile 무관) 같은 user_id의 `approved` cert 수를 센다.
 - 이미 2개면 `ConflictException(409)` `{ code: 'DEVICE_LIMIT_EXCEEDED', message: '기기 수 제한(최대 2대)을 초과했습니다. 기존 기기를 먼저 해제해주세요.' }` — 409는 클라이언트의 401 자동 refresh 경로를 타지 않으므로 안전.
-- 동시 승인 경합 방지: 트랜잭션 안에서 `SELECT ... FOR UPDATE`(해당 user의 cert 행 잠금) 후 카운트 → 승인 UPDATE → 커밋 (기존 `aircpm_config.service.ts` callpass 트랜잭션 패턴 재사용).
+- 동시 승인 경합 방지: 트랜잭션 안에서 `SELECT ... FOR UPDATE`(해당 user의 cert 행 잠금) 후 카운트 → 승인 UPDATE → 커밋 (모듈 내 기존 트랜잭션 패턴 재사용 — 예: `aircpm_config.service.ts:82-115`).
 - 고아 cert(대응하는 `aircpm_user` 행이 없는 경우 — listCerts가 LEFT JOIN이라 존재 가능): power를 알 수 없으므로 제한 검사를 건너뛰고 기존과 동일하게 승인한다.
 - 상수 `AIRCPM_DESKTOP_DEVICE_LIMIT = 2` 정의.
 
@@ -60,7 +60,7 @@
 - 대상: `aircpm_user`의 **power=5 전체** (기기 0대 계정 포함 — LEFT JOIN 집계). 비활성 계정 포함하되 `isActive` 반환.
 - 쿼리 파라미터: `q`(userId/name/brchCd 부분검색), `overLimitOnly`(boolean), `page`, `limit`.
 - scope: 슈퍼=전체(+`brchCd` 필터 선택), 지사관리자=자기 `brch_cd`의 power=5만. `brchCd` NULL인 지사관리자는 빈 결과 (기존 규칙 동일).
-- 정렬: overLimit DESC → 승인 기기 수 DESC → user_id.
+- 정렬: overLimit DESC → `(desktopApproved + mobileBound)` DESC → user_id.
 
 ### 1-3. 마이그레이션 080 — 기존 초과분 자동 정리
 
