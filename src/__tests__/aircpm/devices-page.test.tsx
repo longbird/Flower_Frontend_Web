@@ -233,4 +233,38 @@ describe('계정별 탭 & 에러코드 매핑', () => {
       ),
     );
   });
+
+  it('계정별 탭에서 "기기 보기" 클릭 → 기기별 탭으로 전환하고 userId 필터를 적용한다', async () => {
+    (listAircpmDeviceSummary as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [
+        {
+          userId: 'cpm07', name: '김철수', brchCd: 'm8282_1',
+          isMobile: false, isActive: true,
+          desktopApproved: 1, desktopPending: 0, mobileBound: 0, mobilePending: 0,
+          overLimit: false,
+        },
+      ],
+      total: 1, page: 1, limit: 50,
+    });
+    mockListCerts.mockResolvedValue({ items: [CERT], total: 1, page: 1, limit: 200 });
+    mockListMobiles.mockResolvedValue({ items: [] });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: '계정별' }));
+    await waitFor(() => expect(screen.getByText('cpm07')).toBeInTheDocument());
+    mockListCerts.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: '기기 보기' }));
+
+    // 계정별 탭이 사라지고 기기별 탭으로 전환됐다 — 계정별 전용 검색창이 더 이상 없다.
+    await waitFor(() =>
+      expect(screen.queryByPlaceholderText('userId / 이름 / 지사코드')).not.toBeInTheDocument(),
+    );
+    // 기기별 탭의 사용자 ID 검색창에 그 계정의 userId 가 채워져 있다.
+    expect(screen.getByPlaceholderText('userId')).toHaveValue('cpm07');
+    // 그 userId 로 필터링된 재조회가 실제로 일어났다.
+    await waitFor(() =>
+      expect(mockListCerts).toHaveBeenCalledWith(expect.objectContaining({ userId: 'cpm07' })),
+    );
+  });
 });

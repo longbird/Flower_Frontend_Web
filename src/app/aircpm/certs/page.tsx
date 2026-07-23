@@ -170,6 +170,7 @@ export default function AircpmDevicesPage() {
       };
     },
     refetchInterval: 15000,
+    enabled: view === 'devices',
   });
 
   const devices = data?.devices ?? [];
@@ -249,6 +250,21 @@ export default function AircpmDevicesPage() {
     setPage(1);
   };
 
+  const [summaryRefreshing, setSummaryRefreshing] = useState(false);
+  const refreshing = view === 'devices' ? isFetching : summaryRefreshing;
+  const handleRefresh = async () => {
+    if (view === 'devices') {
+      refetch();
+      return;
+    }
+    setSummaryRefreshing(true);
+    try {
+      await queryClient.refetchQueries({ queryKey: ['admin-aircpm-device-summary'] });
+    } finally {
+      setSummaryRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -258,18 +274,8 @@ export default function AircpmDevicesPage() {
             데스크톱·모바일 기기 등록 요청을 한곳에서 승인/거부합니다. 승인된 기기만 로그인할 수 있습니다.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            view === 'accounts'
-              ? queryClient.invalidateQueries({ queryKey: ['admin-aircpm-device-summary'] })
-              : refetch()
-          }
-          disabled={view === 'devices' && isFetching}
-          className="shrink-0"
-        >
-          {view === 'devices' && isFetching ? '새로고침 중...' : '새로고침'}
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="shrink-0">
+          {refreshing ? '새로고침 중...' : '새로고침'}
         </Button>
       </div>
 
