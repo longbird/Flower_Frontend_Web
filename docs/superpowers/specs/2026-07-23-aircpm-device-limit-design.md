@@ -71,7 +71,7 @@
 - MariaDB는 UPDATE에서 윈도우 함수를 직접 못 쓴다 — `ROW_NUMBER()` 결과를 파생 테이블로 만들어 JOIN UPDATE 한다 (MariaDB ≥ 10.2 필요, 운영 Docker MariaDB 충족).
 - 나머지: `status='rejected'`, `reject_reason='기기 수 제한(최대 2대) 초과 자동 해제'`, `decided_at=NOW()`, `decided_by=NULL`.
 - 해제된 cert의 세션 정밀 폐기: `aircpm_refresh_tokens`에서 해당 user의 **serial이 해제 cert와 일치하는** 활성 토큰만 `revoked_at=NOW(), revoke_reason='FORCED'`. 남는 2대의 세션은 원칙적으로 유지되지만, **유지 cert와 해제 cert의 serial이 같은 경우**(동일 기기 복수 행) 유지 기기의 세션도 함께 끊긴다 — 재로그인으로 해소되므로 허용하고 마이그레이션 파일에 주석 명기.
-- rollback: `reject_reason='기기 수 제한(최대 2대) 초과 자동 해제'`인 행을 `approved`로 복원(reject_reason=NULL). 마이그레이션이 찍은 `decided_at`은 남는다(관리자 행위로 오독하지 않도록 주석 명기). 폐기된 refresh 토큰은 복원 불가(재로그인으로 해소) — 파일에 주석 명기.
+- rollback: `reject_reason='기기 수 제한(최대 2대) 초과 자동 해제'` **AND `decided_by IS NULL`** 인 행을 `approved`로 복원(reject_reason=NULL). `decided_by IS NULL` 은 사람이 같은 문구로 수동 거부한 cert 의 오복원을 막는 판별자다 — `rejectCert()`/`revokeCert()` 는 항상 admin id 를 남기므로 NULL 은 마이그레이션이 찍은 행뿐이다(마이그 071 과 동일 방식). 마이그레이션이 찍은 `decided_at`은 남는다(관리자 행위로 오독하지 않도록 주석 명기). 폐기된 refresh 토큰은 복원 불가(재로그인으로 해소) — 파일에 주석 명기.
 
 ### 1-4. 백엔드 테스트 (`aircpm_auth.service.spec.ts` 패턴)
 

@@ -69,6 +69,8 @@ git checkout -b feat/aircpm-device-limit
 -- 주의: 유지 cert 와 해제 cert 의 serial 이 같은 경우(동일 기기 복수 행) 유지 기기의 세션도 함께
 --       끊긴다 — 재로그인으로 해소되므로 허용한다.
 -- Requires: MariaDB >= 10.2 (윈도우 함수). UPDATE 에서 직접 못 쓰므로 파생 테이블로 JOIN.
+-- 재실행 안전: 1) 은 status='approved' 만 순위 대상이라 이미 해제된 행이 다시 잡히지 않고,
+--             2) 는 revoked_at IS NULL 로 걸러 중복 폐기하지 않는다. 중단 후 재실행해도 안전.
 -- Date: 2026-07-23
 
 -- 1) 계정별 3번째 이후 approved cert → rejected
@@ -117,12 +119,17 @@ WHERE c.status = 'rejected'
 ```sql
 -- Rollback: 080_aircpm_desktop_device_limit_cleanup
 -- 마이그레이션이 자동 해제한 cert 를 approved 로 복원한다.
+-- 대상 식별: reject_reason 문구 + decided_by IS NULL.
+--   rejectCert()/revokeCert() 등 사람이 거부한 행은 decided_by 에 admin id 가 반드시 남으므로,
+--   decided_by IS NULL 조건이 관리자가 같은 문구로 수동 거부한 cert 를 오복원하는 것을 막는다
+--   (071_aircpm_mobile_device_approval_backfill.sql 과 같은 판별 방식).
 -- 주의: decided_at 에는 마이그레이션 실행 시각이 남는다(관리자 행위로 오독 금지).
 --       폐기된 refresh 토큰은 복원 불가 — 해당 기기 재로그인으로 해소된다.
 UPDATE aircpm_device_cert
    SET status = 'approved', reject_reason = NULL
  WHERE status = 'rejected'
-   AND reject_reason = '기기 수 제한(최대 2대) 초과 자동 해제';
+   AND reject_reason = '기기 수 제한(최대 2대) 초과 자동 해제'
+   AND decided_by IS NULL;
 ```
 
 - [ ] **Step 3: 커밋**
