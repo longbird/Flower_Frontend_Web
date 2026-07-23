@@ -235,6 +235,44 @@ export async function unbindAircpmMobileDevice(userId: string) {
   });
 }
 
+// ─── 계정별 기기 현황 ──────────────────────────────────────────────
+
+export interface AircpmDeviceSummaryItem {
+  userId: string;
+  name: string | null;
+  brchCd: string | null;
+  isMobile: boolean;
+  isActive: boolean;
+  desktopApproved: number;
+  desktopPending: number;
+  mobileBound: number;
+  mobilePending: number;
+  overLimit: boolean;
+}
+
+export interface AircpmDeviceSummaryResponse {
+  items: AircpmDeviceSummaryItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ListDeviceSummaryParams {
+  q?: string;
+  overLimitOnly?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export async function listAircpmDeviceSummary(params: ListDeviceSummaryParams = {}) {
+  const sp = new URLSearchParams();
+  sp.set('page', String(params.page ?? 1));
+  sp.set('limit', String(params.limit ?? 50));
+  if (params.q) sp.set('q', params.q);
+  if (params.overLimitOnly) sp.set('overLimitOnly', 'true');
+  return api<AircpmDeviceSummaryResponse>(`/admin/aircpm/devices/summary?${sp.toString()}`);
+}
+
 // ─── Users (P1) ────────────────────────────────────────────────────
 
 export interface ListAircpmUsersParams {
