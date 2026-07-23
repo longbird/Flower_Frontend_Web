@@ -192,6 +192,8 @@ function makePool() {
 
 - [ ] **Step 2: 실패하는 테스트 작성** — **바깥 `describe('AircpmAuthService')` 블록 안**, 그 닫는 `});` 직전에 추가한다 (`jwt` 변수가 그 스코프에 선언되어 있어 파일 끝에 붙이면 컴파일 에러):
 
+> **실행 중 반영된 변경(코드 리뷰 결과):** 잠금 대상이 `aircpm_user` 행으로 바뀌면서 트랜잭션 경로를 타는 테스트(`0대`/`1대 경계`/`2대 차단`/`rejected 재승인`/`is_mobile`)는 cert+power 조회와 approved 카운트 **사이에** 사용자 행 잠금용 `h.enqueue([{ id: 1 }])` 가 하나 더 필요하다. 또한 리뷰 지적으로 테스트 3개(cert 없음 → NotFound, 비-슈퍼 스코프 한도 적용, 트랜잭션 중 실패 시 rollback·release)가 추가됐다.
+
 ```ts
 describe('approveCert 기기 한도', () => {
   const superScope = { isSuper: true, brchCd: null };
@@ -348,14 +350,18 @@ export const AIRCPM_DESKTOP_DEVICE_LIMIT = 2;
     return { ok: true };
   }
 
-  // 한도 검사와 승인을 한 트랜잭션으로 묶는다 — 두 관리자가 동시에 승인해도
-  // FOR UPDATE 행 잠금으로 한쪽이 대기했다가 갱신된 카운트를 본다.
+  // 한도 검사와 승인을 한 트랜잭션으로 묶는다.
+  // 잠금 대상은 aircpm_user 행이다 — 승인 대상 cert 는 아직 pending 이라 approved 집합에
+  // 포함되지 않으므로, cert 행만 잠그면 같은 사용자의 서로 다른 pending cert 를 동시에
+  // 승인하는 경합을 막지 못한다(승인 0대면 잠글 행조차 없다). user_id 는 UNIQUE 라
+  // 항상 한 행이 잡히고, 그 사용자의 모든 승인이 이 행에서 직렬화된다.
   private async approveCertWithinLimit(certId: number, userId: string, adminId: number) {
     const conn = await this.pool.getConnection();
     try {
       await conn.beginTransaction();
+      await conn.query(`SELECT id FROM aircpm_user WHERE user_id = ? FOR UPDATE`, [userId]);
       const [approved] = await conn.query<any[]>(
-        `SELECT id FROM aircpm_device_cert WHERE user_id = ? AND status = 'approved' FOR UPDATE`,
+        `SELECT id FROM aircpm_device_cert WHERE user_id = ? AND status = 'approved'`,
         [userId],
       );
       if ((approved?.length ?? 0) >= AIRCPM_DESKTOP_DEVICE_LIMIT) {

@@ -29,7 +29,8 @@
 
 - 승인 전에 대상 cert의 user를 조회해 **power=5인 경우에만**(is_mobile 무관) 같은 user_id의 `approved` cert 수를 센다.
 - 이미 2개면 `ConflictException(409)` `{ code: 'DEVICE_LIMIT_EXCEEDED', message: '기기 수 제한(최대 2대)을 초과했습니다. 기존 기기를 먼저 해제해주세요.' }` — 409는 클라이언트의 401 자동 refresh 경로를 타지 않으므로 안전.
-- 동시 승인 경합 방지: 트랜잭션 안에서 `SELECT ... FOR UPDATE`(해당 user의 cert 행 잠금) 후 카운트 → 승인 UPDATE → 커밋 (모듈 내 기존 트랜잭션 패턴 재사용 — 예: `aircpm_config.service.ts:82-115`).
+- 동시 승인 경합 방지: 트랜잭션 안에서 **`aircpm_user` 행을 `SELECT ... FOR UPDATE` 로 잠근 뒤** approved cert 를 카운트 → 승인 UPDATE → 커밋 (모듈 내 기존 트랜잭션 패턴 재사용 — 예: `aircpm_config.service.ts:82-115`).
+  - **cert 행을 잠그면 안 되는 이유**: 승인 대상 cert 는 아직 pending 이라 `status='approved'` 잠금 집합에 포함되지 않는다. 같은 사용자의 서로 다른 pending cert 를 두 관리자가 동시에 승인하면 같은 행을 잠근다는 보장이 없고, 승인 0대면 잠글 행조차 없어 둘 다 통과한다. `aircpm_device_cert` 에는 `(user_id, status)` 복합 인덱스가 없어(마이그 034) 안전 여부가 옵티마이저 인덱스 선택에 좌우된다. `aircpm_user.user_id` 는 UNIQUE 라 항상 정확히 한 행이 잡히고, 그 사용자의 모든 승인이 그 행에서 직렬화된다.
 - 고아 cert(대응하는 `aircpm_user` 행이 없는 경우 — listCerts가 LEFT JOIN이라 존재 가능): power를 알 수 없으므로 제한 검사를 건너뛰고 기존과 동일하게 승인한다.
 - 상수 `AIRCPM_DESKTOP_DEVICE_LIMIT = 2` 정의.
 
