@@ -35,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { AccountDeviceSummary } from '@/components/aircpm/account-device-summary';
 
 // 데스크톱 인증 목록은 서버 페이징이고 모바일은 아니라, 두 목록을 한 페이지에서 정렬하려면
 // 데스크톱을 한 번에 넉넉히 받아야 한다. 서버 상한이 200이다.
@@ -43,8 +44,12 @@ const PAGE_SIZE = 50;
 
 function extractErrorInfo(err: unknown): { status?: number; code?: string; message?: string } {
   if (err instanceof Error) {
-    const anyErr = err as Error & { status?: number; code?: string };
-    return { status: anyErr.status, code: anyErr.code, message: err.message };
+    const anyErr = err as Error & { status?: number; code?: string; data?: unknown };
+    const dataCode =
+      anyErr.data && typeof anyErr.data === 'object' && 'code' in anyErr.data
+        ? String((anyErr.data as Record<string, unknown>).code)
+        : undefined;
+    return { status: anyErr.status, code: anyErr.code ?? dataCode, message: err.message };
   }
   return { message: String(err) };
 }
@@ -53,6 +58,8 @@ function toastForError(err: unknown, fallback = '요청에 실패했습니다.')
   const { status, code, message } = extractErrorInfo(err);
   if (status === 404) return toast.error('기기를 찾을 수 없습니다.');
   if (status === 403) return toast.error('권한이 없습니다. 소속 지사의 기기만 관리할 수 있습니다.');
+  if (code === 'DEVICE_LIMIT_EXCEEDED')
+    return toast.error('기기 수 제한(최대 2대)을 초과했습니다. 기존 기기를 먼저 해제해주세요.');
   if (code === 'ALREADY_APPROVED') return toast.error('이미 승인된 기기입니다.');
   if (code === 'NOT_APPROVED') return toast.error('승인 상태의 기기만 해제할 수 있습니다.');
   toast.error(message || fallback);
@@ -116,6 +123,18 @@ export default function AircpmDevicesPage() {
   const [userIdQuery, setUserIdQuery] = useState('');
   const [userIdActive, setUserIdActive] = useState('');
   const [page, setPage] = useState(1);
+
+  const [view, setView] = useState<'devices' | 'accounts'>('devices');
+
+  // 계정별 탭에서 "기기 보기" — 기기별 탭으로 전환하며 그 계정의 모든 기기를 보여준다.
+  const showDevicesOf = (userId: string) => {
+    setView('devices');
+    setKind('all');
+    setStatus('all');
+    setUserIdQuery(userId);
+    setUserIdActive(userId);
+    setPage(1);
+  };
 
   const queryClient = useQueryClient();
 
@@ -239,11 +258,48 @@ export default function AircpmDevicesPage() {
             데스크톱·모바일 기기 등록 요청을 한곳에서 승인/거부합니다. 승인된 기기만 로그인할 수 있습니다.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="shrink-0">
-          {isFetching ? '새로고침 중...' : '새로고침'}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            view === 'accounts'
+              ? queryClient.invalidateQueries({ queryKey: ['admin-aircpm-device-summary'] })
+              : refetch()
+          }
+          disabled={view === 'devices' && isFetching}
+          className="shrink-0"
+        >
+          {view === 'devices' && isFetching ? '새로고침 중...' : '새로고침'}
         </Button>
       </div>
 
+      <div className="flex gap-1 border-b border-slate-200">
+        <button
+          onClick={() => setView('devices')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            view === 'devices'
+              ? 'border-slate-900 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          기기별
+        </button>
+        <button
+          onClick={() => setView('accounts')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            view === 'accounts'
+              ? 'border-slate-900 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          계정별
+        </button>
+      </div>
+
+      {view === 'accounts' && <AccountDeviceSummary onShowDevices={showDevicesOf} />}
+
+      {view === 'devices' && (
+        <>
       {/* Filters */}
       <Card>
         <CardContent className="p-4 flex flex-wrap items-end gap-3">
@@ -393,6 +449,8 @@ export default function AircpmDevicesPage() {
           </div>
         </div>
       )}
+        </>
+      )}
 
       {/* Approve */}
       <Dialog open={!!approveTarget} onOpenChange={(open) => !open && setApproveTarget(null)}>
@@ -403,6 +461,8 @@ export default function AircpmDevicesPage() {
               승인하면 이 기기에서 즉시 로그인이 가능해집니다.
               {approveTarget?.kind === 'mobile' &&
                 ' 모바일은 사용자당 1대만 유지되므로, 같은 사용자의 다른 기기는 폐기되고 그 세션은 즉시 종료됩니다.'}
+              {approveTarget?.kind === 'desktop' &&
+                ' 데스크톱은 계정당 최대 2대까지 승인됩니다.'}
             </DialogDescription>
           </DialogHeader>
           {approveTarget && deviceSummary(approveTarget)}

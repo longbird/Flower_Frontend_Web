@@ -13,6 +13,7 @@ vi.mock('@/lib/api/aircpm', () => ({
   approveAircpmMobileDevice: vi.fn(),
   rejectAircpmMobileDevice: vi.fn(),
   unbindAircpmMobileDevice: vi.fn(),
+  listAircpmDeviceSummary: vi.fn(),
 }));
 
 import DevicesPage from '@/app/aircpm/certs/page';
@@ -20,6 +21,7 @@ import {
   approveAircpmCert,
   approveAircpmMobileDevice,
   listAircpmCertRequests,
+  listAircpmDeviceSummary,
   listAircpmMobileDevices,
   revokeAircpmCert,
   unbindAircpmMobileDevice,
@@ -184,5 +186,51 @@ describe('기기 인증 (통합 목록)', () => {
     renderPage();
 
     expect(await screen.findByText(/숨겨진 249건/)).toBeInTheDocument();
+  });
+});
+
+describe('계정별 탭 & 에러코드 매핑', () => {
+  it('계정별 탭 클릭 → 계정 현황 조회·렌더', async () => {
+    (listAircpmDeviceSummary as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [
+        {
+          userId: 'cpm07', name: '김철수', brchCd: 'm8282_1',
+          isMobile: false, isActive: true,
+          desktopApproved: 3, desktopPending: 0, mobileBound: 0, mobilePending: 0,
+          overLimit: true,
+        },
+      ],
+      total: 1, page: 1, limit: 50,
+    });
+    mockListCerts.mockResolvedValue({ items: [], total: 0, page: 1, limit: 200 });
+    mockListMobiles.mockResolvedValue({ items: [] });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: '계정별' }));
+    await waitFor(() => expect(screen.getByText('cpm07')).toBeInTheDocument());
+    expect(screen.getByText('한도 초과')).toBeInTheDocument();
+  });
+
+  it('승인 실패 DEVICE_LIMIT_EXCEEDED(ApiError.data.code) → 한도 초과 토스트', async () => {
+    mockListCerts.mockResolvedValue({ items: [CERT], total: 1, page: 1, limit: 200 });
+    mockListMobiles.mockResolvedValue({ items: [] });
+    // 에러 message 를 매핑 문구와 다르게 둔다 — 같으면 fallback toast.error(message) 가
+    // 우연히 통과해 code 추출 경로를 전혀 검증하지 못한다(가짜 GREEN).
+    const err = Object.assign(new Error('Conflict'), {
+      status: 409,
+      data: { code: 'DEVICE_LIMIT_EXCEEDED', message: 'Conflict' },
+    });
+    mockApproveCert.mockRejectedValue(err);
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('cpm07')).toBeInTheDocument());
+    fireEvent.click(rowButton('cpm07', '승인'));
+    fireEvent.click(dialogButton('승인'));
+    const { toast } = await import('sonner');
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        '기기 수 제한(최대 2대)을 초과했습니다. 기존 기기를 먼저 해제해주세요.',
+      ),
+    );
   });
 });
