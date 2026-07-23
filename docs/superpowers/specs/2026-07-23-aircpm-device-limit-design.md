@@ -128,6 +128,16 @@
 
 프론트를 먼저 배포해도 summary 404 외 기존 기능은 동작하지만, 위 순서를 지킨다.
 
+## 구현 중 발견 — 범위 밖 후속 과제
+
+**`ALREADY_APPROVED`/`NOT_APPROVED` 가 401 이라 토큰 refresh 를 유발한다.** (2026-07-23 코드리뷰 발견)
+
+- `approveCert`/`revokeCert` 는 이 두 코드를 `UnauthorizedException`(401)로 던진다 (`aircpm_auth.service.ts:894, :972).
+- 프론트 `api()`(`lib/api/client.ts:94-103`)는 경로에 `/auth/` 가 없는 401 을 **전부 토큰 만료로 간주해 `refreshAccessToken()` 후 재시도**한다. 그 refresh 가 실패하면 `logout()` 이 호출된다.
+- 결과: 이미 승인된 요청을 관리자가 한 번 더 클릭하는 것만으로 불필요한 refresh 왕복이 발생하고, 드물게 **강제 로그아웃**까지 갈 수 있다.
+- 이 스펙이 `DEVICE_LIMIT_EXCEEDED` 를 409 로 정한 이유가 바로 이것인데(§1-1), 기존 두 코드는 401 그대로 남아 있다. `extractErrorInfo` 수정(§2-2)으로 해당 토스트가 처음으로 실제 동작하게 되면서 이 경로가 눈에 띄게 됐다.
+- **권고 후속 조치**: 백엔드에서 두 코드를 `ConflictException`(409)으로 바꾸고 관련 테스트를 갱신한다. 이번 기능 범위 밖이라 미적용.
+
 ## 범위 밖 (명시)
 
 - 모바일 1기기 로직 변경 없음 (이미 강제됨).
