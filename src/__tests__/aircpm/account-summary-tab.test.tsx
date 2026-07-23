@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('@/lib/api/aircpm', () => ({
@@ -121,6 +121,41 @@ describe('AccountDeviceSummary', () => {
       expect(screen.getByText('계정 현황을 불러오지 못했습니다.')).toBeInTheDocument(),
     );
     expect(screen.queryByText('표시할 계정이 없습니다.')).not.toBeInTheDocument();
+  });
+
+  it('성공 후 폴링(refetchInterval) 재조회 실패 — 에러 문구만 뜨고 페이지네이션은 숨겨진다', async () => {
+    // react-query v5: 이미 성공한 queryKey 가 나중에 실패하면 캐시의 data 는 남긴 채 isError 만 세운다.
+    // total 을 그 stale data.total 에서 읽는 페이지네이션 블록이 !isError 가드 없이 노출되면 안 된다.
+    mockList
+      .mockResolvedValueOnce({ items: [DESKTOP_OVER], total: 1, page: 1, limit: 50 })
+      .mockRejectedValue(new Error('boom'));
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <AccountDeviceSummary onShowDevices={vi.fn()} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText('cpm07')).toBeInTheDocument());
+    expect(screen.getByText(/총 1건/)).toBeInTheDocument();
+
+    // downloads-page.test.tsx 관례: refetchInterval 을 실제로 기다리는 대신
+    // queryClient.refetchQueries() 로 "성공 후 실패" 상태를 직접 만든다.
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ['admin-aircpm-device-summary'] });
+    });
+    // 옵저버의 error 알림이 커밋되도록 한 틱 더 flush 한다.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('계정 현황을 불러오지 못했습니다.')).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/총 1건/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '이전' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument();
   });
 
   it('검색창에서 Enter → q 파라미터로 재조회', async () => {

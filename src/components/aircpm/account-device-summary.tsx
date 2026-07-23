@@ -176,7 +176,7 @@ export function AccountDeviceSummary({ onShowDevices }: AccountDeviceSummaryProp
         </Card>
       )}
 
-      {total > 0 && (
+      {!isError && total > 0 && (
         <div className="flex items-center justify-between text-sm pt-2">
           <span className="text-slate-500">
             총 {total}건 · {page}/{totalPages}
