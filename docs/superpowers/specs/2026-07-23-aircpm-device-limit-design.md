@@ -79,6 +79,14 @@
 - approveCert: 2대째 승인 허용(경계), 3대째 차단(DEVICE_LIMIT_EXCEEDED), power=7/9 대상은 제한 없음, is_mobile=1이라도 power=5면 차단, 고아 cert는 검사 생략, 거부/폐기 후 재승인 가능.
 - summary: 슈퍼/지사관리자 scope 필터, overLimit 계산(모바일 사용자의 데스크톱 초과 포함), overLimitOnly 필터.
 
+### 1-5. 마이그레이션 081 — `(user_id, status)` 복합 인덱스 (실행 중 코드리뷰로 추가)
+
+`migrations/081_aircpm_device_cert_user_status_index.sql` + `_rollback.sql`
+
+- `aircpm_device_cert` 에는 `idx_aircpm_cert_user(user_id)` / `idx_aircpm_cert_status(status)` 단일 인덱스만 있다(마이그 034). 이번에 추가되는 두 쿼리 — summary 의 데스크톱 집계(`GROUP BY user_id` + status별 SUM)와 `approveCert` 의 한도 카운트(`WHERE user_id = ? AND status = 'approved'`) — 가 모두 `(user_id, status)` 조합을 쓴다.
+- 자매 테이블 `aircpm_mobile_device` 는 이미 `idx_mobile_device_active(user_id, status)` 를 갖고 있다(마이그 063). 같은 형태로 맞춘다.
+- 기존 단일 인덱스는 제거하지 않는다(다른 쿼리가 사용 중일 수 있음 — 추가만 한다).
+
 ## 2. 프론트엔드 (Flower_Frontend_Web)
 
 ### 2-1. API 클라이언트 — `src/lib/api/aircpm.ts`

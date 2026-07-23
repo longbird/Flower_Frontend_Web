@@ -24,6 +24,7 @@
 | 저장소 | 파일 | 역할 |
 |---|---|---|
 | 백엔드 | Create `migrations/080_aircpm_desktop_device_limit_cleanup.sql` (+`_rollback.sql`) | 기존 초과분 자동 정리 |
+| 백엔드 | Create `migrations/081_aircpm_device_cert_user_status_index.sql` (+`_rollback.sql`) | `(user_id, status)` 복합 인덱스 — 집계·한도 카운트 지원 (실행 중 코드리뷰로 추가) |
 | 백엔드 | Modify `apps/api/src/aircpm/security/aircpm_auth.service.ts` | approveCert 한도 차단 + 상수 export |
 | 백엔드 | Modify `apps/api/src/aircpm/security/aircpm_auth.service.spec.ts` | 한도 테스트 추가 |
 | 백엔드 | Create `apps/api/src/aircpm/admin/aircpm_device_summary.service.ts` | 계정별 집계 쿼리 전담 |
@@ -611,8 +612,11 @@ export class AircpmDeviceSummaryService {
          LIMIT ? OFFSET ?`,
       [...params, limit, offset],
     );
+    // 실행 중 정정(코드리뷰): dc/md 는 overLimitOnly 판정에만 쓰이고 LEFT JOIN 은 행 수를
+    // 바꾸지 않으므로, overLimitOnly 가 아닐 때는 조인 없이 센다.
+    const countFrom = opts.overLimitOnly ? BASE_FROM : ' FROM aircpm_user u';
     const [countRows] = await this.pool.query<any[]>(
-      `SELECT COUNT(*) AS c ${BASE_FROM} ${where}`,
+      `SELECT COUNT(*) AS c ${countFrom} ${where}`,
       params,
     );
 
@@ -1420,7 +1424,7 @@ git commit -m "feat(aircpm): 기기 인증 페이지 계정별 탭 + ApiError �
 
 ```bash
 cd D:/Work/AI_Projects/RunFlower/src/run_flower_backend_final_repo
-scp migrations/080_aircpm_desktop_device_limit_cleanup.sql migrations/080_aircpm_desktop_device_limit_cleanup_rollback.sql blueadm@49.247.46.86:/home/blueadm/backend/migrations/
+scp migrations/080_aircpm_desktop_device_limit_cleanup.sql migrations/080_aircpm_desktop_device_limit_cleanup_rollback.sql migrations/081_aircpm_device_cert_user_status_index.sql migrations/081_aircpm_device_cert_user_status_index_rollback.sql blueadm@49.247.46.86:/home/blueadm/backend/migrations/
 scp apps/api/src/aircpm/security/aircpm_auth.service.ts apps/api/src/aircpm/security/aircpm_auth.service.spec.ts blueadm@49.247.46.86:/home/blueadm/backend/apps/api/src/aircpm/security/
 scp apps/api/src/aircpm/admin/aircpm_device_summary.service.ts apps/api/src/aircpm/admin/aircpm_device_summary.service.spec.ts apps/api/src/aircpm/admin/admin_aircpm_device_summary.controller.ts blueadm@49.247.46.86:/home/blueadm/backend/apps/api/src/aircpm/admin/
 scp apps/api/src/aircpm/admin/dto/admin-aircpm-device-summary.dto.ts blueadm@49.247.46.86:/home/blueadm/backend/apps/api/src/aircpm/admin/dto/
@@ -1434,12 +1438,19 @@ ssh blueadm@49.247.46.86 'MARIADB_CONTAINER=$(docker ps --format "{{.Names}}" | 
 ```
 결과(초과 계정 목록)를 기록해 둔다.
 
-- [ ] **Step 3: 마이그레이션 080 실행 + 검증**
+- [ ] **Step 3: 마이그레이션 080 + 081 실행 + 검증** (080 → 081 순서. 081 은 인덱스 추가라 순서 의존은 없지만 번호순 유지)
 
 ```bash
 ssh blueadm@49.247.46.86 'MARIADB_CONTAINER=$(docker ps --format "{{.Names}}" | grep mariadb) && ROOT_PW=$(grep MARIADB_ROOT_PASSWORD /home/blueadm/backend/docker/.env | cut -d= -f2) && DB_NAME=$(grep MARIADB_DATABASE /home/blueadm/backend/docker/.env | cut -d= -f2) && cat /home/blueadm/backend/migrations/080_aircpm_desktop_device_limit_cleanup.sql | docker exec -i "$MARIADB_CONTAINER" mysql -u root -p"$ROOT_PW" "$DB_NAME"'
 ```
 직후 Step 2 의 검증 쿼리 재실행 → **0 rows** 확인.
+
+이어서 081(인덱스) 실행 — 같은 방식으로 파일명만 `081_aircpm_device_cert_user_status_index.sql` 로 바꿔 실행한 뒤 아래로 확인:
+
+```sql
+SHOW INDEX FROM aircpm_device_cert WHERE Key_name = 'idx_aircpm_cert_user_status';
+```
+Expected: 2행(user_id seq 1, status seq 2)
 
 - [ ] **Step 4: 컨테이너 빌드 + 재시작 + 기동 확인** (생략 시 반영 안 됨 — CRITICAL)
 
