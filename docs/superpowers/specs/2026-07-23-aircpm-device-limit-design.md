@@ -13,9 +13,11 @@
 
 | 계정 유형 | 제한 | 강제 방식 |
 |---|---|---|
-| 일반 사용자 (power=5, is_mobile=0) | 데스크톱 최대 **2기기** | 승인 시점 차단 (신규) |
-| 모바일 사용자 (power=5, is_mobile=1) | 모바일 **1기기** | 기존 강제 유지 — 변경 없음 |
+| 일반 사용자 (power=5) | 데스크톱 최대 **2기기** | 승인 시점 차단 (신규) |
+| 모바일 사용자 (power=5, is_mobile=1) | 모바일 **1기기** (+ 데스크톱 cert를 보유한 경우 그것도 2기기 제한) | 모바일은 기존 강제 유지, 데스크톱은 신규 차단 |
 | 관리자 (power=7/9) | 제한 없음 | 요구사항 범위가 "일반 사용자"이므로 제외 |
+
+- **데스크톱 2기기 제한은 is_mobile 여부와 무관하게 power=5 전체에 적용한다.** 데스크톱 로그인/인증 요청은 is_mobile을 검사하지 않으므로 모바일 사용자도 데스크톱 cert를 가질 수 있다 — 정책·승인 차단·summary·마이그레이션 네 곳 모두 이 규칙으로 통일.
 
 - "기기 1대" = `aircpm_device_cert`의 approved 행 1개. (동일 물리 기기는 user_id+serial+MAC 교집합 매칭으로 기존 행을 재사용하므로 행 수 ≒ 기기 수)
 - 인증 요청(pending) 접수는 제한하지 않는다 — 3번째 기기 요청은 접수되고, 관리자가 기존 기기를 '승인 해제'한 뒤 승인하는 흐름.
@@ -25,9 +27,10 @@
 
 ### 1-1. 승인 시점 차단 — `AircpmAuthService.approveCert()` 수정
 
-- 승인 전에 대상 cert의 user를 조회해 **power=5인 경우에만** 같은 user_id의 `approved` cert 수를 센다.
-- 이미 2개면 `ConflictException(409)` `{ code: 'DEVICE_LIMIT_EXCEEDED', message: '기기 수 제한(최대 2대)을 초과했습니다. 기존 기기를 먼저 해제해주세요.' }`
-- 동시 승인 경합 방지: 트랜잭션 안에서 `SELECT ... FOR UPDATE`(해당 user의 cert 행 잠금) 후 카운트 → 승인 UPDATE → 커밋.
+- 승인 전에 대상 cert의 user를 조회해 **power=5인 경우에만**(is_mobile 무관) 같은 user_id의 `approved` cert 수를 센다.
+- 이미 2개면 `ConflictException(409)` `{ code: 'DEVICE_LIMIT_EXCEEDED', message: '기기 수 제한(최대 2대)을 초과했습니다. 기존 기기를 먼저 해제해주세요.' }` — 409는 클라이언트의 401 자동 refresh 경로를 타지 않으므로 안전.
+- 동시 승인 경합 방지: 트랜잭션 안에서 `SELECT ... FOR UPDATE`(해당 user의 cert 행 잠금) 후 카운트 → 승인 UPDATE → 커밋 (기존 `aircpm_config.service.ts` callpass 트랜잭션 패턴 재사용).
+- 고아 cert(대응하는 `aircpm_user` 행이 없는 경우 — listCerts가 LEFT JOIN이라 존재 가능): power를 알 수 없으므로 제한 검사를 건너뛰고 기존과 동일하게 승인한다.
 - 상수 `AIRCPM_DESKTOP_DEVICE_LIMIT = 2` 정의.
 
 ### 1-2. 계정별 현황 API — 신규 `GET /admin/aircpm/devices/summary`
@@ -46,12 +49,13 @@
     isMobile: boolean; isActive: boolean;
     desktopApproved: number; desktopPending: number;
     mobileBound: number; mobilePending: number;
-    limit: number;        // isMobile ? 1 : 2
-    overLimit: boolean;   // isMobile ? mobileBound > 1 : desktopApproved > 2
+    overLimit: boolean;   // desktopApproved > 2 || (isMobile && mobileBound > 1)
   }],
   total: number; page: number; limit: number;
 }
 ```
+
+- 한도 숫자(2/1)는 응답에 넣지 않는다 — 프론트가 표시용 상수로 가진다(데스크톱 `n/2`, 모바일 `n/1` 각각 표기).
 
 - 대상: `aircpm_user`의 **power=5 전체** (기기 0대 계정 포함 — LEFT JOIN 집계). 비활성 계정 포함하되 `isActive` 반환.
 - 쿼리 파라미터: `q`(userId/name/brchCd 부분검색), `overLimitOnly`(boolean), `page`, `limit`.
@@ -62,16 +66,17 @@
 
 `migrations/080_aircpm_desktop_device_limit_cleanup.sql` + `_rollback.sql`
 
-- 대상: power=5 사용자 중 approved cert가 3개 이상인 계정.
-- 유지 기준(계정별 상위 2개): cert별 최근 활동 = `MAX(aircpm_login_log.attempted_at WHERE result='success' AND endpoint='login' AND user_id·serial 일치)`, 없으면 `decided_at`, 없으면 `requested_at`. `ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY 활동 DESC)` ≤ 2 유지.
+- 대상: power=5 사용자(is_mobile 무관) 중 approved cert가 3개 이상인 계정.
+- 유지 기준(계정별 상위 2개): cert별 최근 활동 = `MAX(aircpm_login_log.attempted_at WHERE result='success' AND endpoint='login' AND user_id·serial 일치)`, 없으면 `decided_at`, 없으면 `requested_at`. `ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY 활동 DESC, id DESC)` ≤ 2 유지 — **`id DESC` 최종 타이브레이커 필수** (같은 serial의 복수 행은 로그인 로그 매칭이 serial 단위라 활동 시각이 동일해짐; 타이브레이커 없으면 테스트/운영 결과가 달라질 수 있다).
+- MariaDB는 UPDATE에서 윈도우 함수를 직접 못 쓴다 — `ROW_NUMBER()` 결과를 파생 테이블로 만들어 JOIN UPDATE 한다 (MariaDB ≥ 10.2 필요, 운영 Docker MariaDB 충족).
 - 나머지: `status='rejected'`, `reject_reason='기기 수 제한(최대 2대) 초과 자동 해제'`, `decided_at=NOW()`, `decided_by=NULL`.
-- 해제된 cert의 세션 정밀 폐기: `aircpm_refresh_tokens`에서 해당 user의 **serial이 해제 cert와 일치하는** 활성 토큰만 `revoked_at=NOW(), revoke_reason='FORCED'`. 남는 2대의 세션은 유지.
-- rollback: `reject_reason='기기 수 제한(최대 2대) 초과 자동 해제'`인 행을 `approved`로 복원(reject_reason=NULL). 폐기된 refresh 토큰은 복원 불가(재로그인으로 해소) — 파일에 주석 명기.
+- 해제된 cert의 세션 정밀 폐기: `aircpm_refresh_tokens`에서 해당 user의 **serial이 해제 cert와 일치하는** 활성 토큰만 `revoked_at=NOW(), revoke_reason='FORCED'`. 남는 2대의 세션은 원칙적으로 유지되지만, **유지 cert와 해제 cert의 serial이 같은 경우**(동일 기기 복수 행) 유지 기기의 세션도 함께 끊긴다 — 재로그인으로 해소되므로 허용하고 마이그레이션 파일에 주석 명기.
+- rollback: `reject_reason='기기 수 제한(최대 2대) 초과 자동 해제'`인 행을 `approved`로 복원(reject_reason=NULL). 마이그레이션이 찍은 `decided_at`은 남는다(관리자 행위로 오독하지 않도록 주석 명기). 폐기된 refresh 토큰은 복원 불가(재로그인으로 해소) — 파일에 주석 명기.
 
 ### 1-4. 백엔드 테스트 (`aircpm_auth.service.spec.ts` 패턴)
 
-- approveCert: 2대째 승인 허용(경계), 3대째 차단(DEVICE_LIMIT_EXCEEDED), power=7/9 대상은 제한 없음, 거부/폐기 후 재승인 가능.
-- summary: 슈퍼/지사관리자 scope 필터, overLimit 계산, overLimitOnly 필터.
+- approveCert: 2대째 승인 허용(경계), 3대째 차단(DEVICE_LIMIT_EXCEEDED), power=7/9 대상은 제한 없음, is_mobile=1이라도 power=5면 차단, 고아 cert는 검사 생략, 거부/폐기 후 재승인 가능.
+- summary: 슈퍼/지사관리자 scope 필터, overLimit 계산(모바일 사용자의 데스크톱 초과 포함), overLimitOnly 필터.
 
 ## 2. 프론트엔드 (Flower_Frontend_Web)
 
@@ -83,10 +88,11 @@
 
 - 페이지 상단에 **[기기별 | 계정별]** 탭 추가 (`view: 'devices' | 'accounts'` state). 기존 기기별 뷰는 변경 없음.
 - 계정별 탭은 새 컴포넌트 `src/components/aircpm/account-device-summary.tsx`로 분리 (페이지가 이미 533줄):
-  - 행: userId · 이름 · 지사 · 유형(💻/📱) · 승인 `n/한도`(초과 시 빨간 배지 `3/2`) · 대기 수 · 활성 여부.
+  - 행: userId · 이름 · 지사 · 유형(💻/📱) · 승인 기기 수(데스크톱 `n/2`, 모바일 사용자는 모바일 `n/1`도 병기, 초과 시 빨간 배지) · 대기 수 · 활성 여부.
   - 필터: 초과만 보기 토글, 검색(q), 페이지네이션. TanStack Query (`refetchInterval` 기존 페이지와 동일 15초).
   - 행의 "기기 보기" 버튼 → `onShowDevices(userId)` 콜백으로 기기별 탭 전환 + userId 검색 적용 (기존 검색 state 재사용).
 - 에러 매핑: `toastForError`에 `DEVICE_LIMIT_EXCEEDED` → "기기 수 제한(최대 2대)을 초과했습니다. 기존 기기를 먼저 해제해주세요."
+  - **전제 수정 필요**: `ApiError`(client.ts)에는 `.code`가 없고 응답 본문이 `.data`에 담긴다. 현재 `extractErrorInfo`(certs 페이지)는 `err.code`를 읽어 기존 `ALREADY_APPROVED`/`NOT_APPROVED` 매핑도 실제로는 동작하지 않는 잠복 버그가 있다. `extractErrorInfo`가 `ApiError.data`에서 `code`를 꺼내도록 수정한다(기존 매핑도 이 수정으로 살아남).
 - 승인 다이얼로그 설명에 데스크톱 한도 문구 1줄 추가 ("데스크톱은 계정당 최대 2대까지 승인됩니다.").
 
 ### 2-3. 프론트 테스트 (`src/__tests__/aircpm/`)
