@@ -93,6 +93,8 @@
 
 `AircpmDeviceSummaryItem` 타입 + `listAircpmDeviceSummary(params)` 추가 (`GET /admin/aircpm/devices/summary`).
 
+- 프론트가 보내는 파라미터는 `q`/`overLimitOnly`/`page`/`limit` 4개다. 백엔드가 허용하는 `brchCd`(슈퍼 전용 지사 필터)는 **프론트 타입에 넣지 않는다** — §2-2 의 계정별 탭 필터에 지사 선택 UI가 없고 `q` 가 이미 `brch_cd` 를 부분검색하므로 소비자가 없다. 지사 필터 UI가 생기면 그때 2줄로 추가한다.
+
 ### 2-2. 기기 인증 페이지 탭 — `/aircpm/certs`
 
 - 페이지 상단에 **[기기별 | 계정별]** 탭 추가 (`view: 'devices' | 'accounts'` state). 기존 기기별 뷰는 변경 없음.
