@@ -137,7 +137,7 @@ export default function BranchesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">지사 관리</h1>
           <p className="text-sm text-slate-500 mt-1">
-            AirCPM 지사 목록 및 카드결제 활성화 설정.
+            AirCPM 지사 목록 및 기능 활성화 설정.
           </p>
         </div>
         <Button
@@ -182,6 +182,15 @@ export default function BranchesPage() {
                   ) : (
                     <Badge className="bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-100">
                       자동콜패스 OFF
+                    </Badge>
+                  )}
+                  {b.monitoringEnabled ? (
+                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+                      감시 ON
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-100">
+                      감시 OFF
                     </Badge>
                   )}
                 </div>
@@ -244,6 +253,7 @@ function BranchCreateDialog({
   const [copyApps, setCopyApps] = useState<boolean[]>(ALL_ON);
   const [pasteApps, setPasteApps] = useState<boolean[]>(ALL_ON);
   const [autoCallpassEnabled, setAutoCallpassEnabled] = useState(false);
+  const [monitoringEnabled, setMonitoringEnabled] = useState(false);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -254,6 +264,7 @@ function BranchCreateDialog({
         copyApps,
         pasteApps,
         autoCallpassEnabled,
+        monitoringEnabled,
       }),
     onSuccess: () => {
       toast.success('지사가 등록되었습니다.');
@@ -308,6 +319,16 @@ function BranchCreateDialog({
             />
             <span className="text-slate-700">자동 콜패스 사용</span>
           </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid="monitoring-enabled"
+              checked={monitoringEnabled}
+              onChange={(e) => setMonitoringEnabled(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
+            />
+            <span className="text-slate-700">감시 기능 사용</span>
+          </label>
           <SupportedProgramsField
             copyApps={copyApps}
             pasteApps={pasteApps}
@@ -348,6 +369,7 @@ function BranchEditDialog({
   const [copyApps, setCopyApps] = useState<boolean[]>(branch.copyApps ?? ALL_ON);
   const [pasteApps, setPasteApps] = useState<boolean[]>(branch.pasteApps ?? ALL_ON);
   const [autoCallpassEnabled, setAutoCallpassEnabled] = useState(branch.autoCallpassEnabled);
+  const [monitoringEnabled, setMonitoringEnabled] = useState(branch.monitoringEnabled);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -358,6 +380,7 @@ function BranchEditDialog({
         copyApps,
         pasteApps,
         autoCallpassEnabled,
+        monitoringEnabled,
       }),
     onSuccess: () => {
       toast.success('지사 정보가 수정되었습니다.');
@@ -404,6 +427,16 @@ function BranchEditDialog({
               className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
             />
             <span className="text-slate-700">자동 콜패스 사용</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid="monitoring-enabled"
+              checked={monitoringEnabled}
+              onChange={(e) => setMonitoringEnabled(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
+            />
+            <span className="text-slate-700">감시 기능 사용</span>
           </label>
           <SupportedProgramsField
             copyApps={copyApps}

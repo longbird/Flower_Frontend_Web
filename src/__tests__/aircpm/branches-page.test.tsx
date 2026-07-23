@@ -29,6 +29,7 @@ function branch(overrides: Record<string, unknown> = {}) {
     copyApps: [true, true, true, true, true],
     pasteApps: [true, true, true, true, true],
     autoCallpassEnabled: false,
+    monitoringEnabled: false,
     ...overrides,
   };
 }
@@ -75,6 +76,20 @@ describe('BranchesPage', () => {
     expect(screen.getByText('자동콜패스 OFF')).toBeInTheDocument();
   });
 
+  it('감시 기능 ON 지사는 ON 배지를 노출한다', async () => {
+    (listAircpmBranches as any).mockResolvedValueOnce([branch({ monitoringEnabled: true })]);
+    render(<Wrapper><BranchesPage /></Wrapper>);
+    await waitFor(() => expect(screen.getByText('S001')).toBeInTheDocument());
+    expect(screen.getByText('감시 ON')).toBeInTheDocument();
+  });
+
+  it('감시 기능 OFF 지사는 OFF 배지를 노출한다', async () => {
+    (listAircpmBranches as any).mockResolvedValueOnce([branch({ monitoringEnabled: false })]);
+    render(<Wrapper><BranchesPage /></Wrapper>);
+    await waitFor(() => expect(screen.getByText('S001')).toBeInTheDocument());
+    expect(screen.getByText('감시 OFF')).toBeInTheDocument();
+  });
+
   it('편집 다이얼로그는 기존 autoCallpassEnabled 값을 반영하고, 토글 후 저장 시 전달한다', async () => {
     (listAircpmBranches as any).mockResolvedValueOnce([branch({ autoCallpassEnabled: false })]);
     (upsertAircpmBranch as any).mockResolvedValueOnce({ ok: true });
@@ -107,6 +122,38 @@ describe('BranchesPage', () => {
     expect((upsertAircpmBranch as any).mock.calls[0][0].autoCallpassEnabled).toBe(false);
   });
 
+  it('편집 다이얼로그는 기존 monitoringEnabled 값을 반영하고, 토글 후 저장 시 전달한다', async () => {
+    (listAircpmBranches as any).mockResolvedValueOnce([branch({ monitoringEnabled: false })]);
+    (upsertAircpmBranch as any).mockResolvedValueOnce({ ok: true });
+    render(<Wrapper><BranchesPage /></Wrapper>);
+    await waitFor(() => expect(screen.getByText('S001')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('편집'));
+    const toggle = (await screen.findByTestId('monitoring-enabled')) as HTMLInputElement;
+    expect(toggle.checked).toBe(false);
+    fireEvent.click(toggle); // false → true
+    fireEvent.click(screen.getByText('저장'));
+
+    await waitFor(() => expect(upsertAircpmBranch).toHaveBeenCalled());
+    expect((upsertAircpmBranch as any).mock.calls[0][0].monitoringEnabled).toBe(true);
+  });
+
+  it('편집에서 감시 ON → OFF 로 끄면 false 가 전달된다', async () => {
+    (listAircpmBranches as any).mockResolvedValueOnce([branch({ monitoringEnabled: true })]);
+    (upsertAircpmBranch as any).mockResolvedValueOnce({ ok: true });
+    render(<Wrapper><BranchesPage /></Wrapper>);
+    await waitFor(() => expect(screen.getByText('S001')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('편집'));
+    const toggle = (await screen.findByTestId('monitoring-enabled')) as HTMLInputElement;
+    expect(toggle.checked).toBe(true);
+    fireEvent.click(toggle); // true → false
+    fireEvent.click(screen.getByText('저장'));
+
+    await waitFor(() => expect(upsertAircpmBranch).toHaveBeenCalled());
+    expect((upsertAircpmBranch as any).mock.calls[0][0].monitoringEnabled).toBe(false);
+  });
+
   it('지사 추가 다이얼로그의 자동콜패스 기본값은 OFF', async () => {
     (listAircpmBranches as any).mockResolvedValueOnce([]);
     (upsertAircpmBranch as any).mockResolvedValueOnce({ ok: true });
@@ -122,5 +169,22 @@ describe('BranchesPage', () => {
 
     await waitFor(() => expect(upsertAircpmBranch).toHaveBeenCalled());
     expect((upsertAircpmBranch as any).mock.calls[0][0].autoCallpassEnabled).toBe(false);
+  });
+
+  it('지사 추가 다이얼로그의 감시 기능 기본값은 OFF', async () => {
+    (listAircpmBranches as any).mockResolvedValueOnce([]);
+    (upsertAircpmBranch as any).mockResolvedValueOnce({ ok: true });
+    render(<Wrapper><BranchesPage /></Wrapper>);
+    await waitFor(() => expect(screen.getByText('등록된 지사가 없습니다.')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('+ 지사 추가'));
+    const toggle = (await screen.findByTestId('monitoring-enabled')) as HTMLInputElement;
+    expect(toggle.checked).toBe(false);
+
+    fireEvent.change(screen.getByPlaceholderText('예: S001'), { target: { value: 'S002' } });
+    fireEvent.click(screen.getByText('등록'));
+
+    await waitFor(() => expect(upsertAircpmBranch).toHaveBeenCalled());
+    expect((upsertAircpmBranch as any).mock.calls[0][0].monitoringEnabled).toBe(false);
   });
 });

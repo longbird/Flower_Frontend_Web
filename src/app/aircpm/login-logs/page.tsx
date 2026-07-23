@@ -261,6 +261,7 @@ export default function AircpmLoginLogsPage() {
                           <tr className="bg-slate-50/60 border-t border-slate-100">
                             <td colSpan={8} className="px-4 py-3">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-[12.5px]">
+                                <DetailRow label="앱 버전" value={row.appVersion} mono highlight={!!row.appVersion} />
                                 <DetailRow label="Serial" value={row.serial} mono />
                                 <DetailRow label="MAC" value={row.macAddress} mono />
                                 <DetailRow label="컴퓨터 이름" value={row.computerName} />

@@ -9,6 +9,9 @@ export interface AircpmBranch {
   // 자동 콜패스 사용 여부. 지사 단위 설정이며 CPM 클라이언트는 로그인/`GET /aircpm/me`
   // 응답의 settings.autoCallpassEnabled 로 같은 값을 받는다.
   autoCallpassEnabled: boolean;
+  // 감시 기능 사용 여부. 지사 단위 설정이며 CPM 클라이언트는 로그인/`GET /aircpm/me`
+  // 응답의 settings.monitoringEnabled 로 같은 값을 받는다.
+  monitoringEnabled: boolean;
 }
 export interface AircpmTossCredential {
   brchCd: string;
@@ -58,6 +61,7 @@ export async function listAircpmBranches(): Promise<AircpmBranch[]> {
 export async function upsertAircpmBranch(body: {
   brchCd: string; name?: string; cardPaymentEnabled?: boolean;
   copyApps?: boolean[]; pasteApps?: boolean[]; autoCallpassEnabled?: boolean;
+  monitoringEnabled?: boolean;
 }): Promise<{ ok: true }> {
   return api('/admin/aircpm/branches', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

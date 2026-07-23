@@ -336,6 +336,7 @@ export interface AircpmLoginLogItem {
   computerName: string | null;
   realIp: string | null;
   userAgent: string | null;
+  appVersion: string | null;
 }
 
 export interface AircpmLoginLogListResponse {
