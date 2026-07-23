@@ -538,19 +538,21 @@ const AIRCPM_MOBILE_DEVICE_LIMIT = 1;
 const OVER_LIMIT_EXPR = `(COALESCE(dc.approved_cnt,0) > ${AIRCPM_DESKTOP_DEVICE_LIMIT}
      OR (u.is_mobile = 1 AND COALESCE(md.bound_cnt,0) > ${AIRCPM_MOBILE_DEVICE_LIMIT}))`;
 
+// 실행 중 정정: 이 저장소는 예외 없이 SUM(CASE WHEN ...) 을 쓴다(SUM(col='v') 축약형 0건).
+// 두 status 컬럼이 NOT NULL 이라 의미상 동등하며, 관례를 따른다.
 const BASE_FROM = `
   FROM aircpm_user u
   LEFT JOIN (
     SELECT user_id,
-           SUM(status = 'approved') AS approved_cnt,
-           SUM(status = 'pending')  AS pending_cnt
+           SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_cnt,
+           SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END) AS pending_cnt
       FROM aircpm_device_cert
      GROUP BY user_id
   ) dc ON dc.user_id = u.user_id
   LEFT JOIN (
     SELECT user_id,
-           SUM(status = 'bound')   AS bound_cnt,
-           SUM(status = 'pending') AS pending_cnt
+           SUM(CASE WHEN status = 'bound'   THEN 1 ELSE 0 END) AS bound_cnt,
+           SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_cnt
       FROM aircpm_mobile_device
      GROUP BY user_id
   ) md ON md.user_id = u.user_id`;
