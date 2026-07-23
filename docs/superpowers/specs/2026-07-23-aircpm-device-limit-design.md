@@ -101,6 +101,8 @@
 - 계정별 탭은 새 컴포넌트 `src/components/aircpm/account-device-summary.tsx`로 분리 (페이지가 이미 533줄):
   - 행: userId · 이름 · 지사 · 유형(💻/📱) · 승인 기기 수(데스크톱 `n/2`, 모바일 사용자는 모바일 `n/1`도 병기, 초과 시 빨간 배지) · 대기 수 · 활성 여부.
   - 필터: 초과만 보기 토글, 검색(q), 페이지네이션. TanStack Query (`refetchInterval` 기존 페이지와 동일 15초).
+  - **에러 상태를 빈 목록과 구분해 표시한다** — `isError` 를 읽지 않으면 403·네트워크 실패가 "표시할 계정이 없습니다."로 보여 관리자가 실패를 정상 빈 목록으로 오인한다 (`aircpm/calls/page.tsx` 의 에러 분기 관례를 따른다).
+  - **`placeholderData: (prev) => prev`** — 필터·페이지 변경 시 `queryKey` 가 바뀌어 표가 빈 화면으로 깜빡이는 것을 막는다 (`admin/payments/page.tsx` 선례).
   - 행의 "기기 보기" 버튼 → `onShowDevices(userId)` 콜백으로 기기별 탭 전환 + userId 검색 적용 (기존 검색 state 재사용).
 - 에러 매핑: `toastForError`에 `DEVICE_LIMIT_EXCEEDED` → "기기 수 제한(최대 2대)을 초과했습니다. 기존 기기를 먼저 해제해주세요."
   - **전제 수정 필요**: `ApiError`(client.ts)에는 `.code`가 없고 응답 본문이 `.data`에 담긴다. 현재 `extractErrorInfo`(certs 페이지)는 `err.code`를 읽어 기존 `ALREADY_APPROVED`/`NOT_APPROVED` 매핑도 실제로는 동작하지 않는 잠복 버그가 있다. `extractErrorInfo`가 `ApiError.data`에서 `code`를 꺼내도록 수정한다(기존 매핑도 이 수정으로 살아남).
