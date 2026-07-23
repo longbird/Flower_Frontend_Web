@@ -37,6 +37,20 @@ const MOBILE_OK = {
   overLimit: false,
 };
 
+// 모바일 사용자인데 데스크톱 cert 도 보유한 혼합 계정 — 두 배지가 동시에 떠야 한다.
+const MIXED = {
+  userId: 'mix01',
+  name: '박영희',
+  brchCd: 'demo',
+  isMobile: true,
+  isActive: true,
+  desktopApproved: 3,
+  desktopPending: 0,
+  mobileBound: 1,
+  mobilePending: 0,
+  overLimit: true,
+};
+
 function renderTab(onShowDevices = vi.fn()) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -83,5 +97,57 @@ describe('AccountDeviceSummary', () => {
     const btn = Array.from(row.querySelectorAll('button')).find((b) => b.textContent === '기기 보기')!;
     fireEvent.click(btn);
     expect(cb).toHaveBeenCalledWith('cpm07');
+  });
+
+  it('혼합 계정 — 모바일 사용자가 데스크톱도 보유하면 두 배지가 함께 표시된다', async () => {
+    mockList.mockResolvedValueOnce({ items: [MIXED], total: 1, page: 1, limit: 50 });
+    renderTab();
+    await waitFor(() => expect(screen.getByText('mix01')).toBeInTheDocument());
+    expect(screen.getByText('3/2')).toBeInTheDocument(); // 데스크톱, 초과
+    expect(screen.getByText('1/1')).toBeInTheDocument(); // 모바일, 정상
+    expect(screen.getByText('한도 초과')).toBeInTheDocument();
+  });
+
+  it('빈 목록 → 안내 문구', async () => {
+    mockList.mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 50 });
+    renderTab();
+    await waitFor(() => expect(screen.getByText('표시할 계정이 없습니다.')).toBeInTheDocument());
+  });
+
+  it('에러 → 에러 문구만 뜨고 "표시할 계정이 없습니다" 는 뜨지 않는다', async () => {
+    mockList.mockRejectedValueOnce(new Error('boom'));
+    renderTab();
+    await waitFor(() =>
+      expect(screen.getByText('계정 현황을 불러오지 못했습니다.')).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('표시할 계정이 없습니다.')).not.toBeInTheDocument();
+  });
+
+  it('검색창에서 Enter → q 파라미터로 재조회', async () => {
+    renderTab();
+    await waitFor(() => expect(screen.getByText('cpm07')).toBeInTheDocument());
+    const input = screen.getByPlaceholderText('userId / 이름 / 지사코드');
+    fireEvent.change(input, { target: { value: 'hong' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith(expect.objectContaining({ q: 'hong' })),
+    );
+  });
+
+  it('초과만 보기를 껐다 켰다 다시 끄면 overLimitOnly 가 undefined 로 전달된다', async () => {
+    renderTab();
+    await waitFor(() => expect(screen.getByText('cpm07')).toBeInTheDocument());
+    const toggleBtn = screen.getByRole('button', { name: '초과만 보기' });
+
+    fireEvent.click(toggleBtn); // on
+    await waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith(expect.objectContaining({ overLimitOnly: true })),
+    );
+
+    fireEvent.click(toggleBtn); // off
+    await waitFor(() => {
+      const lastCall = mockList.mock.calls[mockList.mock.calls.length - 1][0];
+      expect(lastCall.overLimitOnly).toBeUndefined();
+    });
   });
 });

@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 
 const PAGE_SIZE = 50;
-// 표시용 한도 — 실제 강제는 백엔드(approveCert / approveMobileDevice)가 한다.
+// 표시용 한도 — 실제 강제는 백엔드가 한다.
+// 백엔드 대응 상수: AIRCPM_DESKTOP_DEVICE_LIMIT (aircpm_auth.service.ts) / 모바일 1대는 approveMobileDevice 가 강제.
+// 이 값을 바꾸려면 백엔드 상수·마이그레이션 문구도 함께 바꿔야 한다(스펙상 한도는 고정 2/1).
 const DESKTOP_LIMIT = 2;
 const MOBILE_LIMIT = 1;
 
@@ -42,7 +44,7 @@ export function AccountDeviceSummary({ onShowDevices }: AccountDeviceSummaryProp
   const [overLimitOnly, setOverLimitOnly] = useState(false);
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['admin-aircpm-device-summary', qActive, overLimitOnly, page],
     queryFn: () =>
       listAircpmDeviceSummary({
@@ -52,6 +54,7 @@ export function AccountDeviceSummary({ onShowDevices }: AccountDeviceSummaryProp
         limit: PAGE_SIZE,
       }),
     refetchInterval: 15000,
+    placeholderData: (prev) => prev, // 필터/페이지 변경 시 빈 화면 안 뜨게 이전 결과 유지
   });
 
   const items = data?.items ?? [];
@@ -84,6 +87,7 @@ export function AccountDeviceSummary({ onShowDevices }: AccountDeviceSummaryProp
           <Button
             variant={overLimitOnly ? 'default' : 'outline'}
             size="sm"
+            aria-pressed={overLimitOnly}
             onClick={() => {
               setOverLimitOnly((v) => !v);
               setPage(1);
@@ -95,11 +99,14 @@ export function AccountDeviceSummary({ onShowDevices }: AccountDeviceSummaryProp
       </Card>
 
       {isLoading && <div className="text-center py-12 text-slate-500">로딩 중...</div>}
-      {!isLoading && items.length === 0 && (
+      {isError && (
+        <div className="text-center py-12 text-rose-600">계정 현황을 불러오지 못했습니다.</div>
+      )}
+      {!isLoading && !isError && items.length === 0 && (
         <div className="text-center py-16 text-slate-400">표시할 계정이 없습니다.</div>
       )}
 
-      {items.length > 0 && (
+      {!isError && items.length > 0 && (
         <Card>
           <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm">
