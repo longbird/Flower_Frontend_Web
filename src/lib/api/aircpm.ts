@@ -565,3 +565,57 @@ export async function listAircpmCalls(params: ListAircpmCallsParams = {}) {
 export async function getAircpmCallLog(callId: number) {
   return api<{ log: string }>(`/admin/aircpm/calls/${callId}/log`);
 }
+
+// ─── 일별 통계 (관리자 대시보드) ────────────────────────────────────────
+//
+// 근거 테이블은 aircpm_callpass_daily_stats(영구 보존). 상세(aircpm_callpass_calls)는
+// 일반 2일 / 오류 30일만 남으므로 그보다 과거의 추세는 이 API 만 답할 수 있다.
+// demo 지사는 롤업 단계에서 이미 빠져 있어 여기서 거를 필요가 없다.
+//
+// 권한: AircpmSiteGuard. super 는 brchCd 로 지사를 고르고, 지사 관리자는 서버가
+// **자기 지사로 고정**한다(요청에 남의 brchCd 를 넣어도 무시된다).
+export type AircpmDailyStatItem = {
+  businessYmd: string;
+  brchCd: string;
+  total: number;
+  success: number;
+  failedAny: number;
+  failedPostprocess: number;
+  failedPaste: number;
+  /** ⚠ 현재 수집원이 사실상 없어 전 구간 0 이다. 0 을 '배차 없음'으로 읽으면 안 된다. */
+  dispatched: number;
+  /** 이탈 이벤트를 가진 **콜 수** */
+  dropped: number;
+  /** 콜 미연결 이탈 **이벤트 수** — dropped 와 단위가 달라 더하면 안 된다 */
+  droppedUnlinked: number;
+  avgPasteMs: number | null;
+  /** 실패 봉투가 있는 건만. 봉투 도입(2026-07-28) 이전 구간은 {} */
+  byKind: Record<string, number>;
+  byPhase: Record<string, number>;
+};
+
+export type AircpmDailyStatsResponse = {
+  from: string;
+  to: string;
+  /** 서버가 실제로 적용한 지사. 지사 관리자는 항상 자기 지사가 돌아온다 */
+  brchCd: string | null;
+  isSuper: boolean;
+  items: AircpmDailyStatItem[];
+};
+
+export type ListAircpmDailyStatsParams = {
+  days?: number;
+  from?: string;
+  to?: string;
+  brchCd?: string;
+};
+
+export async function listAircpmDailyStats(params: ListAircpmDailyStatsParams = {}) {
+  const sp = new URLSearchParams();
+  if (params.days) sp.set('days', String(params.days));
+  if (params.from) sp.set('from', params.from);
+  if (params.to) sp.set('to', params.to);
+  if (params.brchCd) sp.set('brchCd', params.brchCd);
+  const qs = sp.toString();
+  return api<AircpmDailyStatsResponse>(`/admin/aircpm/stats/daily${qs ? `?${qs}` : ''}`);
+}

@@ -16,6 +16,7 @@ import { Menu, X } from 'lucide-react';
 type NavItem = { href: string; label: string; superOnly?: boolean };
 
 const NAV: Array<NavItem> = [
+  { href: '/aircpm/dashboard', label: '일별 통계' },
   { href: '/aircpm/certs', label: '기기 인증' },
   { href: '/aircpm/users', label: '사용자' },
   { href: '/aircpm/targetapps', label: '배차앱 설정', superOnly: true },
