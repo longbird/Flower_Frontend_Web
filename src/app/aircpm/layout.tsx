@@ -13,15 +13,16 @@ import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 import { Menu, X } from 'lucide-react';
 
-type NavItem = { href: string; label: string; superOnly?: boolean };
+type NavItem = { href: string; label: string; superOnly?: boolean; hidden?: boolean };
 
 const NAV: Array<NavItem> = [
   { href: '/aircpm/dashboard', label: '일별 통계' },
   { href: '/aircpm/certs', label: '기기 인증' },
   { href: '/aircpm/users', label: '사용자' },
-  { href: '/aircpm/targetapps', label: '배차앱 설정', superOnly: true },
+  // 미사용 메뉴 — 재사용 시 hidden 제거
+  { href: '/aircpm/targetapps', label: '배차앱 설정', superOnly: true, hidden: true },
   { href: '/aircpm/branches', label: '지사 관리', superOnly: true },
-  { href: '/aircpm/customers', label: '카드 결제 관리' },
+  { href: '/aircpm/customers', label: '카드 결제 관리', hidden: true },
   { href: '/aircpm/calls', label: '콜 조회' },
   { href: '/aircpm/login-logs', label: '로그인 로그' },
 ];
@@ -104,7 +105,7 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  const visibleNav = NAV.filter((item) => !item.superOnly || user?.isSuper);
+  const visibleNav = NAV.filter((item) => !item.hidden && (!item.superOnly || user?.isSuper));
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
