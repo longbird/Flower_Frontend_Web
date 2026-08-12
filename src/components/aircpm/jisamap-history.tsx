@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { summarizeRules } from '@/lib/aircpm/jisamap';
+import { isRuleEnabled, summarizeRules } from '@/lib/aircpm/jisamap';
 import type { JisamapHistoryItem } from '@/lib/api/aircpm-jisamap';
 
 /**
@@ -79,7 +79,8 @@ export function JisamapHistory({ items, isLoading, onRevert, disabled }: Props) 
                   by {it.createdBy != null ? `admin#${it.createdBy}` : '시드'}
                 </span>
                 <span className="text-xs text-slate-500">
-                  · 규칙 {it.rules.length}건
+                  · 규칙 {it.rules.filter(isRuleEnabled).length}
+                  {it.rules.some((r) => !isRuleEnabled(r)) ? ` / ${it.rules.length}` : ''}건
                 </span>
                 {it.note && <span className="text-xs text-slate-500 truncate">· {it.note}</span>}
               </div>
@@ -119,9 +120,19 @@ export function JisamapHistory({ items, isLoading, onRevert, disabled }: Props) 
 
           <div className="space-y-3 max-h-[55vh] overflow-auto">
             {(viewing?.rules ?? []).map((r, i) => (
-              <div key={i} className="rounded-md border border-slate-200 p-3">
-                <p className="text-sm font-medium text-slate-900 mb-2">
+              <div
+                key={i}
+                className={`rounded-md border border-slate-200 p-3 ${
+                  isRuleEnabled(r) ? '' : 'bg-slate-50'
+                }`}
+              >
+                <p className="text-sm font-medium text-slate-900 mb-2 flex items-center gap-2 flex-wrap">
                   {summarizeRules([r])[0]}
+                  {!isRuleEnabled(r) && (
+                    <Badge className="bg-slate-200 text-slate-600 hover:bg-slate-200 border-slate-300">
+                      비활성
+                    </Badge>
+                  )}
                 </p>
                 <table className="w-full text-sm">
                   <tbody>

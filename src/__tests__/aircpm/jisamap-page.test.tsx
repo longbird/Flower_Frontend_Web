@@ -121,6 +121,58 @@ describe('JisamapPage — 지사 관리자', () => {
     expect(JSON.stringify(arg.rules)).not.toContain('"id"');
   });
 
+  it('규칙을 끄면 저장 요약에서 빠지고 payload 에는 enabled:false 로 남는다', async () => {
+    (updateJisamap as any).mockResolvedValue({ ok: true, version: 2, warnings: [] });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('rule-enabled-1'));
+    expect(await screen.findByText(/비활성 · CPM 에 내려가지 않음/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '저장 (새 버전 생성)' }));
+
+    expect(await screen.findByText('1개 지사 → 공오대리(1588-0005)')).toBeInTheDocument();
+    expect(screen.queryByText(/HM법인전용/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText('비활성 규칙 1건은 설정에 남지만 CPM 에 내려가지 않습니다.'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(updateJisamap).toHaveBeenCalled());
+
+    const arg = (updateJisamap as any).mock.calls[0][0];
+    // 규칙과 소스는 그대로 보존된 채 꺼진 상태로만 저장된다.
+    expect(arg.rules).toHaveLength(2);
+    expect(arg.rules[0].enabled).toBe(true);
+    expect(arg.rules[1].enabled).toBe(false);
+    expect(arg.rules[1].sources[0].tels).toEqual(['1544-6977']);
+  });
+
+  it('번호가 겹치는 두 규칙도 한쪽을 끄면 저장할 수 있다', async () => {
+    renderPage();
+
+    const tel = await screen.findByLabelText('규칙 2 소스 1 번호');
+    fireEvent.change(tel, { target: { value: '1666-2222' } });
+    expect(await screen.findByText(/중복 등장합니다/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '저장 (새 버전 생성)' })).toBeDisabled();
+
+    // 겹치는 한쪽을 끄면 모호함이 사라지므로 저장이 풀린다 — 이 기능의 주 용도.
+    fireEvent.click(screen.getByTestId('rule-enabled-1'));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '저장 (새 버전 생성)' })).toBeEnabled(),
+    );
+    expect(screen.queryByText(/중복 등장합니다/)).not.toBeInTheDocument();
+  });
+
+  it('모든 규칙을 끄면 매핑이 해제된다고 경고한다', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByTestId('rule-enabled-0'));
+    fireEvent.click(screen.getByTestId('rule-enabled-1'));
+
+    fireEvent.click(screen.getByRole('button', { name: '저장 (새 버전 생성)' }));
+    expect(await screen.findByText(/매핑이 모두 해제되고/)).toBeInTheDocument();
+  });
+
   it('저장 직후 화면은 오류 없이 유효하다 (빈 규칙이면 경고 문구)', async () => {
     (getJisamap as any).mockResolvedValue(activeResponse({ version: 0, rules: [] }));
     renderPage();

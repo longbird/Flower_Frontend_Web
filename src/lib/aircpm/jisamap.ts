@@ -14,6 +14,28 @@ export interface JisamapSource {
 export interface JisamapRule {
   target: { name?: string | null; tel: string };
   sources: JisamapSource[];
+  /**
+   * 규칙 on/off. 관리자 화면·DB 에만 있는 필드이며 CPM 응답에는 나가지 않는다
+   * (서버가 toClientRules 로 걷어낸다). 키가 없으면 활성으로 읽는다.
+   */
+  enabled?: boolean;
+}
+
+/** 꺼져 있다고 명시된 것만 비활성. undefined/누락은 활성이다. */
+export function isRuleEnabled(rule: { enabled?: boolean } | null | undefined): boolean {
+  return rule?.enabled !== false;
+}
+
+/**
+ * CPM 이 실제로 받게 될 형태 — 비활성 규칙을 빼고 `enabled` 키를 제거한다.
+ * 백엔드 `jisamap.validate.ts` 의 같은 이름 함수와 동작이 같아야 한다.
+ * 화면에서는 저장 요약과 중복 판정을 "CPM 이 받을 것" 기준으로 맞추는 데 쓴다.
+ */
+export function toClientRules(rules: JisamapRule[]): JisamapRule[] {
+  if (!Array.isArray(rules)) return [];
+  return rules
+    .filter((r) => isRuleEnabled(r))
+    .map((r) => ({ target: r.target, sources: r.sources }));
 }
 
 export interface JisamapValidation {
@@ -50,6 +72,10 @@ export function validateJisamapRules(rules: JisamapRule[]): JisamapValidation {
       errors.push(`규칙 ${ruleNo}: 형식이 올바르지 않습니다.`);
       return;
     }
+
+    // 꺼진 규칙은 CPM 에 나가지 않으므로 다른 규칙과 번호가 겹쳐도 모호하지 않다.
+    // 나머지 검증(1~3)은 꺼진 규칙에도 적용한다 — 다시 켜는 것이 언제나 안전해야 한다.
+    const enabled = isRuleEnabled(rule as { enabled?: boolean });
 
     if (!isObject(rule.target)) {
       errors.push(`규칙 ${ruleNo}: 대상 지사 정보가 없습니다.`);
@@ -103,14 +129,16 @@ export function validateJisamapRules(rules: JisamapRule[]): JisamapValidation {
           );
         }
 
-        // 같은 규칙 안의 중복은 결과가 같아 무해하므로 통과시킨다.
-        const seenIn = firstSeenIn.get(digits);
-        if (seenIn === undefined) {
-          firstSeenIn.set(digits, i);
-        } else if (seenIn !== i) {
-          errors.push(
-            `소스 번호 '${tel}' 가 규칙 ${seenIn + 1} 과 규칙 ${ruleNo} 에 중복 등장합니다. 어느 대상으로 보낼지 모호합니다.`,
-          );
+        // 같은 규칙 안의 중복은 결과가 같아 무해하므로 통과시킨다. 비활성 규칙도 마찬가지.
+        if (enabled) {
+          const seenIn = firstSeenIn.get(digits);
+          if (seenIn === undefined) {
+            firstSeenIn.set(digits, i);
+          } else if (seenIn !== i) {
+            errors.push(
+              `소스 번호 '${tel}' 가 규칙 ${seenIn + 1} 과 규칙 ${ruleNo} 에 중복 등장합니다. 어느 대상으로 보낼지 모호합니다.`,
+            );
+          }
         }
       }
     });

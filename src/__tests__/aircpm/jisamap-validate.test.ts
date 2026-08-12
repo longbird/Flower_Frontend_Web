@@ -2,12 +2,15 @@ import { describe, it, expect } from 'vitest';
 import {
   digitsOnly,
   inputToTels,
+  isRuleEnabled,
   parsePastedSources,
   summarizeRules,
   telsToInput,
+  toClientRules,
   validateJisamapRules,
   type JisamapRule,
 } from '@/lib/aircpm/jisamap';
+import { fromWireRules, toWireRules } from '@/lib/aircpm/jisamap-editor';
 
 // 2026-08-12 AirCPM 요청서 §2 의 실제 표.
 const REAL_RULES: JisamapRule[] = [
@@ -170,6 +173,84 @@ describe('summarizeRules', () => {
     expect(summarizeRules([{ target: { name: '', tel: '' }, sources: [] }])).toEqual([
       '0개 지사 → (이름 없음)((번호 없음))',
     ]);
+  });
+});
+
+describe('규칙 비활성화', () => {
+  const clash = (leftEnabled?: boolean): JisamapRule[] => [
+    {
+      target: { name: '공오대리', tel: '1588-0005' },
+      sources: [{ name: '둘둘대리', tels: ['1666-2222'] }],
+      ...(leftEnabled === undefined ? {} : { enabled: leftEnabled }),
+    },
+    {
+      target: { name: 'HM법인전용', tel: '1544-6977' },
+      sources: [{ name: '둘둘대리', tels: ['16662222'] }],
+    },
+  ];
+
+  it('enabled 키가 없으면 활성으로 읽는다', () => {
+    expect(isRuleEnabled({})).toBe(true);
+    expect(isRuleEnabled(undefined)).toBe(true);
+    expect(isRuleEnabled({ enabled: false })).toBe(false);
+  });
+
+  it('겹치는 규칙 한쪽을 끄면 저장 가능해진다', () => {
+    expect(validateJisamapRules(clash()).errors).toHaveLength(1);
+    expect(validateJisamapRules(clash(false)).errors).toEqual([]);
+  });
+
+  it('꺼져 있어도 형식 검증(소스 없음)은 받는다', () => {
+    const r = validateJisamapRules([
+      { target: { name: 'A', tel: '1588-0005' }, sources: [], enabled: false },
+    ]);
+    expect(r.errors).toHaveLength(1);
+  });
+
+  describe('toClientRules', () => {
+    it('비활성 규칙을 빼고 enabled 키도 없앤다', () => {
+      const out = toClientRules([
+        { target: { name: 'A', tel: '1588-0005' }, sources: [{ tels: ['1666-2222'] }], enabled: true },
+        { target: { name: 'B', tel: '1544-6977' }, sources: [{ tels: ['1544-6977'] }], enabled: false },
+        { target: { name: 'C', tel: '1533-1555' }, sources: [{ tels: ['1533-7878'] }] },
+      ]);
+      expect(out).toHaveLength(2);
+      expect(JSON.stringify(out)).not.toContain('enabled');
+    });
+
+    it('요약은 CPM 이 받을 것만 센다', () => {
+      const rules: JisamapRule[] = [
+        {
+          target: { name: '공오대리', tel: '1588-0005' },
+          sources: [{ tels: ['1666-2222'] }, { tels: ['1577-2233'] }],
+        },
+        {
+          target: { name: 'HM법인전용', tel: '1544-6977' },
+          sources: [{ tels: ['1544-6977'] }],
+          enabled: false,
+        },
+      ];
+      expect(summarizeRules(toClientRules(rules))).toEqual(['2개 지사 → 공오대리(1588-0005)']);
+    });
+  });
+
+  describe('편집 모델 왕복', () => {
+    it('enabled 없는 기존 설정을 읽으면 활성이 된다', () => {
+      const editor = fromWireRules([
+        { target: { name: 'A', tel: '1588-0005' }, sources: [{ name: 'S', tels: ['1666-2222'] }] },
+      ]);
+      expect(editor[0].enabled).toBe(true);
+    });
+
+    it('토글 상태가 전송 payload 에 실린다', () => {
+      const editor = fromWireRules([
+        { target: { name: 'A', tel: '1588-0005' }, sources: [{ name: 'S', tels: ['1666-2222'] }] },
+      ]);
+      const wire = toWireRules([{ ...editor[0], enabled: false }]);
+      expect(wire[0].enabled).toBe(false);
+      // 편집용 id 는 새어 나가면 안 된다(백엔드 whitelist).
+      expect(JSON.stringify(wire)).not.toContain('"id"');
+    });
   });
 });
 

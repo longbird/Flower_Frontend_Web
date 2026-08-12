@@ -1,4 +1,10 @@
-import { inputToTels, telsToInput, type JisamapRule, type JisamapSource } from './jisamap';
+import {
+  inputToTels,
+  isRuleEnabled,
+  telsToInput,
+  type JisamapRule,
+  type JisamapSource,
+} from './jisamap';
 
 /**
  * 화면 편집용 모델.
@@ -23,6 +29,8 @@ export interface EditorRule {
   targetName: string;
   targetTel: string;
   sources: EditorSource[];
+  /** 꺼두면 소스 목록은 그대로 보존한 채 CPM 에만 내려가지 않는다. */
+  enabled: boolean;
 }
 
 let seq = 0;
@@ -40,7 +48,7 @@ export function newSource(src?: Partial<JisamapSource>): EditorSource {
 }
 
 export function newRule(): EditorRule {
-  return { id: nextId('r'), targetName: '', targetTel: '', sources: [newSource()] };
+  return { id: nextId('r'), targetName: '', targetTel: '', sources: [newSource()], enabled: true };
 }
 
 export function fromWireRules(rules: JisamapRule[] | undefined): EditorRule[] {
@@ -49,6 +57,8 @@ export function fromWireRules(rules: JisamapRule[] | undefined): EditorRule[] {
     targetName: r?.target?.name ?? '',
     targetTel: r?.target?.tel ?? '',
     sources: (r?.sources ?? []).map((s) => newSource(s)),
+    // enabled 키가 없던 설정(이 기능 이전에 저장된 것)은 활성으로 읽는다.
+    enabled: isRuleEnabled(r),
   }));
 }
 
@@ -56,5 +66,7 @@ export function toWireRules(rules: EditorRule[]): JisamapRule[] {
   return rules.map((r) => ({
     target: { name: r.targetName.trim(), tel: r.targetTel.trim() },
     sources: r.sources.map((s) => ({ name: s.name.trim(), tels: inputToTels(s.telsInput) })),
+    // 항상 명시적으로 실어 보낸다 — 이력에서 그 시점의 on/off 를 눈으로 확인할 수 있어야 한다.
+    enabled: r.enabled,
   }));
 }

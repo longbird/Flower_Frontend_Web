@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,17 +43,37 @@ export function JisamapRuleCard({
 
   const addSource = () => onChange({ ...rule, sources: [...rule.sources, newSource()] });
 
+  // 꺼진 규칙은 중복 검사 대상이 아니다. 저장은 되는데 빨갛게 두면 왜 되는지 설명이 안 된다.
   const rowHasDuplicate = (telsInput: string) =>
+    rule.enabled &&
     telsInput
       .split(/[,;/]+/)
       .map((t) => digitsOnly(t))
       .some((d) => d && duplicateDigits.has(d));
 
   return (
-    <Card>
+    <Card className={rule.enabled ? undefined : 'bg-slate-50'}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <span className="text-sm font-semibold text-slate-900">규칙 {index + 1}</span>
+          <div className="flex items-center gap-2.5">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                data-testid={`rule-enabled-${index}`}
+                aria-label={`규칙 ${index + 1} 사용`}
+                checked={rule.enabled}
+                onChange={() => onChange({ ...rule, enabled: !rule.enabled })}
+                disabled={disabled}
+                className="w-4 h-4 rounded border-slate-300 accent-emerald-600"
+              />
+              <span className="text-sm font-semibold text-slate-900">규칙 {index + 1}</span>
+            </label>
+            {!rule.enabled && (
+              <Badge className="bg-slate-200 text-slate-600 hover:bg-slate-200 border-slate-300">
+                비활성 · CPM 에 내려가지 않음
+              </Badge>
+            )}
+          </div>
           <Button
             size="sm"
             variant="outline"

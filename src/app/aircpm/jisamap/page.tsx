@@ -27,7 +27,12 @@ import { JisamapHistory } from '@/components/aircpm/jisamap-history';
 import { JisamapPasteDialog } from '@/components/aircpm/jisamap-paste-dialog';
 import { JisamapRuleCard } from '@/components/aircpm/jisamap-rule-card';
 import { useAuthStore } from '@/lib/auth/store';
-import { digitsOnly, summarizeRules, validateJisamapRules } from '@/lib/aircpm/jisamap';
+import {
+  digitsOnly,
+  summarizeRules,
+  toClientRules,
+  validateJisamapRules,
+} from '@/lib/aircpm/jisamap';
 import {
   fromWireRules,
   newRule,
@@ -117,13 +122,17 @@ export default function AircpmJisamapPage() {
 
   const wireRules = useMemo(() => toWireRules(rules), [rules]);
   const validation = useMemo(() => validateJisamapRules(wireRules), [wireRules]);
-  const summary = useMemo(() => summarizeRules(wireRules), [wireRules]);
 
-  /** 두 규칙에 걸쳐 중복된 소스 번호 — 해당 입력칸을 빨갛게 물들이는 데 쓴다. */
+  // CPM 이 실제로 받게 될 것 — 비활성 규칙은 빠진다. 요약도 중복 판정도 이 기준으로 맞춘다.
+  const clientRules = useMemo(() => toClientRules(wireRules), [wireRules]);
+  const summary = useMemo(() => summarizeRules(clientRules), [clientRules]);
+  const disabledCount = wireRules.length - clientRules.length;
+
+  /** 두 활성 규칙에 걸쳐 중복된 소스 번호 — 해당 입력칸을 빨갛게 물들이는 데 쓴다. */
   const duplicateDigits = useMemo(() => {
     const seenIn = new Map<string, number>();
     const dup = new Set<string>();
-    wireRules.forEach((r, i) => {
+    clientRules.forEach((r, i) => {
       (r.sources ?? []).forEach((s) => {
         (s.tels ?? []).forEach((t) => {
           const d = digitsOnly(t);
@@ -135,7 +144,7 @@ export default function AircpmJisamapPage() {
       });
     });
     return dup;
-  }, [wireRules]);
+  }, [clientRules]);
 
   const patchRule = (id: string, next: EditorRule) => {
     setRules((prev) => prev.map((r) => (r.id === id ? next : r)));
@@ -372,7 +381,13 @@ export default function AircpmJisamapPage() {
             ))}
             {summary.length === 0 && (
               <p className="text-sm text-amber-700">
-                규칙이 하나도 없습니다. 저장하면 이 지사의 매핑이 모두 해제됩니다.
+                적용되는 규칙이 하나도 없습니다. 저장하면 이 지사의 매핑이 모두 해제되고, 콜은
+                원본 지사 그대로 접수됩니다.
+              </p>
+            )}
+            {disabledCount > 0 && (
+              <p className="text-xs text-slate-500 pt-1">
+                비활성 규칙 {disabledCount}건은 설정에 남지만 CPM 에 내려가지 않습니다.
               </p>
             )}
           </div>
