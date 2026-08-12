@@ -22,6 +22,8 @@ const NAV: Array<NavItem> = [
   // 미사용 메뉴 — 재사용 시 hidden 제거
   { href: '/aircpm/targetapps', label: '배차앱 설정', superOnly: true, hidden: true },
   { href: '/aircpm/branches', label: '지사 관리', superOnly: true },
+  // 지사 관리자도 자기 지사 규칙을 편집한다 — superOnly 를 붙이면 안 된다.
+  { href: '/aircpm/jisamap', label: '지사 매핑' },
   { href: '/aircpm/customers', label: '카드 결제 관리', hidden: true },
   { href: '/aircpm/calls', label: '콜 조회' },
   { href: '/aircpm/login-logs', label: '로그인 로그' },
