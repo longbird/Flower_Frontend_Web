@@ -72,6 +72,15 @@ describe('DownloadsPage', () => {
     expect(screen.queryByRole('link', { name: '모바일 앱 다운로드' })).not.toBeInTheDocument();
   });
 
+  it('사용 매뉴얼로 가는 링크를 보여준다', async () => {
+    // 설치 직후 사용자가 다음에 찾는 것은 사용법이다. 링크가 없으면 매뉴얼이 있어도 못 찾는다.
+    mockFetch.mockResolvedValueOnce(manifest);
+    render(<DownloadsPage />, { wrapper: Wrapper });
+
+    const link = await screen.findByRole('link', { name: '설치·사용 방법 보기' });
+    expect(link).toHaveAttribute('href', '/manual');
+  });
+
   it('불러오기 실패 시 에러와 다시 시도 버튼을 보인다', async () => {
     mockFetch.mockRejectedValueOnce(new Error('boom'));
     render(<DownloadsPage />, { wrapper: Wrapper });

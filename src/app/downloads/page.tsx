@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Download, Monitor, Smartphone } from 'lucide-react';
 import {
@@ -67,7 +68,15 @@ export default function DownloadsPage() {
           </div>
         )}
 
-        <p className="mt-8 text-center text-xs text-slate-400 leading-relaxed">
+        {/* 설치 직후 사용자가 다음에 찾는 것은 사용법이다. 여기서 길을 열어 두지 않으면
+            매뉴얼이 있어도 아무도 못 찾는다. */}
+        <p className="mt-6 text-center text-sm">
+          <Link href="/manual" className="text-emerald-700 underline underline-offset-2">
+            설치·사용 방법 보기
+          </Link>
+        </p>
+
+        <p className="mt-4 text-center text-xs text-slate-400 leading-relaxed">
           로그인·기기 승인 후 이용할 수 있습니다. 승인 문의는 관리자에게 연락하세요.
         </p>
       </div>
