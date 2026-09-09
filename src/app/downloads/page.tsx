@@ -52,14 +52,18 @@ export default function DownloadsPage() {
               artifact={data.desktop}
               ariaLabel="데스크톱 업데이터 다운로드"
             />
-            <DownloadCard
-              icon={<Smartphone className="w-6 h-6 text-sky-600" />}
-              iconWrap="bg-sky-50"
-              title="CPM 모바일 앱"
-              description="Android 기기에 설치합니다. 최초 설치 시 '알 수 없는 출처' 허용이 필요합니다."
-              artifact={data.mobile}
-              ariaLabel="모바일 앱 다운로드"
-            />
+            {/* 매니페스트에 mobile 이 있을 때만 그린다. 관리 서버는 업데이터만 배포하므로
+                없는 산출물의 카드를 보여주면 다운로드 링크가 404 가 된다. */}
+            {data.mobile && (
+              <DownloadCard
+                icon={<Smartphone className="w-6 h-6 text-sky-600" />}
+                iconWrap="bg-sky-50"
+                title="CPM 모바일 앱"
+                description="Android 기기에 설치합니다. 최초 설치 시 '알 수 없는 출처' 허용이 필요합니다."
+                artifact={data.mobile}
+                ariaLabel="모바일 앱 다운로드"
+              />
+            )}
           </div>
         )}
 

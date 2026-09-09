@@ -55,6 +55,30 @@ describe('fetchDownloadsManifest', () => {
     expect(fetchMock).toHaveBeenCalledWith('/aircpm/updates/downloads.json', { cache: 'no-store' });
   });
 
+  it('mobile 이 없어도 통과한다 — 서버가 데스크톱만 제공할 수 있다', async () => {
+    // 관리 서버(callpass.ga-bin.co.kr)는 업데이터만 배포하고 APK 는 두지 않는다.
+    // mobile 을 필수로 두면 그 서버의 다운로드 페이지가 통째로 에러가 된다.
+    const desktopOnly = { desktop: validManifest.desktop };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => desktopOnly }),
+    );
+
+    const result = await fetchDownloadsManifest();
+
+    expect(result.desktop).toEqual(validManifest.desktop);
+    expect(result.mobile).toBeUndefined();
+  });
+
+  it('desktop 은 여전히 필수다', async () => {
+    const mobileOnly = { mobile: validManifest.mobile };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => mobileOnly }),
+    );
+    await expect(fetchDownloadsManifest()).rejects.toThrow();
+  });
+
   it('HTTP 실패면 상태코드를 담아 에러를 던진다', async () => {
     vi.stubGlobal(
       'fetch',

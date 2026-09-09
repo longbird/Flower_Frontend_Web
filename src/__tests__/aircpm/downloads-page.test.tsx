@@ -62,6 +62,16 @@ describe('DownloadsPage', () => {
     );
   });
 
+  it('mobile 이 없으면 모바일 카드를 그리지 않는다', async () => {
+    // 관리 서버는 업데이터만 배포한다. 없는 산출물의 카드를 보여주면 링크가 404 가 된다.
+    mockFetch.mockResolvedValueOnce({ desktop: manifest.desktop });
+    render(<DownloadsPage />, { wrapper: Wrapper });
+
+    expect(await screen.findByText('CPM 데스크톱 업데이터')).toBeInTheDocument();
+    expect(screen.queryByText('CPM 모바일 앱')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '모바일 앱 다운로드' })).not.toBeInTheDocument();
+  });
+
   it('불러오기 실패 시 에러와 다시 시도 버튼을 보인다', async () => {
     mockFetch.mockRejectedValueOnce(new Error('boom'));
     render(<DownloadsPage />, { wrapper: Wrapper });

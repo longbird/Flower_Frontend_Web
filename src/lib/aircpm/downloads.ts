@@ -33,9 +33,15 @@ const artifactSchema = z.object({
   updatedAt: z.string().min(1),
 });
 
+/**
+ * mobile 은 선택이다. 서버마다 배포하는 산출물이 다르다 —
+ * 관리 서버(callpass.ga-bin.co.kr)는 데스크톱 업데이터만 배포하고 APK 는 두지 않는다.
+ * 필수로 두면 그 서버의 다운로드 페이지가 스키마 검증에서 통째로 에러가 된다.
+ * desktop 은 필수로 남긴다 — 그것마저 없으면 보여줄 것이 없다.
+ */
 const manifestSchema = z.object({
   desktop: artifactSchema,
-  mobile: artifactSchema,
+  mobile: artifactSchema.optional(),
 });
 
 export type DownloadArtifact = z.infer<typeof artifactSchema>;
