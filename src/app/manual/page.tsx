@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -285,7 +286,7 @@ export default function ManualPage() {
             <b>● 백엔드 연결됨</b> 이면 정상입니다. <b>● 백엔드 연결 끊김</b> 이면 통계와 알림이 서버로
             올라가지 않습니다 — 인터넷 연결을 확인하세요. 콜패스 자체는 계속 동작합니다.
           </Note>
-          <Shot caption="메인 대시보드" />
+          <Shot caption="메인 대시보드" src="/manual/dashboard.png" width={541} height={560} />
         </Section>
 
         <Section
@@ -417,16 +418,26 @@ function Code({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * 화면 캡처 자리. 이미지가 준비되면 이 자리에 넣는다.
+ * 화면 캡처. src 가 있으면 이미지를, 없으면 점선 상자를 보여준다.
  * 빈 상자를 남겨 두는 이유: 캡처가 없다는 사실이 눈에 보여야 나중에 채워진다.
- * 글만으로도 순서를 따라갈 수 있게 썼으므로 지금 상태로도 매뉴얼은 성립한다.
+ * 글만으로도 순서를 따라갈 수 있게 썼으므로 캡처가 없는 절도 매뉴얼로 성립한다.
  */
-function Shot({ caption }: { caption: string }) {
+function Shot({ caption, src, width, height }: { caption: string; src?: string; width?: number; height?: number }) {
   return (
     <figure className="mt-4">
-      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 h-32 flex items-center justify-center">
-        <span className="text-xs text-slate-400">화면 캡처 준비 중</span>
-      </div>
+      {src ? (
+        <Image
+          src={src}
+          alt={caption}
+          width={width ?? 541}
+          height={height ?? 560}
+          className="rounded-lg border border-slate-200 mx-auto"
+        />
+      ) : (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 h-32 flex items-center justify-center">
+          <span className="text-xs text-slate-400">화면 캡처 준비 중</span>
+        </div>
+      )}
       <figcaption className="mt-1.5 text-xs text-slate-400 text-center">{caption}</figcaption>
     </figure>
   );
