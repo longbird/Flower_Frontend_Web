@@ -56,4 +56,21 @@ describe('ManualPage', () => {
       expect(toc.querySelector(`a[href="#${id}"]`)).not.toBeNull();
     }
   });
+  it('설명한 화면을 실제 캡처로 보여준다', () => {
+    render(<ManualPage />);
+
+    // 캡처가 빠지면 Shot 은 점선 상자를 그린다 — img 자체가 사라지므로 이 검사가 잡는다.
+    // next/image 는 src 를 /_next/image?url=... 로 감싸 인코딩하니 디코드해서 본다.
+    const shots: Array<[string, string]> = [
+      ['다운로드 페이지', '/manual/downloads.png'],
+      ['업데이터 실행 화면', '/manual/updater.png'],
+      ['설정 · 기본 탭', '/manual/setup-basic.png'],
+      ['설정 · 자동콜패스 탭', '/manual/setup-auto.png'],
+      ['메인 대시보드', '/manual/dashboard.png'],
+    ];
+    for (const [alt, file] of shots) {
+      const img = screen.getByAltText(alt);
+      expect(decodeURIComponent(img.getAttribute('src') ?? '')).toContain(file);
+    }
+  });
 });

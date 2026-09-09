@@ -115,7 +115,8 @@ export default function ManualPage() {
             설치 위치는 <Code>C:\Program Files (x86)\CPM</Code> 입니다. 다음부터는 프로그램을 켤 때마다
             업데이터가 먼저 돌면서 최신 버전인지 확인하므로, 따로 다시 받으실 필요가 없습니다.
           </Note>
-          <Shot caption="다운로드 페이지 · 업데이터 실행 화면" />
+          <Shot caption="다운로드 페이지" src="/manual/downloads.png" width={1100} height={470} />
+          <Shot caption="업데이터 실행 화면" src="/manual/updater.png" width={576} height={399} />
         </Section>
 
         <Section
@@ -192,7 +193,7 @@ export default function ManualPage() {
               ['붙여넣기 후 상태', '접수한 뒤 원본 콜을 어떤 상태로 바꿀지 정합니다.'],
             ]}
           />
-          <Shot caption="설정 · 기본 탭" />
+          <Shot caption="설정 · 기본 탭" src="/manual/setup-basic.png" width={630} height={521} />
         </Section>
 
         <Section
@@ -263,7 +264,7 @@ export default function ManualPage() {
               ],
             ]}
           />
-          <Shot caption="설정 · 자동콜패스 탭" />
+          <Shot caption="설정 · 자동콜패스 탭" src="/manual/setup-auto.png" width={630} height={521} />
         </Section>
 
         <Section
@@ -431,7 +432,7 @@ function Shot({ caption, src, width, height }: { caption: string; src?: string; 
           alt={caption}
           width={width ?? 541}
           height={height ?? 560}
-          className="rounded-lg border border-slate-200 mx-auto"
+          className="rounded-lg border border-slate-200 mx-auto max-w-full h-auto"
         />
       ) : (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 h-32 flex items-center justify-center">
