@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 import { Menu, X } from 'lucide-react';
+import { APP_BRAND, APP_SUBTITLE } from '@/lib/aircpm/branding';
 
 type NavItem = { href: string; label: string; superOnly?: boolean; hidden?: boolean };
 
@@ -120,8 +121,8 @@ export default function AircpmLayout({ children }: { children: React.ReactNode }
               </svg>
             </div>
             <div className="leading-tight">
-              <div className="font-semibold text-slate-900 text-[15px]">AirCPM Admin</div>
-              <div className="text-[10px] tracking-wider uppercase text-slate-400">Device Cert Management</div>
+              <div className="font-semibold text-slate-900 text-[15px]">{APP_BRAND}</div>
+              <div className="text-[10px] tracking-wider uppercase text-slate-400">{APP_SUBTITLE}</div>
             </div>
           </Link>
           <nav className="hidden md:flex flex-1 items-center gap-1">
