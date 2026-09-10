@@ -66,6 +66,7 @@ describe('ManualPage', () => {
       ['로그인 화면', '/manual/login.png'],
       ['기기 인증 화면', '/manual/cert.png'],
       ['업데이터 실행 화면', '/manual/updater.png'],
+      ['자동 콜패스 실행 중 화면', '/manual/running.png'],
       ['설정 · 기본 탭', '/manual/setup-basic.png'],
       ['설정 · 자동콜패스 탭', '/manual/setup-auto.png'],
       ['메인 대시보드', '/manual/dashboard.png'],

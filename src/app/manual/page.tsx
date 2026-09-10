@@ -222,6 +222,7 @@ export default function ManualPage() {
           <Note title="급히 멈춰야 할 때">
             <b>ESC</b> 키를 누르면 즉시 중단합니다. 한 건이 처리되는 도중이라도 그 자리에서 멈춥니다.
           </Note>
+          <Shot caption="자동 콜패스 실행 중 화면" src="/manual/running.png" width={541} height={560} />
         </Section>
 
         <Section
