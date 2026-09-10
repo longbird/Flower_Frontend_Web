@@ -63,6 +63,8 @@ describe('ManualPage', () => {
     // next/image 는 src 를 /_next/image?url=... 로 감싸 인코딩하니 디코드해서 본다.
     const shots: Array<[string, string]> = [
       ['다운로드 페이지', '/manual/downloads.png'],
+      ['로그인 화면', '/manual/login.png'],
+      ['기기 인증 화면', '/manual/cert.png'],
       ['업데이터 실행 화면', '/manual/updater.png'],
       ['설정 · 기본 탭', '/manual/setup-basic.png'],
       ['설정 · 자동콜패스 탭', '/manual/setup-auto.png'],

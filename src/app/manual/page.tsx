@@ -145,7 +145,8 @@ export default function ManualPage() {
             처음 쓰는 PC 입니다. <b>[인증 요청]</b>을 누른 뒤 관리자에게 승인을 요청하고, 승인되면{' '}
             <b>[승인 확인]</b>을 누르세요. 승인 전에는 <b>“관리자 승인 대기 중입니다”</b> 가 나옵니다.
           </Note>
-          <Shot caption="로그인 화면 · 기기 인증 화면" />
+          <Shot caption="로그인 화면" src="/manual/login.png" width={632} height={429} />
+          <Shot caption="기기 인증 화면" src="/manual/cert.png" width={632} height={429} />
         </Section>
 
         <Section
@@ -173,7 +174,6 @@ export default function ManualPage() {
             설정 → <b>기본</b> 탭의 <b>“CPM 시작 시 소스·타겟 앱을 직접 실행하고 접수 탭까지 준비”</b> 를
             켜면 프로그램이 대신 띄워 줍니다. 로지 비밀번호를 함께 저장해 두어야 합니다.
           </Note>
-          <Shot caption="배차 프로그램 접수 목록 화면" />
         </Section>
 
         <Section
@@ -222,7 +222,6 @@ export default function ManualPage() {
           <Note title="급히 멈춰야 할 때">
             <b>ESC</b> 키를 누르면 즉시 중단합니다. 한 건이 처리되는 도중이라도 그 자리에서 멈춥니다.
           </Note>
-          <Shot caption="자동 콜패스 실행 중 화면" />
         </Section>
 
         <Section
