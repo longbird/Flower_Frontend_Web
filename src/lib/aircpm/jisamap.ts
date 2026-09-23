@@ -19,6 +19,26 @@ export interface JisamapRule {
    * (서버가 toClientRules 로 걷어낸다). 키가 없으면 활성으로 읽는다.
    */
   enabled?: boolean;
+  /** 적용 방향 = 붙여넣는 앱. 키 없음 = ANY(양방향). 백엔드 jisamap.validate.ts 와 같은 정의. */
+  dir?: JisamapDir;
+}
+
+export type JisamapDir = 'ANY' | 'TO_XE4' | 'TO_LOGI';
+export const JISAMAP_DIRS: readonly JisamapDir[] = ['ANY', 'TO_XE4', 'TO_LOGI'];
+export const JISAMAP_DIR_LABEL: Record<JisamapDir, string> = {
+  ANY: '양방향',
+  TO_XE4: '콜마너로 보낼 때',
+  TO_LOGI: '로지로 보낼 때',
+};
+
+export function ruleDir(rule: { dir?: unknown } | null | undefined): JisamapDir {
+  const d = rule?.dir;
+  return d === 'TO_XE4' || d === 'TO_LOGI' ? d : 'ANY';
+}
+
+/** 두 규칙이 같은 붙여넣기에서 함께 적용될 수 있는가. 한쪽이 양방향이면 항상 겹친다. */
+export function dirsOverlap(a: JisamapDir, b: JisamapDir): boolean {
+  return a === 'ANY' || b === 'ANY' || a === b;
 }
 
 /** 꺼져 있다고 명시된 것만 비활성. undefined/누락은 활성이다. */
@@ -27,7 +47,7 @@ export function isRuleEnabled(rule: { enabled?: boolean } | null | undefined): b
 }
 
 /**
- * CPM 이 실제로 받게 될 형태 — 비활성 규칙을 빼고 `enabled` 키를 제거한다.
+ * CPM 이 실제로 받게 될 형태 — 비활성 규칙을 빼고 `enabled` 키를 제거하고 방향(dir)을 싣는다.
  * 백엔드 `jisamap.validate.ts` 의 같은 이름 함수와 동작이 같아야 한다.
  * 화면에서는 저장 요약과 중복 판정을 "CPM 이 받을 것" 기준으로 맞추는 데 쓴다.
  */
@@ -35,7 +55,29 @@ export function toClientRules(rules: JisamapRule[]): JisamapRule[] {
   if (!Array.isArray(rules)) return [];
   return rules
     .filter((r) => isRuleEnabled(r))
-    .map((r) => ({ target: r.target, sources: r.sources }));
+    .map((r) => ({ target: r.target, sources: r.sources, dir: ruleDir(r) }));
+}
+
+/**
+ * 방향이 겹치는 두 활성 규칙에 함께 나오는 소스 번호(숫자만). 입력칸을 빨갛게 물들이는 데 쓴다.
+ * clientRules(= toClientRules 결과)를 받는다 — 서버 검증 4번과 같은 기준이다.
+ */
+export function conflictingSourceDigits(clientRules: JisamapRule[]): Set<string> {
+  const seenBy = new Map<string, { rule: number; dir: JisamapDir }[]>();
+  const dup = new Set<string>();
+  clientRules.forEach((r, i) => {
+    const dir = ruleDir(r);
+    (r.sources ?? []).forEach((s) => {
+      (s.tels ?? []).forEach((t) => {
+        const d = digitsOnly(t);
+        if (!d) return;
+        const prior = seenBy.get(d) ?? [];
+        if (prior.some((p) => p.rule !== i && dirsOverlap(p.dir, dir))) dup.add(d);
+        if (!prior.some((p) => p.rule === i)) seenBy.set(d, [...prior, { rule: i, dir }]);
+      });
+    });
+  });
+  return dup;
 }
 
 export interface JisamapValidation {
@@ -63,7 +105,8 @@ export function validateJisamapRules(rules: JisamapRule[]): JisamapValidation {
     return { errors: ['규칙 목록이 배열이 아닙니다.'], warnings };
   }
 
-  const firstSeenIn = new Map<string, number>();
+  // 방향이 겹치지 않는 규칙끼리(콜마너 전용 vs 로지 전용)는 같은 번호를 가져도 모호하지 않다.
+  const seenBy = new Map<string, { rule: number; dir: JisamapDir }[]>();
 
   rules.forEach((rule, i) => {
     const ruleNo = i + 1;
@@ -76,6 +119,12 @@ export function validateJisamapRules(rules: JisamapRule[]): JisamapValidation {
     // 꺼진 규칙은 CPM 에 나가지 않으므로 다른 규칙과 번호가 겹쳐도 모호하지 않다.
     // 나머지 검증(1~3)은 꺼진 규칙에도 적용한다 — 다시 켜는 것이 언제나 안전해야 한다.
     const enabled = isRuleEnabled(rule as { enabled?: boolean });
+
+    const rawDir = (rule as { dir?: unknown }).dir;
+    if (rawDir !== undefined && rawDir !== null && !JISAMAP_DIRS.includes(rawDir as JisamapDir)) {
+      errors.push(`규칙 ${ruleNo}: 적용 방향 값 '${String(rawDir)}' 이 올바르지 않습니다.`);
+    }
+    const dir = ruleDir(rule);
 
     if (!isObject(rule.target)) {
       errors.push(`규칙 ${ruleNo}: 대상 지사 정보가 없습니다.`);
@@ -131,14 +180,14 @@ export function validateJisamapRules(rules: JisamapRule[]): JisamapValidation {
 
         // 같은 규칙 안의 중복은 결과가 같아 무해하므로 통과시킨다. 비활성 규칙도 마찬가지.
         if (enabled) {
-          const seenIn = firstSeenIn.get(digits);
-          if (seenIn === undefined) {
-            firstSeenIn.set(digits, i);
-          } else if (seenIn !== i) {
+          const prior = seenBy.get(digits) ?? [];
+          const clash = prior.find((p) => p.rule !== i && dirsOverlap(p.dir, dir));
+          if (clash) {
             errors.push(
-              `소스 번호 '${tel}' 가 규칙 ${seenIn + 1} 과 규칙 ${ruleNo} 에 중복 등장합니다. 어느 대상으로 보낼지 모호합니다.`,
+              `소스 번호 '${tel}' 가 규칙 ${clash.rule + 1} 과 규칙 ${ruleNo} 에 중복 등장합니다. 어느 대상으로 보낼지 모호합니다.`,
             );
           }
+          if (!prior.some((p) => p.rule === i)) seenBy.set(digits, [...prior, { rule: i, dir }]);
         }
       }
     });

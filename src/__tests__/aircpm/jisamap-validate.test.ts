@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
+  conflictingSourceDigits,
   digitsOnly,
   inputToTels,
   isRuleEnabled,
   parsePastedSources,
+  ruleDir,
   summarizeRules,
   telsToInput,
   toClientRules,
@@ -251,6 +253,53 @@ describe('규칙 비활성화', () => {
       // 편집용 id 는 새어 나가면 안 된다(백엔드 whitelist).
       expect(JSON.stringify(wire)).not.toContain('"id"');
     });
+  });
+});
+
+// 사용자 지시 2026-09-23 "지사 매칭에 방향 추가 필요" — 백엔드 jisamap.validate.spec 의 '적용 방향'과 같은 판정.
+describe('적용 방향(dir)', () => {
+  const toXe4: JisamapRule = {
+    target: { name: '탁송콜패스', tel: '1877-6988' },
+    sources: [{ name: '8282 대리', tels: ['1833-2070'] }],
+    dir: 'TO_XE4',
+  };
+  const toLogi: JisamapRule = {
+    target: { name: '8282대리', tel: '1833-2070' },
+    sources: [{ name: '8282대리', tels: ['1833-2070'] }],
+    dir: 'TO_LOGI',
+  };
+
+  it('방향이 다르면 같은 소스 번호여도 통과하고 빨간칸도 없다', () => {
+    expect(validateJisamapRules([toXe4, toLogi]).errors).toEqual([]);
+    expect(conflictingSourceDigits(toClientRules([toXe4, toLogi])).size).toBe(0);
+  });
+
+  it('같은 방향이면 거절하고 그 번호를 빨갛게 표시한다', () => {
+    const rules = [toXe4, { ...toLogi, dir: 'TO_XE4' as const }];
+    expect(validateJisamapRules(rules).errors).toHaveLength(1);
+    expect([...conflictingSourceDigits(toClientRules(rules))]).toEqual(['18332070']);
+  });
+
+  it('양방향(키 없음) 규칙은 어느 방향과도 겹친다', () => {
+    const { dir: _omit, ...noDir } = toLogi;
+    expect(validateJisamapRules([toXe4, noDir]).errors).toHaveLength(1);
+  });
+
+  it('모르는 방향 값은 거절한다', () => {
+    expect(validateJisamapRules([{ ...toXe4, dir: 'X' as never }]).errors[0]).toContain('적용 방향');
+  });
+
+  it('CPM 에는 방향이 실려 나가고, 키 없던 규칙은 ANY 다', () => {
+    const { dir: _omit, ...noDir } = toLogi;
+    expect(toClientRules([toXe4, noDir]).map((r) => r.dir)).toEqual(['TO_XE4', 'ANY']);
+    expect(ruleDir({})).toBe('ANY');
+  });
+
+  it('편집 모델 왕복에서 방향이 유지되고, 키 없던 규칙은 양방향으로 읽힌다', () => {
+    const { dir: _omit, ...noDir } = toLogi;
+    const editor = fromWireRules([toXe4, noDir]);
+    expect(editor.map((r) => r.dir)).toEqual(['TO_XE4', 'ANY']);
+    expect(toWireRules(editor).map((r) => r.dir)).toEqual(['TO_XE4', 'ANY']);
   });
 });
 

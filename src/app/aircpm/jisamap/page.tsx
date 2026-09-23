@@ -28,8 +28,8 @@ import { JisamapPasteDialog } from '@/components/aircpm/jisamap-paste-dialog';
 import { JisamapRuleCard } from '@/components/aircpm/jisamap-rule-card';
 import { useAuthStore } from '@/lib/auth/store';
 import {
-  digitsOnly,
   summarizeRules,
+  conflictingSourceDigits,
   toClientRules,
   validateJisamapRules,
 } from '@/lib/aircpm/jisamap';
@@ -128,23 +128,8 @@ export default function AircpmJisamapPage() {
   const summary = useMemo(() => summarizeRules(clientRules), [clientRules]);
   const disabledCount = wireRules.length - clientRules.length;
 
-  /** 두 활성 규칙에 걸쳐 중복된 소스 번호 — 해당 입력칸을 빨갛게 물들이는 데 쓴다. */
-  const duplicateDigits = useMemo(() => {
-    const seenIn = new Map<string, number>();
-    const dup = new Set<string>();
-    clientRules.forEach((r, i) => {
-      (r.sources ?? []).forEach((s) => {
-        (s.tels ?? []).forEach((t) => {
-          const d = digitsOnly(t);
-          if (!d) return;
-          const at = seenIn.get(d);
-          if (at === undefined) seenIn.set(d, i);
-          else if (at !== i) dup.add(d);
-        });
-      });
-    });
-    return dup;
-  }, [clientRules]);
+  /** 방향이 겹치는 두 활성 규칙에 걸쳐 중복된 소스 번호 — 해당 입력칸을 빨갛게 물들이는 데 쓴다. */
+  const duplicateDigits = useMemo(() => conflictingSourceDigits(clientRules), [clientRules]);
 
   const patchRule = (id: string, next: EditorRule) => {
     setRules((prev) => prev.map((r) => (r.id === id ? next : r)));

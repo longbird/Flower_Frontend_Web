@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { digitsOnly } from '@/lib/aircpm/jisamap';
+import { digitsOnly, JISAMAP_DIR_LABEL, JISAMAP_DIRS, type JisamapDir } from '@/lib/aircpm/jisamap';
 import { newSource, type EditorRule, type EditorSource } from '@/lib/aircpm/jisamap-editor';
 
 /**
@@ -86,6 +86,24 @@ export function JisamapRuleCard({
         </div>
 
         <div className="flex items-end gap-2 flex-wrap">
+          <div className="min-w-[140px]">
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">적용 방향</label>
+            {/* 붙여넣는 앱 기준. 한 지사의 규칙이 양방향 운영 PC 에 똑같이 내려가므로 한쪽 전용 규칙은 여기서 좁힌다. */}
+            <select
+              value={rule.dir}
+              onChange={(e) => onChange({ ...rule, dir: e.target.value as JisamapDir })}
+              disabled={disabled}
+              aria-label={`규칙 ${index + 1} 적용 방향`}
+              data-testid={`rule-dir-${index}`}
+              className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm"
+            >
+              {JISAMAP_DIRS.map((d) => (
+                <option key={d} value={d}>
+                  {JISAMAP_DIR_LABEL[d]}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="min-w-[140px] flex-1">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">대상 지사명</label>
             <Input
