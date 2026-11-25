@@ -43,7 +43,7 @@ const ACTIONS: Record<
 > = {
   approve: {
     title: '이 PC 를 승인하시겠습니까?',
-    description: '승인하면 이 PC 에서 화자 분리 녹취가 보이고 동작합니다. PC 는 몇 분 안에 승인을 확인합니다.',
+    description: '승인하면 이 PC 에서 화자 분리 녹취가 보이고 동작합니다. PC 는 최대 10분 안에 승인을 확인합니다.',
     button: '승인',
     done: '승인되었습니다.',
     withReason: false,
@@ -90,6 +90,15 @@ function macText(mac: string) {
   return mac.split('|').filter(Boolean).join(', ');
 }
 
+function MacOnlyBadge() {
+  return (
+    <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">
+      MAC 만으로 등록
+    </Badge>
+  );
+}
+
+// 업체명은 요청한 쪽이 적은 글자다. 처리하기 전에 PC 를 구분하는 값(serial·MAC·IP)을 함께 본다.
 function certSummary(c: AirrecCert) {
   return (
     <div className="text-sm space-y-1 bg-slate-50 rounded-lg p-3">
@@ -98,7 +107,12 @@ function certSummary(c: AirrecCert) {
         {c.computerName && ` (${c.computerName})`}
         {c.phone && <span className="text-slate-500"> · {c.phone}</span>}
       </div>
-      <div className="text-xs text-slate-500 break-all font-mono">{macText(c.macAddress)}</div>
+      <div className="text-xs text-slate-500">
+        IP: {c.publicIp || '-'} · 요청: {fmtDateTime(c.requestedAt)} {!c.serial && <MacOnlyBadge />}
+      </div>
+      <div className="text-xs text-slate-500 break-all font-mono">MAC: {macText(c.macAddress)}</div>
+      {c.serial && <div className="text-xs text-slate-500 break-all font-mono">{c.serial}</div>}
+      {c.rejectReason && <div className="text-xs text-red-600">이전 사유: {c.rejectReason}</div>}
     </div>
   );
 }
@@ -158,6 +172,8 @@ export default function RecCertsPage() {
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // 마지막 쪽의 PC 를 모두 처리하면 그 쪽이 없어진다
+  if (data && page > totalPages) setPage(totalPages);
   const action = target ? ACTIONS[target.kind] : null;
 
   const search = (text: string) => {
@@ -245,11 +261,7 @@ export default function RecCertsPage() {
                       <span className="font-semibold text-slate-900">{c.siteName}</span>
                       {c.computerName && <span className="text-sm text-slate-500">{c.computerName}</span>}
                       <Badge className={badge.className}>{badge.label}</Badge>
-                      {!c.serial && (
-                        <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">
-                          MAC 만으로 등록
-                        </Badge>
-                      )}
+                      {!c.serial && <MacOnlyBadge />}
                     </div>
                     <div className="text-xs text-slate-500">
                       연락처: {c.phone || '-'} · IP: {c.publicIp || '-'} · 버전: {c.appVersion || '-'}
@@ -260,12 +272,13 @@ export default function RecCertsPage() {
                     </div>
                     <div className="text-xs text-slate-400">
                       요청: {fmtDateTime(c.requestedAt)}
-                      {c.decidedAt && ` · 처리: ${fmtDateTime(c.decidedAt)}${c.decidedBy ? ` (${c.decidedBy})` : ''}`}
+                      {c.decidedAt &&
+                        ` · ${c.status === 'pending' ? '이전 처리' : '처리'}: ${fmtDateTime(c.decidedAt)}${c.decidedBy ? ` (${c.decidedBy})` : ''}`}
                       {` · 마지막 확인: ${fmtDateTime(c.lastCheckedAt)}`}
                     </div>
                     {c.rejectReason && (
                       <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1 mt-1">
-                        사유: {c.rejectReason}
+                        {`${c.status === 'pending' ? '이전 사유' : '사유'}: ${c.rejectReason}`}
                       </div>
                     )}
                   </div>
