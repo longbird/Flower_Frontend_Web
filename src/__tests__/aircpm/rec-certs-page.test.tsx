@@ -151,6 +151,51 @@ describe('녹취 인증 화면', () => {
     expect(await screen.findByText('MAC 만으로 등록')).toBeInTheDocument();
   });
 
+  it('확인 창에 PC 를 구분하는 값(serial·IP·MAC 만으로 등록)이 보인다', async () => {
+    listOf(cert());
+    const { unmount } = render(<Wrapper><RecCertsPage /></Wrapper>);
+    fireEvent.click(await screen.findByText('승인'));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('UUID-A|MB-A');
+    expect(dialog).toHaveTextContent('1.2.3.4');
+    expect(dialog).not.toHaveTextContent('MAC 만으로 등록');
+    unmount();
+
+    listOf(cert({ serial: '' }));
+    render(<Wrapper><RecCertsPage /></Wrapper>);
+    fireEvent.click(await screen.findByText('승인'));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('MAC 만으로 등록');
+  });
+
+  it('해제된 PC 가 다시 요청하면 앞의 사유가 보인다', async () => {
+    listOf(cert({ rejectReason: '계약 종료', decidedAt: '2026-11-25T05:10:00.000Z', decidedBy: 'super1' }));
+    render(<Wrapper><RecCertsPage /></Wrapper>);
+    expect(await screen.findByText('이전 사유: 계약 종료')).toBeInTheDocument();
+    expect(screen.getByText(/이전 처리:/)).toBeInTheDocument();
+  });
+
+  it('마지막 쪽이 비면 있는 쪽으로 돌아간다', async () => {
+    let total = 51;
+    vi.mocked(listAirrecCerts).mockImplementation(async (p) => ({
+      items: p?.page === 2 ? (total > 50 ? [cert({ id: 51, siteName: '마지막업체' })] : []) : [cert()],
+      total,
+      page: p?.page ?? 1,
+      limit: 50,
+    }));
+    vi.mocked(approveAirrecCert).mockImplementation(async () => {
+      total = 50;
+      return { ok: true };
+    });
+    render(<Wrapper><RecCertsPage /></Wrapper>);
+    fireEvent.click(await screen.findByText('다음'));
+    await screen.findByText('마지막업체');
+    fireEvent.click(screen.getByText('승인'));
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getAllByText('승인').at(-1)!);
+    await screen.findByText('총 50건 · 1/1');
+    expect(await screen.findByText('시험업체')).toBeInTheDocument();
+  });
+
   it('목록을 못 읽으면 빈 목록이 아니라 오류를 보인다', async () => {
     vi.mocked(listAirrecCerts).mockRejectedValue(new Error('down'));
     render(<Wrapper><RecCertsPage /></Wrapper>);
